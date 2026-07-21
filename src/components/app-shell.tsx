@@ -13,7 +13,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Palette, Check } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { getVisaoAdmin, getMinhaOrganizacao, aplicarCorTema, CORES_TEMA } from "@/lib/clinica-config";
+import { getVisaoAdmin, getMinhaOrganizacao, aplicarCorTema, clinicaLogoUrl, CORES_TEMA } from "@/lib/clinica-config";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -150,6 +150,7 @@ function CorTemaSwitcher({ org }: { org: { id: string; cor_tema: string } | null
 
 export function AppShell({ children }: { children: ReactNode }) {
   const org = useCorTemaClinica();
+  const clinicaLogoHeader = clinicaLogoUrl(org?.logo_path);
   return (
     <TooltipProvider delayDuration={200}>
       <div className="flex min-h-screen w-full gap-4 p-3 md:p-4">
@@ -157,12 +158,22 @@ export function AppShell({ children }: { children: ReactNode }) {
         <div className="flex min-w-0 flex-1 flex-col">
           <header className="sticky top-0 z-30 mb-4 flex h-16 items-center gap-3 rounded-full bg-card/80 px-3 shadow-[var(--shadow-soft)] backdrop-blur-xl">
             <MobileNav />
-            <Link to="/dashboard" className="flex shrink-0 items-center pl-1">
+            <Link to="/dashboard" className="flex shrink-0 items-center gap-3 pl-1">
               <img
                 src="/pensya-logo-horizontal.svg"
                 alt="Pensya"
                 className="h-8 w-auto object-contain"
               />
+              {clinicaLogoHeader && (
+                <>
+                  <span className="hidden h-7 w-px bg-border/80 sm:block" />
+                  <img
+                    src={clinicaLogoHeader}
+                    alt="Logo da clínica"
+                    className="hidden h-9 w-auto max-w-[8rem] object-contain sm:block"
+                  />
+                </>
+              )}
             </Link>
             <div className="mx-1 hidden h-6 w-px bg-border md:block" />
             <div className="min-w-0 flex-1 max-w-md">
