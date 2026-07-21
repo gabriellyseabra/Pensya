@@ -45,7 +45,11 @@ function useRawRoles() {
       const { data: u } = await supabase.auth.getUser();
       if (!u.user) return [];
       const { data } = await supabase.from("user_roles").select("role").eq("user_id", u.user.id);
-      return (data ?? []).map((r) => r.role as AppRole);
+      const roles = (data ?? []).map((r) => r.role);
+      // A administradora da plataforma (pensya_admin) navega as clínicas com
+      // poderes de admin — mesmo tratamento que has_role() dá no banco.
+      if (roles.includes("pensya_admin")) return ["admin"];
+      return roles.filter((r): r is AppRole => r !== "pensya_admin");
     },
     staleTime: 5 * 60_000,
   });

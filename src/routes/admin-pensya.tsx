@@ -1,10 +1,21 @@
+import { useState } from "react";
 import { createFileRoute, redirect, useNavigate } from "@tanstack/react-router";
-import { useMutation, useQuery } from "@tanstack/react-query";
-import { Building2, Users, LogOut, ShieldCheck, CircleDot, ArrowRight, Loader2 } from "lucide-react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { Building2, Users, LogOut, ShieldCheck, CircleDot, ArrowRight, Loader2, Plus } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import {
   Table,
   TableBody,
@@ -65,6 +76,67 @@ const STATUS_VARIANT: Record<string, "default" | "secondary" | "destructive" | "
   cancelado: "outline",
 };
 
+function NovaClinicaDialog() {
+  const qc = useQueryClient();
+  const [open, setOpen] = useState(false);
+  const [nome, setNome] = useState("");
+
+  const criar = useMutation({
+    mutationFn: async () => {
+      const { error } = await supabase.from("organizacoes").insert({ nome: nome.trim() });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Clínica criada");
+      qc.invalidateQueries({ queryKey: ["admin-pensya-organizacoes"] });
+      setNome("");
+      setOpen(false);
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button size="sm">
+          <Plus className="mr-1.5 h-4 w-4" />
+          Nova clínica
+        </Button>
+      </DialogTrigger>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>Criar clínica</DialogTitle>
+        </DialogHeader>
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            if (nome.trim()) criar.mutate();
+          }}
+          className="space-y-4"
+        >
+          <div className="space-y-1.5">
+            <Label htmlFor="nova-clinica-nome">Nome da clínica</Label>
+            <Input
+              id="nova-clinica-nome"
+              autoFocus
+              required
+              value={nome}
+              onChange={(e) => setNome(e.target.value)}
+              placeholder="Ex.: Clínica Aprender Bem"
+            />
+          </div>
+          <DialogFooter>
+            <Button type="submit" disabled={criar.isPending || !nome.trim()}>
+              {criar.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Criar
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 function AdminPensyaPage() {
   const navigate = useNavigate();
 
@@ -113,11 +185,14 @@ function AdminPensyaPage() {
       </header>
 
       <main className="mx-auto max-w-6xl space-y-6 px-6 py-8">
-        <div>
-          <h1 className="font-display text-2xl font-semibold tracking-tight">Clínicas no Pensya</h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Visão geral de todas as clínicas cadastradas na plataforma.
-          </p>
+        <div className="flex flex-wrap items-end justify-between gap-3">
+          <div>
+            <h1 className="font-display text-2xl font-semibold tracking-tight">Clínicas no Pensya</h1>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Visão geral de todas as clínicas cadastradas na plataforma.
+            </p>
+          </div>
+          <NovaClinicaDialog />
         </div>
 
         <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
