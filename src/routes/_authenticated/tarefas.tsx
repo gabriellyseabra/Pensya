@@ -46,12 +46,21 @@ function TarefasPage() {
       let q = supabase
         .from("tarefas")
         .select("*, paciente:pacientes(id, nome), lead:leads(id, nome)")
+        .is("sessao_para_casa", null) // Exclui sessões que ficaram para casa
         .order("prazo", { ascending: true, nullsFirst: false });
       if (statusFilter === "abertas") q = q.neq("status", "concluida");
       if (statusFilter === "concluidas") q = q.eq("status", "concluida");
       if (depFilter !== "todos") q = q.eq("departamento", depFilter);
       const { data } = await q;
-      return data ?? [];
+
+      // Calcula status "atrasado" automaticamente
+      const hoje = format(new Date(), "yyyy-MM-dd");
+      return (data ?? []).map((t: any) => ({
+        ...t,
+        status_calculado: t.status === "concluida" ? "concluida" :
+                         (t.prazo && t.prazo < hoje) ? "atrasado" :
+                         t.status,
+      }));
     },
   });
 
@@ -60,13 +69,25 @@ function TarefasPage() {
       const { error } = await supabase
         .from("tarefas")
         .update({
-          status: concluida ? "concluida" : "a_fazer",
+          status: concluida ? "concluida" : "pendente",
           concluida_em: concluida ? new Date().toISOString() : null,
         })
         .eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["tarefas"] }),
+  });
+
+  const deleteTarefa = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from("tarefas").delete().eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Tarefa excluída");
+      qc.invalidateQueries({ queryKey: ["tarefas"] });
+    },
+    onError: (e: Error) => toast.error(e.message),
   });
 
   // Contagem por departamento
@@ -173,35 +194,60 @@ function TarefasPage() {
         {tarefas?.length === 0 && (
           <Card className="glass p-8 text-center text-sm text-muted-foreground">Nenhuma tarefa.</Card>
         )}
-        {tarefas?.map((t: any, i: number) => (
-          <Card
-            key={t.id}
-            className="glass card-lift animate-fade-up p-4 flex items-center gap-3 cursor-pointer"
-            style={{ animationDelay: `${Math.min(i * 40, 320)}ms` }}
-            onClick={() => setSelected(t)}
-          >
-            <Checkbox
-              checked={t.status === "concluida"}
-              onClick={(e) => e.stopPropagation()}
-              onCheckedChange={(c) => toggleTarefa.mutate({ id: t.id, concluida: !!c })}
-            />
-            <div className="flex-1 min-w-0">
-              <p className={`text-sm font-medium ${t.status === "concluida" ? "line-through text-muted-foreground" : ""}`}>
-                {t.titulo}
-              </p>
-              <p className="text-xs text-muted-foreground truncate">
-                {t.departamento ? `${labelDep(t.departamento)} · ` : ""}
-                {t.paciente?.nome ? `${t.paciente.nome} · ` : ""}
-                {t.lead?.nome ? `Lead: ${t.lead.nome} · ` : ""}
-                {t.prazo ? `Prazo ${format(parseISO(t.prazo), "dd/MM/yyyy")}` : "Sem prazo"}
-                {t.origem && t.origem !== "manual" ? ` · ${t.origem}` : ""}
-              </p>
-            </div>
-            <Badge variant={t.prioridade === "alta" ? "destructive" : t.prioridade === "baixa" ? "secondary" : "outline"}>
-              {t.prioridade}
-            </Badge>
-          </Card>
-        ))}
+        {tarefas?.map((t: any, i: number) => {
+          const statusColor = t.status_calculado === "concluida" ? "success" :
+                             t.status_calculado === "atrasado" ? "destructive" :
+                             "outline";
+          const statusLabel = t.status_calculado === "concluida" ? "Feito" :
+                             t.status_calculado === "atrasado" ? "Atrasado" :
+                             "Pendente";
+
+          return (
+            <Card
+              key={t.id}
+              className="glass card-lift animate-fade-up p-4 flex items-center gap-3 cursor-pointer"
+              style={{ animationDelay: `${Math.min(i * 40, 320)}ms` }}
+              onClick={() => setSelected(t)}
+            >
+              <Checkbox
+                checked={t.status === "concluida"}
+                onClick={(e) => e.stopPropagation()}
+                onCheckedChange={(c) => toggleTarefa.mutate({ id: t.id, concluida: !!c })}
+              />
+              <div className="flex-1 min-w-0">
+                <p className={`text-sm font-medium ${t.status === "concluida" ? "line-through text-muted-foreground" : ""}`}>
+                  {t.titulo}
+                </p>
+                <p className="text-xs text-muted-foreground truncate">
+                  {t.departamento ? `${labelDep(t.departamento)} · ` : ""}
+                  {t.paciente?.nome ? `${t.paciente.nome} · ` : ""}
+                  {t.lead?.nome ? `Lead: ${t.lead.nome} · ` : ""}
+                  {t.prazo ? `Prazo ${format(parseISO(t.prazo), "dd/MM/yyyy")}` : "Sem prazo"}
+                  {t.origem && t.origem !== "manual" ? ` · ${t.origem}` : ""}
+                </p>
+              </div>
+              <Badge variant={statusColor}>
+                {statusLabel}
+              </Badge>
+              <Badge variant={t.prioridade === "alta" ? "destructive" : t.prioridade === "baixa" ? "secondary" : "outline"}>
+                {t.prioridade}
+              </Badge>
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  if (confirm("Excluir tarefa?")) {
+                    deleteTarefa.mutate(t.id);
+                  }
+                }}
+                className="h-8 w-8 p-0 text-destructive hover:text-destructive"
+              >
+                <Trash2 className="w-4 h-4" />
+              </Button>
+            </Card>
+          );
+        })}
         </div>
       </TwoColumn>
 
@@ -326,7 +372,7 @@ function NovaTarefaDialog({ onCreated }: { onCreated: () => void }) {
         departamento: form.departamento || null,
         origem: "manual",
         criador_id: user?.id ?? null,
-        status: "a_fazer",
+        status: "pendente",
       });
       if (error) throw error;
     },
@@ -472,9 +518,9 @@ function TarefaDrawer({
           >
             <SelectTrigger className="h-8 w-[180px]"><SelectValue /></SelectTrigger>
             <SelectContent>
-              <SelectItem value="a_fazer">A fazer</SelectItem>
+              <SelectItem value="pendente">Pendente</SelectItem>
               <SelectItem value="em_progresso">Em progresso</SelectItem>
-              <SelectItem value="concluida">Concluída</SelectItem>
+              <SelectItem value="concluida">Feito</SelectItem>
             </SelectContent>
           </Select>
         </Row>
