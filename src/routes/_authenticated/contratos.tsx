@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useMemo, useState } from "react";
+import React, { useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -40,6 +40,7 @@ import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { renderContratoHtml, VARIAVEIS_DISPONIVEIS, TEMPLATE_EXEMPLO } from "@/lib/contratos";
 import { getMinhaOrganizacao } from "@/lib/clinica-config";
+import { extrairPdfParaHtml } from "@/lib/pdf-utils";
 import { PageHero } from "@/components/shared/PageHero";
 
 export const Route = createFileRoute("/_authenticated/contratos")({
@@ -151,13 +152,64 @@ function TemplateDialog({
   const [nome, setNome] = useState(template?.nome ?? "");
   const [descricao, setDescricao] = useState(template?.descricao ?? "");
   const [conteudo, setConteudo] = useState(template?.conteudo_html ?? TEMPLATE_EXEMPLO);
+  const [carregandoPdf, setCarregandoPdf] = useState(false);
+  const [imagens, setImagens] = useState<Map<string, string>>(new Map());
+  const [adicionarLogo, setAdicionarLogo] = useState(false);
 
   // reset when template changes
   useMemo(() => {
     setNome(template?.nome ?? "");
     setDescricao(template?.descricao ?? "");
     setConteudo(template?.conteudo_html ?? TEMPLATE_EXEMPLO);
+    setImagens(new Map());
+    setAdicionarLogo(false);
   }, [template]);
+
+  const handleUploadPdf = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const arquivo = e.target.files?.[0];
+    if (!arquivo) return;
+
+    setCarregandoPdf(true);
+    try {
+      const { html, imagens: imagensExtraidas } = await extrairPdfParaHtml(arquivo);
+
+      // Armazena imagens em um mapa para acesso rápido
+      const mapImagens = new Map(imagensExtraidas.map((img) => [img.id, img.base64]));
+      setImagens(mapImagens);
+
+      // Insere as imagens no HTML
+      let htmlComImagens = html;
+      imagensExtraidas.forEach((img) => {
+        const imgTag = `<img src="${img.base64}" style="max-width: 100%; height: auto; margin: 10px 0;" alt="Imagem do PDF" />`;
+        htmlComImagens = imgTag + '\n' + htmlComImagens;
+      });
+
+      setConteudo(htmlComImagens);
+      if (!nome.trim()) {
+        setNome(arquivo.name.replace(/\.pdf$/i, ""));
+      }
+      toast.success(`PDF convertido! ${imagensExtraidas.length} imagem(ns) extraída(s)`);
+    } catch (err: any) {
+      toast.error(`Erro ao processar PDF: ${err.message}`);
+    } finally {
+      setCarregandoPdf(false);
+      e.target.value = "";
+    }
+  };
+
+  const handleAdicionarLogo = async () => {
+    const clinicaCfg = await getMinhaOrganizacao();
+    if (!clinicaCfg?.logo_url) {
+      toast.error("Nenhum logo configurado nas configurações da clínica");
+      return;
+    }
+    const logoHtml = `<div style="text-align: center; margin-bottom: 20px;">
+  <img src="${clinicaCfg.logo_url}" style="max-height: 80px; max-width: 200px; object-fit: contain;" alt="Logo da clínica" />
+</div>`;
+    setConteudo(logoHtml + '\n' + conteudo);
+    setAdicionarLogo(false);
+    toast.success("Logo adicionado ao início do contrato");
+  };
 
   const save = async () => {
     if (!nome.trim()) return toast.error("Informe o nome do modelo");
@@ -186,6 +238,42 @@ function TemplateDialog({
             <div>
               <Label>Descrição</Label>
               <Input value={descricao} onChange={(e) => setDescricao(e.target.value)} />
+            </div>
+          </div>
+
+          <div className="border rounded-lg p-4 bg-muted/30 space-y-3">
+            <div>
+              <Label className="text-sm font-medium mb-2 block">Carregar modelo de PDF</Label>
+              <input
+                type="file"
+                accept=".pdf"
+                onChange={handleUploadPdf}
+                disabled={carregandoPdf}
+                className="block w-full text-sm text-muted-foreground
+                  file:mr-4 file:py-2 file:px-4
+                  file:rounded-md file:border-0
+                  file:text-sm file:font-medium
+                  file:bg-primary file:text-primary-foreground
+                  hover:file:bg-primary/90 disabled:opacity-50"
+              />
+              <p className="text-xs text-muted-foreground mt-2">
+                {carregandoPdf ? "Processando PDF..." : "Selecione um PDF e o conteúdo será convertido para HTML editável. Imagens serão extraídas automaticamente."}
+              </p>
+            </div>
+            <div className="flex gap-2">
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                onClick={handleAdicionarLogo}
+              >
+                + Adicionar logo da clínica
+              </Button>
+              {imagens.size > 0 && (
+                <span className="text-xs text-muted-foreground flex items-center">
+                  {imagens.size} imagem(ns) do PDF
+                </span>
+              )}
             </div>
           </div>
 
