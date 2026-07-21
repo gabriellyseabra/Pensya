@@ -12,12 +12,10 @@ import {
   DollarSign,
   BarChart3,
   Megaphone,
-  Package,
   Bell,
   DoorOpen,
   LogOut,
   Menu,
-  Workflow,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
@@ -63,9 +61,9 @@ const groups: { label: string; items: Item[] }[] = [
       { title: "Financeiro", url: "/financeiro", icon: DollarSign },
       { title: "Contratos", url: "/contratos", icon: FileText },
       { title: "Indicadores", url: "/indicadores", icon: BarChart3 },
-      { title: "Marketing", url: "/marketing", icon: Megaphone },
-      { title: "Processos", url: "/processos", icon: Workflow },
-      { title: "Produtos", url: "/produtos", icon: Package },
+      { title: "Comercial", url: "/marketing", icon: Megaphone },
+      // Processos e Produtos ficam ocultos por enquanto (funcionalidades
+      // ainda não liberadas no Pensya).
       { title: "Equipe", url: "/equipe", icon: UserCog },
     ],
   },

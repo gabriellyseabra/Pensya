@@ -35,6 +35,8 @@ import {
   ListChecks,
   Loader2,
   Activity,
+  CalendarClock,
+  Award,
 } from "lucide-react";
 import {
   differenceInDays,
@@ -42,16 +44,17 @@ import {
   endOfYear,
   format,
   isAfter,
+  isToday,
   parseISO,
+  startOfDay,
   startOfMonth,
   startOfYear,
   subMonths,
 } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { toast } from "sonner";
-import { currency, type MktRotina, type MktRotinaExecucao, type Cadencia } from "./types";
+import { currency } from "./types";
 import { IndicadoresGerais } from "./IndicadoresGerais";
-import { periodoAtual } from "@/lib/marketing-periodos";
 import { gerarTarefasMarketing } from "@/lib/marketing-tarefas";
 import { invalidarMarketing } from "@/lib/marketing-cache";
 
@@ -59,6 +62,10 @@ const CORES = ["#064570", "#5585b1", "#f9ca0a", "#deb0bd", "#10b981", "#ef4444"]
 
 type LeadDashboard = {
   id: string;
+  nome: string;
+  telefone: string | null;
+  indicador_nome: string | null;
+  proximo_contato_em: string | null;
   created_at: string;
   etapa_id: string;
   canal_id: string | null;
@@ -152,7 +159,7 @@ export function DashboardMarketing() {
       const { data } = await supabase
         .from("leads")
         .select(
-          "id, created_at, etapa_id, canal_id, canal:canais_marketing(nome), campanha_id, responsavel:profiles(nome), paciente_id_criado, convertido_em, entrou_em, ultimo_contato_em",
+          "id, nome, telefone, indicador_nome, proximo_contato_em, created_at, etapa_id, canal_id, canal:canais_marketing(nome), campanha_id, responsavel:profiles(nome), paciente_id_criado, convertido_em, entrou_em, ultimo_contato_em",
         )
         .order("created_at", { ascending: false });
       return (data ?? []) as LeadDashboard[];
@@ -244,26 +251,29 @@ export function DashboardMarketing() {
   });
 
   const qc = useQueryClient();
-  const { data: rotinas } = useQuery({
-    queryKey: ["mkt-rotinas"],
-    queryFn: async () =>
-      ((await supabase.from("marketing_rotinas").select("*").eq("ativo", true).order("ordem"))
-        .data ?? []) as MktRotina[],
-  });
-  const periodosAtuais = Array.from(
-    new Set((["semanal", "mensal", "bimestral"] as Cadencia[]).map((c) => periodoAtual(c))),
+
+  // Follow-ups agendados (leads não convertidos com próximo contato marcado)
+  const followups = (leads ?? [])
+    .filter((l) => l.proximo_contato_em && !l.convertido_em && !l.paciente_id_criado)
+    .sort((a, b) => (a.proximo_contato_em! < b.proximo_contato_em! ? -1 : 1));
+  const followupsAtrasados = followups.filter(
+    (l) => parseISO(l.proximo_contato_em!) < startOfDay(new Date()) && !isToday(parseISO(l.proximo_contato_em!)),
   );
-  const { data: execucoes } = useQuery({
-    queryKey: ["mkt-rotina-execucoes", ...periodosAtuais],
-    queryFn: async () =>
-      ((await supabase.from("marketing_rotina_execucoes").select("*").in("periodo", periodosAtuais))
-        .data ?? []) as MktRotinaExecucao[],
-  });
-  const rotinasPendentes = (rotinas ?? []).filter((r) => {
-    const per = periodoAtual(r.cadencia as Cadencia);
-    const e = (execucoes ?? []).find((x) => x.rotina_id === r.id && x.periodo === per);
-    return !(e && (e.feito || e.quantidade >= r.meta_qtd));
-  });
+
+  // Ranking de indicações ("quem mais indicou")
+  const indicacoesMap = new Map<string, { leads: number; convertidos: number }>();
+  for (const l of leads ?? []) {
+    const nome = (l.indicador_nome || "").trim();
+    if (!nome) continue;
+    const r = indicacoesMap.get(nome) ?? { leads: 0, convertidos: 0 };
+    r.leads += 1;
+    if (l.convertido_em || l.paciente_id_criado) r.convertidos += 1;
+    indicacoesMap.set(nome, r);
+  }
+  const rankingIndicacoes = Array.from(indicacoesMap.entries())
+    .map(([nome, r]) => ({ nome, ...r }))
+    .sort((a, b) => b.leads - a.leads)
+    .slice(0, 8);
 
   const gerar = useMutation({
     mutationFn: gerarTarefasMarketing,
@@ -506,8 +516,19 @@ export function DashboardMarketing() {
         </div>
       </div>
 
-      {(leadsEstagnados.length > 0 || rotinasPendentes.length > 0) && (
+      {(leadsEstagnados.length > 0 || followupsAtrasados.length > 0) && (
         <div className="grid gap-3 md:grid-cols-2">
+          {followupsAtrasados.length > 0 && (
+            <Card className="glass border-destructive/50">
+              <CardContent className="flex items-center gap-3 py-3">
+                <CalendarClock className="h-5 w-5 text-destructive shrink-0" />
+                <p className="text-sm">
+                  <strong>{followupsAtrasados.length}</strong> follow-up(s) atrasado(s) —
+                  os contatos agendados estão listados abaixo.
+                </p>
+              </CardContent>
+            </Card>
+          )}
           {leadsEstagnados.length > 0 && (
             <Card className="glass border-brand-yellow/60">
               <CardContent className="flex items-center gap-3 py-3">
@@ -519,19 +540,75 @@ export function DashboardMarketing() {
               </CardContent>
             </Card>
           )}
-          {rotinasPendentes.length > 0 && (
-            <Card className="glass border-brand/30">
-              <CardContent className="flex items-center gap-3 py-3">
-                <ListChecks className="h-5 w-5 text-brand shrink-0" />
-                <p className="text-sm">
-                  <strong>{rotinasPendentes.length}</strong> rotina(s) pendente(s) no período —
-                  confira a aba Rotinas.
-                </p>
-              </CardContent>
-            </Card>
-          )}
         </div>
       )}
+
+      <div className="grid gap-3 lg:grid-cols-2">
+        <Card className="glass card-lift animate-fade-up">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-base">
+              <CalendarClock className="h-4 w-4 text-brand" />
+              Follow-ups agendados
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            {followups.slice(0, 6).map((l) => {
+              const data = parseISO(l.proximo_contato_em!);
+              const atrasado = data < startOfDay(new Date()) && !isToday(data);
+              return (
+                <div key={l.id} className="flex items-center justify-between gap-2 text-sm">
+                  <span className="truncate">{l.nome}</span>
+                  <span
+                    className={`shrink-0 rounded-full px-2 py-0.5 text-xs font-medium ${
+                      atrasado
+                        ? "bg-destructive/10 text-destructive"
+                        : isToday(data)
+                          ? "bg-brand/10 text-brand"
+                          : "bg-muted text-muted-foreground"
+                    }`}
+                  >
+                    {atrasado ? "Atrasado · " : isToday(data) ? "Hoje · " : ""}
+                    {format(data, "dd/MM", { locale: ptBR })}
+                  </span>
+                </div>
+              );
+            })}
+            {followups.length === 0 && (
+              <p className="py-4 text-center text-sm text-muted-foreground">
+                Nenhum follow-up agendado — marque o próximo contato nos leads do Pipeline.
+              </p>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card className="glass card-lift animate-fade-up">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-base">
+              <Award className="h-4 w-4 text-brand" />
+              Quem mais indica
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            {rankingIndicacoes.map((r, i) => (
+              <div key={r.nome} className="flex items-center justify-between gap-2 text-sm">
+                <span className="flex min-w-0 items-center gap-2">
+                  <span className="w-5 shrink-0 text-xs font-semibold text-muted-foreground">{i + 1}º</span>
+                  <span className="truncate">{r.nome}</span>
+                </span>
+                <span className="shrink-0 text-xs text-muted-foreground">
+                  {r.leads} lead{r.leads > 1 ? "s" : ""}
+                  {r.convertidos > 0 && ` · ${r.convertidos} convertido${r.convertidos > 1 ? "s" : ""}`}
+                </span>
+              </div>
+            ))}
+            {rankingIndicacoes.length === 0 && (
+              <p className="py-4 text-center text-sm text-muted-foreground">
+                Sem indicações registradas ainda — preencha "quem indicou" ao cadastrar leads.
+              </p>
+            )}
+          </CardContent>
+        </Card>
+      </div>
 
       <div className="grid gap-3 grid-cols-2 lg:grid-cols-4">
         <Kpi

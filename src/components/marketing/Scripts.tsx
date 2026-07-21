@@ -11,7 +11,7 @@ import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { FilterBar } from "@/components/shared/FilterBar";
-import { Copy, Plus, Star, Pencil, Trash2, FileText } from "lucide-react";
+import { Copy, Plus, Star, Pencil, Trash2, FileText, MessageCircle, Search } from "lucide-react";
 import { toast } from "sonner";
 import { invalidarMarketing } from "@/lib/marketing-cache";
 import { CATEGORIAS_SCRIPT, labelCategoriaScript, type Script } from "./types";
@@ -22,6 +22,7 @@ export function Scripts() {
   const [search, setSearch] = useState("");
   const [formOpen, setFormOpen] = useState(false);
   const [editing, setEditing] = useState<Script | null>(null);
+  const [waScript, setWaScript] = useState<Script | null>(null);
 
   const { data: scripts } = useQuery({
     queryKey: ["scripts"],
@@ -103,6 +104,13 @@ export function Scripts() {
                     <CardContent className="space-y-3">
                       <p className="text-sm text-muted-foreground whitespace-pre-wrap line-clamp-6">{s.conteudo}</p>
                       <div className="flex justify-end gap-1.5">
+                        <Button
+                          size="sm"
+                          className="bg-[#25D366] text-white hover:bg-[#1fb958]"
+                          onClick={() => setWaScript(s)}
+                        >
+                          <MessageCircle className="w-3.5 h-3.5 mr-1" />WhatsApp
+                        </Button>
                         <Button size="sm" variant="outline" onClick={() => copiar(s.conteudo)}><Copy className="w-3.5 h-3.5 mr-1" />Copiar</Button>
                         <Button size="sm" variant="ghost" onClick={() => { setEditing(s); setFormOpen(true); }}><Pencil className="w-3.5 h-3.5" /></Button>
                         <Button size="sm" variant="ghost" className="text-destructive" onClick={() => { if (confirm("Remover script?")) del.mutate(s.id); }}>
@@ -130,6 +138,8 @@ export function Scripts() {
         editing={editing}
         onSaved={() => invalidarMarketing(qc)}
       />
+
+      <EnviarWhatsAppDialog script={waScript} onClose={() => setWaScript(null)} />
     </div>
   );
 }
@@ -207,6 +217,83 @@ function ScriptFormDialog({
             {editing ? "Salvar" : "Criar script"}
           </Button>
         </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+/** Normaliza telefone BR para o formato do wa.me (DDI 55 + DDD + número). */
+function telefoneParaWa(tel: string): string | null {
+  const digitos = tel.replace(/\D/g, "");
+  if (digitos.length < 10) return null;
+  return digitos.startsWith("55") && digitos.length >= 12 ? digitos : `55${digitos}`;
+}
+
+function EnviarWhatsAppDialog({ script, onClose }: { script: Script | null; onClose: () => void }) {
+  const [busca, setBusca] = useState("");
+
+  const { data: leads } = useQuery({
+    queryKey: ["scripts-leads-whatsapp"],
+    enabled: !!script,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("leads")
+        .select("id, nome, telefone")
+        .not("telefone", "is", null)
+        .order("created_at", { ascending: false })
+        .limit(300);
+      return (data ?? []).filter((l) => l.telefone && telefoneParaWa(l.telefone));
+    },
+  });
+
+  const termo = busca.trim().toLowerCase();
+  const filtrados = (leads ?? []).filter(
+    (l) => !termo || l.nome.toLowerCase().includes(termo) || (l.telefone ?? "").includes(termo),
+  );
+
+  function abrir(telefone: string) {
+    if (!script) return;
+    const numero = telefoneParaWa(telefone);
+    if (!numero) { toast.error("Telefone inválido"); return; }
+    window.open(`https://wa.me/${numero}?text=${encodeURIComponent(script.conteudo)}`, "_blank");
+    onClose();
+  }
+
+  return (
+    <Dialog open={!!script} onOpenChange={(o) => { if (!o) { setBusca(""); onClose(); } }}>
+      <DialogContent className="glass-strong max-w-md">
+        <DialogHeader>
+          <DialogTitle>Enviar "{script?.titulo}" no WhatsApp</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-3">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              autoFocus
+              className="pl-9"
+              placeholder="Buscar lead por nome ou telefone..."
+              value={busca}
+              onChange={(e) => setBusca(e.target.value)}
+            />
+          </div>
+          <div className="max-h-72 space-y-1 overflow-y-auto">
+            {filtrados.map((l) => (
+              <button
+                key={l.id}
+                onClick={() => abrir(l.telefone!)}
+                className="flex w-full items-center justify-between gap-2 rounded-xl px-3 py-2 text-left text-sm transition-colors hover:bg-accent"
+              >
+                <span className="truncate font-medium">{l.nome}</span>
+                <span className="shrink-0 text-xs text-muted-foreground">{l.telefone}</span>
+              </button>
+            ))}
+            {filtrados.length === 0 && (
+              <p className="py-6 text-center text-sm text-muted-foreground">
+                Nenhum lead com telefone encontrado.
+              </p>
+            )}
+          </div>
+        </div>
       </DialogContent>
     </Dialog>
   );
