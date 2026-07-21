@@ -13,10 +13,12 @@ import {
 } from "@/components/ui/select";
 import {
   Upload, Check, ArrowLeft, ArrowRight, Shield, AlertCircle, FileText, Paperclip, X,
-  ListChecks, Asterisk, ClipboardCheck, Mail, Instagram, Plus, Trash2, Heart,
+  ListChecks, Asterisk, ClipboardCheck, Mail, Plus, Trash2, Heart,
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { useQuery } from "@tanstack/react-query";
+import { getConfiguracaoClinica } from "@/lib/clinica-config";
 
 export const Route = createFileRoute("/cadastro/$token")({
   ssr: false,
@@ -32,10 +34,6 @@ export const Route = createFileRoute("/cadastro/$token")({
     </div>
   ),
 });
-
-// Perfil do Instagram da Nave — confirme/ajuste o @ se necessário.
-const INSTAGRAM_HANDLE = "nave.desenvolvimento";
-const INSTAGRAM_URL = `https://instagram.com/${INSTAGRAM_HANDLE}`;
 
 type Dados = {
   paciente?: any;
@@ -72,8 +70,8 @@ const ESCOLARIDADE_OPTIONS = [
 function Logo({ className }: { className?: string }) {
   return (
     <img
-      src="/logo-nave.png"
-      alt="Nave Psicopedagogia e Desenvolvimento"
+      src="/pensya-logo.svg"
+      alt="Pensya"
       className={cn("w-auto object-contain", className)}
     />
   );
@@ -89,6 +87,8 @@ function CadastroPublicoPage() {
   const [done, setDone] = useState(false);
   const lgpdRef = useRef<HTMLDivElement>(null);
   const [showLgpdError, setShowLgpdError] = useState(false);
+  const { data: clinicaCfg } = useQuery({ queryKey: ["configuracao-clinica"], queryFn: getConfiguracaoClinica });
+  const nomeClinica = clinicaCfg?.nome_clinica?.trim() || "nossa clínica";
 
   useEffect(() => {
     (async () => {
@@ -163,7 +163,7 @@ function CadastroPublicoPage() {
 
   // ===== Boas-vindas =====
   if (step === 0) {
-    return <BoasVindas onStart={() => { setStep(1); window.scrollTo({ top: 0 }); }} />;
+    return <BoasVindas nomeClinica={nomeClinica} onStart={() => { setStep(1); window.scrollTo({ top: 0 }); }} />;
   }
 
   return (
@@ -185,8 +185,8 @@ function CadastroPublicoPage() {
         </div>
 
         <Card className="glass-strong p-6 md:p-8">
-          {step === 1 && <EtapaPaciente dados={dados} onChange={update} cadId={cadId} />}
-          {step === 2 && <EtapaQueixa dados={dados} onChange={update} cadId={cadId} />}
+          {step === 1 && <EtapaPaciente dados={dados} onChange={update} cadId={cadId} nomeClinica={nomeClinica} />}
+          {step === 2 && <EtapaQueixa dados={dados} onChange={update} cadId={cadId} nomeClinica={nomeClinica} />}
           {step === 3 && <EtapaResponsaveis dados={dados} onChange={update} />}
           {step === 4 && <EtapaFamilia dados={dados} onChange={update} />}
           {step === 5 && <EtapaDesenvolvimento dados={dados} onChange={update} />}
@@ -197,6 +197,7 @@ function CadastroPublicoPage() {
               onGoto={(s: number) => { setStep(s); window.scrollTo({ top: 0, behavior: "smooth" }); }}
               lgpdRef={lgpdRef}
               showLgpdError={showLgpdError}
+              nomeClinica={nomeClinica}
             />
           )}
 
@@ -227,7 +228,7 @@ function CadastroPublicoPage() {
 
 /* ============== BOAS-VINDAS ============== */
 
-function BoasVindas({ onStart }: { onStart: () => void }) {
+function BoasVindas({ onStart, nomeClinica }: { onStart: () => void; nomeClinica: string }) {
   const passos = [
     {
       n: "1",
@@ -263,7 +264,7 @@ function BoasVindas({ onStart }: { onStart: () => void }) {
               Estamos muito felizes em iniciar esse cuidado junto com a sua família.
             </p>
             <p className="text-muted-foreground leading-relaxed mt-2">
-              Este formulário nos ajuda a conhecer melhor quem vai chegar à Nave, para que o
+              Este formulário nos ajuda a conhecer melhor quem vai chegar à {nomeClinica}, para que o
               acompanhamento seja individualizado desde o primeiro encontro.
             </p>
 
@@ -334,24 +335,6 @@ function Agradecimento() {
               Em breve entraremos em contato pelo WhatsApp com os próximos passos, e você receberá o
               contrato no e-mail informado para assinatura.
             </p>
-
-            <div className="mt-7 rounded-2xl p-5 text-white text-left"
-                 style={{ background: "linear-gradient(135deg, #833ab4, #fd1d1d 55%, #fcb045)" }}>
-              <div className="flex items-center gap-2 font-semibold">
-                <Instagram className="h-5 w-5" /> Acompanhe a Nave no Instagram
-              </div>
-              <p className="text-sm text-white/90 mt-1">
-                Dicas de desenvolvimento, bastidores e novidades da nossa equipe.
-              </p>
-              <a
-                href={INSTAGRAM_URL}
-                target="_blank"
-                rel="noreferrer"
-                className="mt-3 inline-flex items-center gap-2 rounded-full bg-white/95 px-4 py-2 text-sm font-semibold text-[#c1358a] hover:bg-white transition-colors"
-              >
-                <Instagram className="h-4 w-4" /> Seguir @{INSTAGRAM_HANDLE}
-              </a>
-            </div>
 
             <p className="text-xs text-muted-foreground mt-6">Dados protegidos · LGPD</p>
           </div>
@@ -484,7 +467,7 @@ function AnexoUploader({ cadId, value, onChange }: { cadId: string; value: any[]
 
 /* ============== ETAPA 1 — PACIENTE ============== */
 
-function EtapaPaciente({ dados, onChange, cadId }: any) {
+function EtapaPaciente({ dados, onChange, cadId, nomeClinica }: any) {
   const p = dados.paciente ?? {};
   const set = (k: string, v: any) => onChange({ paciente: { ...p, [k]: v } });
   const [uploading, setUploading] = useState(false);
@@ -604,7 +587,7 @@ function EtapaPaciente({ dados, onChange, cadId }: any) {
       </Field>
 
       <div className="pt-3 border-t">
-        <Field label="Como você conheceu a Nave?" hint="Nos ajuda a entender por onde as famílias chegam até nós">
+        <Field label={`Como você conheceu a ${nomeClinica}?`} hint="Nos ajuda a entender por onde as famílias chegam até nós">
           <Chips
             value={dados.origem?.canal ?? ""}
             options={["Instagram", "Indicação de família ou amigo", "Escola ou parceiro", "Google ou busca", "Facebook", "Evento", "Outro"]}
@@ -634,14 +617,14 @@ function EtapaPaciente({ dados, onChange, cadId }: any) {
 
 /* ============== ETAPA 2 — QUEIXA ============== */
 
-function EtapaQueixa({ dados, onChange, cadId }: any) {
+function EtapaQueixa({ dados, onChange, cadId, nomeClinica }: any) {
   const q = dados.queixa ?? {};
   const set = (k: string, v: any) => onChange({ queixa: { ...q, [k]: v } });
   return (
     <div className="space-y-5">
       <div>
         <h2 className="text-2xl font-display mb-1">Queixa e histórico clínico</h2>
-        <p className="text-sm text-muted-foreground">O que trouxe a família até a Nave</p>
+        <p className="text-sm text-muted-foreground">O que trouxe a família até a {nomeClinica}</p>
       </div>
 
       <Field label="Queixa principal *" hint="Toque nos atalhos para acelerar o preenchimento">
@@ -1104,7 +1087,7 @@ function EtapaDesenvolvimento({ dados, onChange }: any) {
 
 /* ============== ETAPA 6 — SAÚDE + REVISÃO ============== */
 
-function EtapaSaudeRevisao({ dados, onChange, onGoto, lgpdRef, showLgpdError }: any) {
+function EtapaSaudeRevisao({ dados, onChange, onGoto, lgpdRef, showLgpdError, nomeClinica }: any) {
   const s = dados.saude ?? {};
   const t = dados.tratamentos ?? {};
   const setS = (k: string, v: any) => onChange({ saude: { ...s, [k]: v } });
@@ -1206,7 +1189,7 @@ function EtapaSaudeRevisao({ dados, onChange, onGoto, lgpdRef, showLgpdError }: 
             <span className="font-semibold">Aceito os termos de LGPD *</span>
             <br />
             <span className="text-muted-foreground">
-              Li e aceito que os dados informados serão utilizados pela equipe da Nave Desenvolvimento para
+              Li e aceito que os dados informados serão utilizados pela equipe da {nomeClinica} para
               fins de avaliação e acompanhamento clínico, sendo armazenados de forma segura e confidencial,
               em conformidade com a LGPD (Lei 13.709/2018).
             </span>

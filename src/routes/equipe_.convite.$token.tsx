@@ -121,7 +121,7 @@ function ConviteEquipePage() {
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
       <div className="soft-card w-full max-w-md p-8">
         <div className="mb-6 text-center">
-          <img src="/logo-nave.png" alt="Nave" className="mx-auto h-12 w-auto object-contain" />
+          <img src="/pensya-logo.svg" alt="Pensya" className="mx-auto h-16 w-auto object-contain" />
           <h1 className="mt-3 font-display text-xl font-semibold">Acesso da equipe</h1>
         </div>
         {children}

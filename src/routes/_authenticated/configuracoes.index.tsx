@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -10,8 +10,9 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Trash2, Edit2 } from "lucide-react";
+import { Plus, Trash2, Edit2, Image as ImageIcon, Loader2 } from "lucide-react";
 import { toast } from "sonner";
+import { CLINICA_LOGO_BUCKET, clinicaLogoUrl, getConfiguracaoClinica } from "@/lib/clinica-config";
 
 export const Route = createFileRoute("/_authenticated/configuracoes/")({
   component: ConfigPage,
@@ -27,6 +28,7 @@ const GROUPS: { key: string; label: string; icon: React.ComponentType<{ classNam
   {
     key: "clinica", label: "Clínica", icon: Building2,
     tabs: [
+      { key: "__identidade", label: "Identidade da clínica", fields: [] },
       { key: "locais", label: "Locais", fields: ["nome", "endereco"] },
       { key: "modalidades", label: "Modalidades", fields: ["nome", "cor"] },
       { key: "status_frequencia", label: "Status de frequência", fields: ["nome", "cor"] },
@@ -110,7 +112,9 @@ function ConfigPage() {
                   <div className="min-w-0">
                     {g.tabs.map((t) => (
                       <TabsContent key={t.key} value={t.key} className="mt-0">
-                        {t.key === "__plano_contas" ? (
+                        {t.key === "__identidade" ? (
+                          <ClinicaIdentidadeConfig />
+                        ) : t.key === "__plano_contas" ? (
                           <PlanoContasTable />
                         ) : t.key === "__baterias_link" ? (
                           <Card className="glass p-6 space-y-3">
@@ -529,6 +533,152 @@ function InfinitepayConfig() {
           As chaves <span className="font-mono">INFINITEPAY_API_TOKEN</span> e <span className="font-mono">INFINITEPAY_WEBHOOK_SECRET</span> devem ser configuradas como secrets no servidor (peça ao Lovable quando tiver os valores em mãos).
         </p>
       </div>
+    </Card>
+  );
+}
+
+function ClinicaIdentidadeConfig() {
+  const qc = useQueryClient();
+  const fileRef = useRef<HTMLInputElement>(null);
+  const [logo, setLogo] = useState<File | null>(null);
+  const [preview, setPreview] = useState<string | null>(null);
+  const [form, setForm] = useState({
+    nome_clinica: "", razao_social: "", cnpj: "", endereco: "",
+    cidade: "", telefone: "", email: "", responsavel_nome: "",
+  });
+
+  const { data: cfg } = useQuery({
+    queryKey: ["configuracao-clinica"],
+    queryFn: getConfiguracaoClinica,
+  });
+
+  useEffect(() => {
+    if (!cfg) return;
+    setForm({
+      nome_clinica: cfg.nome_clinica ?? "",
+      razao_social: cfg.razao_social ?? "",
+      cnpj: cfg.cnpj ?? "",
+      endereco: cfg.endereco ?? "",
+      cidade: cfg.cidade ?? "",
+      telefone: cfg.telefone ?? "",
+      email: cfg.email ?? "",
+      responsavel_nome: cfg.responsavel_nome ?? "",
+    });
+  }, [cfg]);
+
+  const logoAtual = preview ?? clinicaLogoUrl(cfg?.logo_path);
+
+  function escolherLogo(f?: File | null) {
+    if (!f) return;
+    setLogo(f);
+    setPreview(URL.createObjectURL(f));
+  }
+
+  const salvar = useMutation({
+    mutationFn: async () => {
+      let logo_path = cfg?.logo_path ?? null;
+      if (logo) {
+        const ext = logo.name.split(".").pop() || "png";
+        const path = `logo-${Date.now()}.${ext}`;
+        const { error: upErr } = await supabase.storage.from(CLINICA_LOGO_BUCKET).upload(path, logo, { upsert: true });
+        if (upErr) throw upErr;
+        logo_path = path;
+      }
+      const payload = { ...form, logo_path };
+      if (cfg?.id) {
+        const { error } = await supabase.from("configuracoes_clinica").update(payload).eq("id", cfg.id);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase.from("configuracoes_clinica").insert(payload);
+        if (error) throw error;
+      }
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["configuracao-clinica"] });
+      setLogo(null);
+      toast.success("Identidade da clínica salva");
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  return (
+    <Card className="glass p-6 space-y-5 max-w-2xl">
+      <div>
+        <h3 className="font-medium text-lg">Identidade da clínica</h3>
+        <p className="text-sm text-muted-foreground">
+          Sua logo e dados cadastrais aparecem nos documentos que você gera pelo sistema
+          (contratos, relatórios, planos terapêuticos, cartas de encaminhamento). A marca
+          Pensya continua fixa nas telas do próprio sistema — isso aqui é só a identidade
+          da sua clínica nos seus documentos.
+        </p>
+      </div>
+
+      <div className="flex items-center gap-4">
+        <button
+          type="button"
+          onClick={() => fileRef.current?.click()}
+          className="relative flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-xl border-2 border-dashed border-border bg-muted/40 text-muted-foreground hover:bg-muted"
+        >
+          {logoAtual ? (
+            <img src={logoAtual} alt="Logo da clínica" className="h-full w-full object-contain p-1" />
+          ) : (
+            <ImageIcon className="h-6 w-6" />
+          )}
+        </button>
+        <input
+          ref={fileRef}
+          type="file"
+          accept="image/*"
+          className="hidden"
+          onChange={(e) => escolherLogo(e.target.files?.[0])}
+        />
+        <div>
+          <Button type="button" variant="outline" size="sm" onClick={() => fileRef.current?.click()}>
+            {logoAtual ? "Trocar logo" : "Enviar logo"}
+          </Button>
+          <p className="mt-1 text-xs text-muted-foreground">PNG, JPG ou SVG. Fundo transparente recomendado.</p>
+        </div>
+      </div>
+
+      <div className="grid gap-3 sm:grid-cols-2">
+        <div>
+          <Label>Nome da clínica</Label>
+          <Input value={form.nome_clinica} onChange={(e) => setForm({ ...form, nome_clinica: e.target.value })} placeholder="Como aparece nos documentos" />
+        </div>
+        <div>
+          <Label>Responsável técnico</Label>
+          <Input value={form.responsavel_nome} onChange={(e) => setForm({ ...form, responsavel_nome: e.target.value })} />
+        </div>
+        <div>
+          <Label>Razão social</Label>
+          <Input value={form.razao_social} onChange={(e) => setForm({ ...form, razao_social: e.target.value })} />
+        </div>
+        <div>
+          <Label>CNPJ</Label>
+          <Input value={form.cnpj} onChange={(e) => setForm({ ...form, cnpj: e.target.value })} placeholder="00.000.000/0000-00" />
+        </div>
+        <div className="sm:col-span-2">
+          <Label>Endereço</Label>
+          <Input value={form.endereco} onChange={(e) => setForm({ ...form, endereco: e.target.value })} />
+        </div>
+        <div>
+          <Label>Cidade</Label>
+          <Input value={form.cidade} onChange={(e) => setForm({ ...form, cidade: e.target.value })} placeholder="Cidade/UF" />
+        </div>
+        <div>
+          <Label>Telefone</Label>
+          <Input value={form.telefone} onChange={(e) => setForm({ ...form, telefone: e.target.value })} />
+        </div>
+        <div>
+          <Label>E-mail</Label>
+          <Input type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />
+        </div>
+      </div>
+
+      <Button onClick={() => salvar.mutate()} disabled={salvar.isPending} className="gradient-brand text-brand-foreground">
+        {salvar.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+        Salvar identidade da clínica
+      </Button>
     </Card>
   );
 }

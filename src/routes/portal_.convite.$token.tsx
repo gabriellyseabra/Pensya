@@ -94,7 +94,7 @@ function ConvitePage() {
     <div className="flex min-h-screen items-center justify-center px-4">
       <div className="glass-strong w-full max-w-md rounded-3xl p-8 shadow-soft">
         <div className="mb-6 text-center">
-          <img src="/logo-nave.png" alt="Nave" className="mx-auto h-12 w-auto object-contain" />
+          <img src="/pensya-logo.svg" alt="Pensya" className="mx-auto h-16 w-auto object-contain" />
           <h1 className="mt-3 font-display text-xl font-semibold">Portal da Família</h1>
         </div>
         {children}

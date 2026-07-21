@@ -52,6 +52,7 @@ import { ptBR } from "date-fns/locale";
 import { SmartCard } from "@/components/shared/SmartCard";
 import { cn } from "@/lib/utils";
 import { listarMetasEstagnadas } from "@/lib/insights.functions";
+import { clinicaLogoUrl, getConfiguracaoClinica } from "@/lib/clinica-config";
 
 export const Route = createFileRoute("/_authenticated/dashboard")({
   component: DashboardPage,
@@ -501,6 +502,13 @@ function DashboardPage() {
     queryFn: async () => ((await listarEstagnadas()) as any).metas as any[],
   });
 
+  // Identidade da clínica (logo própria da profissional, opcional)
+  const { data: clinicaCfg } = useQuery({
+    queryKey: ["configuracao-clinica"],
+    queryFn: getConfiguracaoClinica,
+  });
+  const clinicaLogo = clinicaLogoUrl(clinicaCfg?.logo_path);
+
   // Perfil logado (foto + nome) para personalizar o topo
   const { data: meuPerfil } = useQuery({
     queryKey: ["meu-perfil"],
@@ -580,6 +588,15 @@ function DashboardPage() {
             {ocultarValores ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
             {ocultarValores ? "Valores ocultos" : "Ocultar valores"}
           </button>
+          {clinicaLogo && (
+            <Link
+              to="/configuracoes"
+              title="Identidade da clínica"
+              className="absolute bottom-4 right-4 z-10 flex h-11 w-11 items-center justify-center rounded-full bg-white/80 p-1.5 shadow-sm backdrop-blur transition hover:bg-white"
+            >
+              <img src={clinicaLogo} alt="" className="h-full w-full object-contain" />
+            </Link>
+          )}
           <div className="relative max-w-lg">
             <div className="mb-3 flex items-center gap-2.5">
               <span className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-full bg-white/60 text-sm font-semibold text-lilac-foreground ring-2 ring-white/50">
