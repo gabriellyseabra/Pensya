@@ -29,10 +29,25 @@ export function clinicaLogoUrl(logoPath: string | null | undefined): string | nu
   return data.publicUrl || null;
 }
 
-/** Organização (clínica) do usuário autenticado. Null se ele não pertence a nenhuma. */
+/**
+ * Organização (clínica) do usuário autenticado. Null se ele não pertence a
+ * nenhuma. Resolve primeiro o id via my_org_id() porque a admin da
+ * plataforma enxerga todas as organizações — um select sem filtro
+ * devolveria várias linhas para ela.
+ */
 export async function getMinhaOrganizacao(): Promise<Organizacao | null> {
-  const { data } = await supabase.from("organizacoes").select("*").maybeSingle();
+  const { data: orgId } = await supabase.rpc("my_org_id");
+  if (!orgId) return null;
+  const { data } = await supabase.from("organizacoes").select("*").eq("id", orgId).maybeSingle();
   return (data as Organizacao) ?? null;
+}
+
+/** Visão de clínica da admin Pensya: em qual clínica ela está navegando agora. */
+export async function getVisaoAdmin(): Promise<{ orgId: string; nome: string } | null> {
+  const { data: isAdmin } = await supabase.rpc("is_pensya_admin");
+  if (!isAdmin) return null;
+  const org = await getMinhaOrganizacao();
+  return org ? { orgId: org.id, nome: org.nome } : null;
 }
 
 /** Nome + logo de uma organização, resolvidos a partir de um contexto público. */

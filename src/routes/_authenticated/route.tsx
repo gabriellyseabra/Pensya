@@ -17,9 +17,14 @@ export const Route = createFileRoute("/_authenticated")({
       .maybeSingle();
     if (membro) return { user: data.user };
 
-    // Administradora da plataforma Pensya (sem clínica própria): vai pro painel dela.
+    // Administradora da plataforma Pensya: com visão de clínica ativa navega
+    // o sistema escopado àquela clínica; sem visão, vai pro painel de gestão.
     const { data: pensyaAdmin } = await supabase.rpc("is_pensya_admin");
-    if (pensyaAdmin) throw redirect({ to: "/admin-pensya" });
+    if (pensyaAdmin) {
+      const { data: visaoOrg } = await supabase.rpc("my_org_id");
+      if (visaoOrg) return { user: data.user };
+      throw redirect({ to: "/admin-pensya" });
+    }
 
     // Sem organização e sem papel de plataforma: família (portal) ou
     // cadastro novo que ainda não criou/entrou numa clínica.

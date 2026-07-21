@@ -1,6 +1,7 @@
 import { createFileRoute, redirect, useNavigate } from "@tanstack/react-router";
-import { useQuery } from "@tanstack/react-query";
-import { Building2, Users, LogOut, ShieldCheck, CircleDot } from "lucide-react";
+import { useMutation, useQuery } from "@tanstack/react-query";
+import { Building2, Users, LogOut, ShieldCheck, CircleDot, ArrowRight, Loader2 } from "lucide-react";
+import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -72,6 +73,18 @@ function AdminPensyaPage() {
     queryFn: fetchOrganizacoes,
   });
 
+  const entrarClinica = useMutation({
+    mutationFn: async (orgId: string) => {
+      const { error } = await supabase.rpc("admin_entrar_clinica", { _org_id: orgId });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      // Navegação completa para zerar caches de queries feitas fora da visão.
+      window.location.href = "/dashboard";
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
   async function sair() {
     await supabase.auth.signOut();
     navigate({ to: "/auth", replace: true });
@@ -123,19 +136,20 @@ function AdminPensyaPage() {
                 <TableHead>Status</TableHead>
                 <TableHead>Equipe</TableHead>
                 <TableHead>Criada em</TableHead>
+                <TableHead className="text-right">Ações</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {isLoading && (
                 <TableRow>
-                  <TableCell colSpan={6} className="py-10 text-center text-muted-foreground">
+                  <TableCell colSpan={7} className="py-10 text-center text-muted-foreground">
                     Carregando…
                   </TableCell>
                 </TableRow>
               )}
               {!isLoading && total === 0 && (
                 <TableRow>
-                  <TableCell colSpan={6} className="py-10 text-center text-muted-foreground">
+                  <TableCell colSpan={7} className="py-10 text-center text-muted-foreground">
                     Nenhuma clínica cadastrada ainda.
                   </TableCell>
                 </TableRow>
@@ -153,6 +167,21 @@ function AdminPensyaPage() {
                   <TableCell>{o.membros}</TableCell>
                   <TableCell className="text-muted-foreground">
                     {o.created_at ? new Date(o.created_at).toLocaleDateString("pt-BR") : "—"}
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      disabled={entrarClinica.isPending}
+                      onClick={() => entrarClinica.mutate(o.id)}
+                    >
+                      {entrarClinica.isPending && entrarClinica.variables === o.id ? (
+                        <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
+                      ) : (
+                        <ArrowRight className="mr-1.5 h-3.5 w-3.5" />
+                      )}
+                      Acessar sistema
+                    </Button>
                   </TableCell>
                 </TableRow>
               ))}
