@@ -71,9 +71,8 @@ function AuthPage() {
     <div className="flex min-h-screen items-center justify-center px-4">
       <div className="glass-strong w-full max-w-md rounded-3xl p-8 shadow-soft">
         <div className="mb-8 text-center">
-          <img src="/logo-nave.png" alt="Nave Psicopedagogia e Desenvolvimento" className="mx-auto h-14 w-auto object-contain" />
-          <h1 className="mt-4 text-2xl font-semibold tracking-tight">Nave Desenvolvimento</h1>
-          <p className="mt-1 text-sm text-muted-foreground">Acesse o sistema do consultório</p>
+          <img src="/pensya-logo.svg" alt="Pensya" className="mx-auto h-24 w-auto object-contain" />
+          <p className="mt-2 text-sm text-muted-foreground">Acesse o sistema do consultório</p>
         </div>
 
         <Tabs defaultValue="login" className="w-full">

@@ -143,7 +143,7 @@ function SublocadorPortal() {
     <div className="min-h-screen pb-8">
       <header className="glass sticky top-0 z-20 border-b border-border/60">
         <div className="mx-auto flex max-w-5xl flex-wrap items-center gap-3 px-4 py-3">
-          <img src="/logo-nave.png" alt="Nave" className="h-9 w-9 object-contain" />
+          <img src="/pensya-icon.svg" alt="Pensya" className="h-9 w-9 object-contain" />
           <div className="min-w-0 flex-1">
             <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Agenda de salas</p>
             <p className="truncate font-display text-base font-semibold">{portal.sublocador.nome}</p>

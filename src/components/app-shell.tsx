@@ -41,9 +41,9 @@ export function AppShell({ children }: { children: ReactNode }) {
             <MobileNav />
             <Link to="/dashboard" className="flex shrink-0 items-center pl-1">
               <img
-                src="/logo-nave.png"
-                alt="Nave Psicopedagogia e Desenvolvimento"
-                className="h-9 w-auto object-contain"
+                src="/pensya-logo-horizontal.svg"
+                alt="Pensya"
+                className="h-8 w-auto object-contain"
               />
             </Link>
             <div className="mx-1 hidden h-6 w-px bg-border md:block" />

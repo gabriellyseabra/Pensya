@@ -35,6 +35,14 @@ export const gerarRelatorioPaciente = createServerFn({ method: "POST" })
 
     if (!pac) throw new Error("Paciente não encontrado");
 
+    const { data: clinicaCfg } = await supabase
+      .from("configuracoes_clinica")
+      .select("nome_clinica")
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    const nomeClinicaPrompt = clinicaCfg?.nome_clinica ? ` (${clinicaCfg.nome_clinica})` : "";
+
     const inicio = data.periodo_inicio ?? new Date(Date.now() - 90 * 86400000).toISOString().slice(0, 10);
     const fim = data.periodo_fim ?? new Date().toISOString().slice(0, 10);
 
@@ -88,7 +96,6 @@ export const gerarRelatorioPaciente = createServerFn({ method: "POST" })
     // MÓDULO 3 — Referências da biblioteca relevantes (queixa + diagnósticos + domínios)
     const termosRef = [
       pac.queixa_principal ?? "",
-      pac.hipotese_diagnostica ?? "",
       diagnosticos,
       ...perfilCognitivo.map((p) => p.dominio),
     ].filter(Boolean);
@@ -101,7 +108,7 @@ Gênero: ${pac.genero ?? "—"}
 Escolaridade: ${pac.escolaridade ?? "—"} ${pac.serie_curso ?? ""}
 Escola: ${(pac.escola as any)?.nome ?? "—"}
 Diagnósticos: ${diagnosticos || "—"}
-Hipótese: ${pac.hipotese_diagnostica ?? "—"}
+Hipótese diagnóstica levantada: ${pac.hipotese_diagnostica ? "Sim" : "Não"}
 Modalidade: ${(pac.modalidade as any)?.nome ?? "—"}
 Queixa principal: ${pac.queixa_principal ?? "—"}
 Expectativas: ${pac.expectativas ?? "—"}
@@ -180,7 +187,7 @@ ${template?.estrutura ?? `1. Cabeçalho com identificação
 
 ${baseContexto}`;
     } else if (data.tipo === "avaliacao") {
-      system = `Você é uma psicopedagoga clínica sênior (Nave Psicopedagogia e Desenvolvimento) redigindo um RELATÓRIO DE AVALIAÇÃO PSICOPEDAGÓGICA com enfoque em neuropsicologia escolar. Use APENAS dados fornecidos; não invente escores nem diagnósticos.${padraoNave}${instrProf}`;
+      system = `Você é uma psicopedagoga clínica sênior${nomeClinicaPrompt} redigindo um RELATÓRIO DE AVALIAÇÃO PSICOPEDAGÓGICA com enfoque em neuropsicologia escolar. Use APENAS dados fornecidos; não invente escores nem diagnósticos.${padraoNave}${instrProf}`;
       prompt = `Gere o RELATÓRIO DE AVALIAÇÃO seguindo EXATAMENTE esta estrutura:
 ${template?.estrutura ?? ESTRUTURA_AVALIACAO_NAVE}
 

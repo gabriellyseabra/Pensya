@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { PensyaClinicaLogo } from "@/components/shared/BrandLogos";
 
 export const Route = createFileRoute("/portal_/convite/$token")({
   ssr: false,
@@ -94,7 +95,7 @@ function ConvitePage() {
     <div className="flex min-h-screen items-center justify-center px-4">
       <div className="glass-strong w-full max-w-md rounded-3xl p-8 shadow-soft">
         <div className="mb-6 text-center">
-          <img src="/logo-nave.png" alt="Nave" className="mx-auto h-12 w-auto object-contain" />
+          <PensyaClinicaLogo className="h-16" />
           <h1 className="mt-3 font-display text-xl font-semibold">Portal da Família</h1>
         </div>
         {children}

@@ -29,12 +29,18 @@ export const VARIAVEIS_DISPONIVEIS = [
   { key: "cidade", label: "Cidade" },
   { key: "data_hoje", label: "Data de hoje" },
   { key: "ano_contrato", label: "Ano do contrato" },
+  { key: "clinica.nome", label: "Nome da clínica" },
+  { key: "clinica.razao_social", label: "Razão social da clínica" },
+  { key: "clinica.cnpj", label: "CNPJ da clínica" },
+  { key: "clinica.endereco", label: "Endereço da clínica" },
+  { key: "clinica.telefone", label: "Telefone da clínica" },
+  { key: "clinica.email", label: "E-mail da clínica" },
 ];
 
 
 export const TEMPLATE_EXEMPLO = `<h1 style="text-align:center">Contrato de Prestação de Serviços</h1>
 <p><strong>Contratante:</strong> {{responsavel.nome}}, CPF {{responsavel.cpf}}, responsável legal por <strong>{{paciente.nome}}</strong>.</p>
-<p><strong>Contratada:</strong> Clínica Nave Desenvolvimento.</p>
+<p><strong>Contratada:</strong> {{clinica.nome}}, CNPJ {{clinica.cnpj}}.</p>
 <h3>1. Objeto</h3>
 <p>Prestação de serviços terapêuticos de <strong>{{modalidade}}</strong> ao paciente {{paciente.nome}}, sob responsabilidade da profissional {{profissional.nome}}, no endereço {{endereco}}.</p>
 <h3>2. Valor e forma de pagamento</h3>

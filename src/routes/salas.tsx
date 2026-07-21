@@ -82,9 +82,9 @@ function SalasPublicas() {
     <div className="min-h-screen">
       <header className="glass sticky top-0 z-20 border-b border-border/60">
         <div className="mx-auto flex max-w-5xl items-center gap-3 px-4 py-3">
-          <img src="/logo-nave.png" alt="Nave" className="h-9 w-9 object-contain" />
+          <img src="/pensya-icon.svg" alt="Pensya" className="h-9 w-9 object-contain" />
           <div className="flex-1">
-            <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Nave Desenvolvimento</p>
+            <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Pensya</p>
             <p className="font-display text-base font-semibold">Disponibilidade das salas</p>
           </div>
           <div className="flex items-center gap-1">

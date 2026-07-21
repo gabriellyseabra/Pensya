@@ -150,7 +150,7 @@ export function MobileNav() {
       </SheetTrigger>
       <SheetContent side="left" className="w-72 bg-rail p-0 text-rail-foreground">
         <div className="flex h-full flex-col p-4">
-          <img src="/logo-nave.png" alt="Nave" className="mb-4 h-10 w-auto object-contain" />
+          <img src="/pensya-logo-horizontal-dark.svg" alt="Pensya" className="mb-4 h-8 w-auto object-contain" />
           <div className="flex-1 space-y-4 overflow-y-auto">
             {visibleGroups.map((g) => (
               <div key={g.label}>

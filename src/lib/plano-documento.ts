@@ -1,7 +1,8 @@
 import { supabase } from "@/integrations/supabase/client";
+import { clinicaLogoDataUrl, getConfiguracaoClinica } from "@/lib/clinica-config";
 
-// Documento HTML personalizado do Plano Terapêutico (padrão visual Nave),
-// para impressão/PDF — aberto em nova janela, com logo embutida.
+// Documento HTML personalizado do Plano Terapêutico, para impressão/PDF —
+// aberto em nova janela, com a identidade da clínica (logo/nome) embutida.
 
 function esc(v: any): string {
   if (v == null) return "";
@@ -36,31 +37,18 @@ const GAS_LABEL: Record<number, string> = {
   0: "0 Resultado esperado (meta)", 1: "+1 Acima do esperado", 2: "+2 Generalização",
 };
 
-/** Carrega a logo do sistema como data URI (roda na origem do app). */
-async function logoDataUrl(): Promise<string> {
-  try {
-    const res = await fetch("/logo-nave.png");
-    if (!res.ok) return "";
-    const blob = await res.blob();
-    return await new Promise<string>((resolve) => {
-      const r = new FileReader();
-      r.onloadend = () => resolve(typeof r.result === "string" ? r.result : "");
-      r.onerror = () => resolve("");
-      r.readAsDataURL(blob);
-    });
-  } catch { return ""; }
-}
-
 export async function gerarPlanoDocumentoHTML(planoId: string): Promise<string> {
-  const [{ data: plano }, logo] = await Promise.all([
+  const [{ data: plano }, logo, clinicaCfg] = await Promise.all([
     supabase
       .from("planos_terapeuticos")
       .select("*, paciente:pacientes(nome, data_nascimento, escolaridade, serie_curso)")
       .eq("id", planoId)
       .single(),
-    logoDataUrl(),
+    clinicaLogoDataUrl(),
+    getConfiguracaoClinica(),
   ]);
   if (!plano) throw new Error("Plano não encontrado");
+  const nomeClinica = clinicaCfg?.nome_clinica?.trim() || "";
 
   const [{ data: formulacao }, { data: objetivos }, { data: metas }] = await Promise.all([
     supabase.from("plano_formulacao_itens").select("*").eq("plano_id", planoId).order("categoria").order("ordem"),
@@ -184,7 +172,7 @@ export async function gerarPlanoDocumentoHTML(planoId: string): Promise<string> 
 </style></head>
 <body>
   <div class="header">
-    ${logo ? `<img class="logo" src="${logo}" alt="Nave">` : ""}
+    ${logo ? `<img class="logo" src="${logo}" alt="${esc(nomeClinica)}">` : ""}
     <div class="title">
       <h1>Plano Terapêutico</h1>
       <div class="sub">${esc((plano as any).titulo ?? "")}</div>
@@ -223,7 +211,7 @@ export async function gerarPlanoDocumentoHTML(planoId: string): Promise<string> 
     ${(plano as any).parceiros_clinicos ? `<h3>Parceiros clínicos / articulações</h3><p>${nl2br((plano as any).parceiros_clinicos)}</p>` : ""}` : ""}
 
   <div class="footer">
-    <span>Nave Psicopedagogia e Desenvolvimento</span>
+    <span>${esc(nomeClinica)}</span>
     <span>Emitido em ${new Date().toLocaleDateString("pt-BR")}</span>
   </div>
   <script>window.addEventListener("load", function(){ setTimeout(function(){ window.print(); }, 400); });</script>

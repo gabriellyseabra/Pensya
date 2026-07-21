@@ -39,6 +39,7 @@ import { toast } from "sonner";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { renderContratoHtml, VARIAVEIS_DISPONIVEIS, TEMPLATE_EXEMPLO } from "@/lib/contratos";
+import { getConfiguracaoClinica } from "@/lib/clinica-config";
 import { PageHero } from "@/components/shared/PageHero";
 
 export const Route = createFileRoute("/_authenticated/contratos")({
@@ -429,7 +430,7 @@ function NovoContratoDialog({
       .order("principal", { ascending: false })
       .limit(1);
     const resp: any = resps?.[0] ?? {};
-
+    const clinicaCfg = await getConfiguracaoClinica();
 
     const vars = {
       paciente,
@@ -438,13 +439,19 @@ function NovoContratoDialog({
       numero_parcelas: (paciente as any)?.numero_parcelas || 12,
       profissional: { nome: profissionalNome || paciente?.profissional?.nome || "" },
       modalidade: modalidade || paciente?.modalidade?.nome || "",
-      endereco: endereco || paciente?.endereco || "",
-      cidade: cidade || "Nilópolis/RJ",
+      endereco: endereco || paciente?.endereco || clinicaCfg?.endereco || "",
+      cidade: cidade || clinicaCfg?.cidade || "",
       data_hoje: new Date().toLocaleDateString("pt-BR"),
       ano_contrato: new Date().getFullYear(),
+      clinica: {
+        nome: clinicaCfg?.nome_clinica || "",
+        razao_social: clinicaCfg?.razao_social || "",
+        cnpj: clinicaCfg?.cnpj || "",
+        endereco: clinicaCfg?.endereco || "",
+        telefone: clinicaCfg?.telefone || "",
+        email: clinicaCfg?.email || "",
+      },
     };
-
-
 
     const htmlPreenchido = renderContratoHtml(template.conteudo_html, vars);
     const token = crypto.randomUUID().replace(/-/g, "") + Date.now().toString(36);
