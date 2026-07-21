@@ -92,10 +92,10 @@
   --brand-yellow: oklch(0.86 0.16 90);      /* #f9ca0a */
   --brand-pink: oklch(0.83 0.05 10);        /* #deb0bd */
 
-  /* Lilás — ponte entre o azul e o rosa Nave, usado nos destaques do painel */
-  --lilac: oklch(0.7 0.11 300);
-  --lilac-soft: oklch(0.9 0.06 300);
-  --lilac-foreground: oklch(0.3 0.1 300);
+  /* Acento suave — segue a cor do tema (padrão: violeta Pensya) */
+  --lilac: oklch(0.66 0.15 293);
+  --lilac-soft: oklch(0.9 0.06 293);
+  --lilac-foreground: oklch(0.3 0.1 293);
 
   /* Rail de navegação (sidebar escura flutuante) */
   --rail: oklch(0.21 0.02 285);
@@ -146,7 +146,7 @@
     radial-gradient(at 95% 88%, oklch(0.78 0.1 230 / 0.4) 0px, transparent 50%);
   --gradient-brand: linear-gradient(135deg, var(--brand) 0%, var(--brand-glow) 100%);
   --gradient-warm: linear-gradient(135deg, var(--brand-yellow) 0%, var(--brand-pink) 100%);
-  --gradient-lilac: linear-gradient(120deg, oklch(0.9 0.06 300) 0%, oklch(0.85 0.07 320) 55%, oklch(0.82 0.06 340) 100%);
+  --gradient-lilac: linear-gradient(120deg, oklch(0.9 0.06 293) 0%, oklch(0.85 0.08 300) 55%, oklch(0.8 0.09 310) 100%);
   --shadow-glass: 0 1px 0 0 oklch(1 0 0 / 0.6) inset, 0 8px 28px -10px oklch(0.3 0.08 240 / 0.22);
   --shadow-soft: 0 6px 22px -12px oklch(0.3 0.05 290 / 0.28);
   --shadow-card: 0 2px 4px -2px oklch(0.3 0.03 290 / 0.08), 0 12px 32px -16px oklch(0.3 0.05 290 / 0.22);
@@ -169,9 +169,9 @@
   --brand-yellow: oklch(0.86 0.16 90);
   --brand-pink: oklch(0.83 0.05 10);
 
-  --lilac: oklch(0.72 0.11 300);
-  --lilac-soft: oklch(0.4 0.07 300);
-  --lilac-foreground: oklch(0.92 0.04 300);
+  --lilac: oklch(0.72 0.14 293);
+  --lilac-soft: oklch(0.4 0.09 293);
+  --lilac-foreground: oklch(0.92 0.04 293);
 
   --rail: oklch(0.16 0.02 285);
   --rail-foreground: oklch(0.7 0.02 285);
@@ -212,7 +212,7 @@
     radial-gradient(at 92% 10%, oklch(0.38 0.12 90 / 0.3) 0px, transparent 50%),
     radial-gradient(at 50% 95%, oklch(0.36 0.06 10 / 0.35) 0px, transparent 50%),
     radial-gradient(at 95% 88%, oklch(0.4 0.12 230 / 0.35) 0px, transparent 50%);
-  --gradient-lilac: linear-gradient(120deg, oklch(0.5 0.09 300) 0%, oklch(0.46 0.1 320) 55%, oklch(0.44 0.08 340) 100%);
+  --gradient-lilac: linear-gradient(120deg, oklch(0.5 0.1 293) 0%, oklch(0.45 0.11 300) 55%, oklch(0.4 0.1 310) 100%);
   --shadow-glass: 0 1px 0 0 oklch(1 0 0 / 0.06) inset, 0 8px 28px -10px oklch(0 0 0 / 0.5);
   --shadow-soft: 0 8px 24px -12px oklch(0 0 0 / 0.5);
   --shadow-card: 0 2px 4px -2px oklch(0 0 0 / 0.4), 0 12px 32px -16px oklch(0 0 0 / 0.55);
@@ -229,6 +229,10 @@
   --primary: oklch(0.56 0.17 262);
   --sidebar-primary: oklch(0.56 0.17 262);
   --ring: oklch(0.7 0.13 258);
+  --lilac: oklch(0.62 0.13 262);
+  --lilac-soft: oklch(0.9 0.05 260);
+  --lilac-foreground: oklch(0.3 0.09 262);
+  --gradient-lilac: linear-gradient(120deg, oklch(0.9 0.05 262) 0%, oklch(0.85 0.07 258) 55%, oklch(0.8 0.08 250) 100%);
 }
 .dark[data-tema="azul"] {
   --brand: oklch(0.72 0.13 258);
@@ -236,6 +240,10 @@
   --primary: oklch(0.96 0.01 240);
   --sidebar-primary: oklch(0.72 0.13 258);
   --ring: oklch(0.72 0.13 258);
+  --lilac: oklch(0.7 0.11 258);
+  --lilac-soft: oklch(0.38 0.07 258);
+  --lilac-foreground: oklch(0.92 0.04 258);
+  --gradient-lilac: linear-gradient(120deg, oklch(0.48 0.09 262) 0%, oklch(0.44 0.1 255) 55%, oklch(0.4 0.09 248) 100%);
 }
 
 [data-tema="preto"] {
@@ -244,6 +252,10 @@
   --primary: oklch(0.2 0.03 265);
   --sidebar-primary: oklch(0.2 0.03 265);
   --ring: oklch(0.45 0.03 265);
+  --lilac: oklch(0.45 0.02 265);
+  --lilac-soft: oklch(0.9 0.008 265);
+  --lilac-foreground: oklch(0.25 0.02 265);
+  --gradient-lilac: linear-gradient(120deg, oklch(0.92 0.008 265) 0%, oklch(0.85 0.012 265) 55%, oklch(0.78 0.015 265) 100%);
 }
 .dark[data-tema="preto"] {
   --brand: oklch(0.9 0.005 265);
@@ -253,6 +265,10 @@
   --sidebar-primary: oklch(0.9 0.005 265);
   --sidebar-primary-foreground: oklch(0.18 0.02 265);
   --ring: oklch(0.7 0.01 265);
+  --lilac: oklch(0.75 0.01 265);
+  --lilac-soft: oklch(0.35 0.01 265);
+  --lilac-foreground: oklch(0.94 0.005 265);
+  --gradient-lilac: linear-gradient(120deg, oklch(0.42 0.02 265) 0%, oklch(0.36 0.02 265) 55%, oklch(0.3 0.02 265) 100%);
 }
 
 @layer base {
