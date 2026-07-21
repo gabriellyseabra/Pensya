@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useMemo, useState } from "react";
+import React, { useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -40,6 +40,7 @@ import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { renderContratoHtml, VARIAVEIS_DISPONIVEIS, TEMPLATE_EXEMPLO } from "@/lib/contratos";
 import { getMinhaOrganizacao } from "@/lib/clinica-config";
+import { extrairPdfParaHtml } from "@/lib/pdf-utils";
 import { PageHero } from "@/components/shared/PageHero";
 
 export const Route = createFileRoute("/_authenticated/contratos")({
@@ -151,6 +152,7 @@ function TemplateDialog({
   const [nome, setNome] = useState(template?.nome ?? "");
   const [descricao, setDescricao] = useState(template?.descricao ?? "");
   const [conteudo, setConteudo] = useState(template?.conteudo_html ?? TEMPLATE_EXEMPLO);
+  const [carregandoPdf, setCarregandoPdf] = useState(false);
 
   // reset when template changes
   useMemo(() => {
@@ -158,6 +160,26 @@ function TemplateDialog({
     setDescricao(template?.descricao ?? "");
     setConteudo(template?.conteudo_html ?? TEMPLATE_EXEMPLO);
   }, [template]);
+
+  const handleUploadPdf = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const arquivo = e.target.files?.[0];
+    if (!arquivo) return;
+
+    setCarregandoPdf(true);
+    try {
+      const html = await extrairPdfParaHtml(arquivo);
+      setConteudo(html);
+      if (!nome.trim()) {
+        setNome(arquivo.name.replace(/\.pdf$/i, ""));
+      }
+      toast.success("PDF convertido para HTML com sucesso");
+    } catch (err: any) {
+      toast.error(`Erro ao processar PDF: ${err.message}`);
+    } finally {
+      setCarregandoPdf(false);
+      e.target.value = "";
+    }
+  };
 
   const save = async () => {
     if (!nome.trim()) return toast.error("Informe o nome do modelo");
@@ -187,6 +209,25 @@ function TemplateDialog({
               <Label>Descrição</Label>
               <Input value={descricao} onChange={(e) => setDescricao(e.target.value)} />
             </div>
+          </div>
+
+          <div className="border rounded-lg p-4 bg-muted/30">
+            <Label className="text-sm font-medium mb-2 block">Ou carregar modelo de PDF</Label>
+            <input
+              type="file"
+              accept=".pdf"
+              onChange={handleUploadPdf}
+              disabled={carregandoPdf}
+              className="block w-full text-sm text-muted-foreground
+                file:mr-4 file:py-2 file:px-4
+                file:rounded-md file:border-0
+                file:text-sm file:font-medium
+                file:bg-primary file:text-primary-foreground
+                hover:file:bg-primary/90 disabled:opacity-50"
+            />
+            <p className="text-xs text-muted-foreground mt-2">
+              Selecione um PDF e o conteúdo será convertido para HTML editável.
+            </p>
           </div>
 
           <div>
