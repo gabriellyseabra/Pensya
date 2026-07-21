@@ -9,8 +9,20 @@ import { GlobalFAB } from "@/components/shared/GlobalFAB";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { useRoles, setPreviewRole } from "@/hooks/use-role";
 import { useEffect } from "react";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { Palette, Check } from "lucide-react";
+import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { getVisaoAdmin, getMinhaOrganizacao, aplicarCorTema } from "@/lib/clinica-config";
+import { getVisaoAdmin, getMinhaOrganizacao, aplicarCorTema, CORES_TEMA } from "@/lib/clinica-config";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { cn } from "@/lib/utils";
 
 function PreviewBanner() {
   const { previewing } = useRoles();
@@ -73,10 +85,71 @@ function useCorTemaClinica() {
     aplicarCorTema(org?.cor_tema);
     return () => aplicarCorTema(null);
   }, [org?.cor_tema]);
+  return org;
+}
+
+/** Troca rápida da cor do sistema, no topo — só para admins da clínica. */
+function CorTemaSwitcher({ org }: { org: { id: string; cor_tema: string } | null | undefined }) {
+  const qc = useQueryClient();
+  const { isAdmin } = useRoles();
+
+  const trocar = useMutation({
+    mutationFn: async (cor: string) => {
+      if (!org?.id) throw new Error("Organização não encontrada");
+      aplicarCorTema(cor);
+      const { error } = await supabase.from("organizacoes").update({ cor_tema: cor }).eq("id", org.id);
+      if (error) throw error;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["minha-organizacao"] }),
+    onError: (e: Error) => {
+      aplicarCorTema(org?.cor_tema);
+      toast.error(e.message);
+    },
+  });
+
+  if (!isAdmin || !org) return null;
+  const atual = CORES_TEMA.find((c) => c.valor === org.cor_tema) ?? CORES_TEMA[0];
+
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <button
+          className="flex h-10 w-10 items-center justify-center rounded-full transition-colors hover:bg-accent"
+          title="Cor do sistema"
+        >
+          <span className="relative">
+            <Palette className="h-5 w-5 text-muted-foreground" />
+            <span
+              className="absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full border border-background"
+              style={{ backgroundColor: atual.amostra }}
+            />
+          </span>
+        </button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="w-52">
+        <DropdownMenuLabel>Cor do sistema</DropdownMenuLabel>
+        <DropdownMenuSeparator />
+        {CORES_TEMA.map((c) => (
+          <DropdownMenuItem
+            key={c.valor}
+            onClick={() => trocar.mutate(c.valor)}
+            className={cn("gap-2", org.cor_tema === c.valor && "font-medium")}
+          >
+            <span
+              className="h-4 w-4 rounded-full border border-black/10"
+              style={{ backgroundColor: c.amostra }}
+            />
+            {c.nome}
+            {org.cor_tema === c.valor && <Check className="ml-auto h-3.5 w-3.5" />}
+          </DropdownMenuItem>
+        ))}
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
 }
 
 export function AppShell({ children }: { children: ReactNode }) {
-  useCorTemaClinica();
+  const org = useCorTemaClinica();
   return (
     <TooltipProvider delayDuration={200}>
       <div className="flex min-h-screen w-full gap-4 p-3 md:p-4">
@@ -95,7 +168,8 @@ export function AppShell({ children }: { children: ReactNode }) {
             <div className="min-w-0 flex-1 max-w-md">
               <QuickSearch />
             </div>
-            <div className="ml-auto">
+            <div className="ml-auto flex items-center gap-1">
+              <CorTemaSwitcher org={org} />
               <UserMenu />
             </div>
           </header>
