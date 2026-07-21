@@ -3019,6 +3019,7 @@ export type Database = {
           cidade: string | null
           cnpj: string | null
           cor_primaria: string | null
+          cor_tema: string
           created_at: string
           email: string | null
           endereco: string | null
@@ -3039,6 +3040,7 @@ export type Database = {
           cidade?: string | null
           cnpj?: string | null
           cor_primaria?: string | null
+          cor_tema?: string
           created_at?: string
           email?: string | null
           endereco?: string | null
@@ -3059,6 +3061,7 @@ export type Database = {
           cidade?: string | null
           cnpj?: string | null
           cor_primaria?: string | null
+          cor_tema?: string
           created_at?: string
           email?: string | null
           endereco?: string | null

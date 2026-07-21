@@ -21,7 +21,23 @@ export type Organizacao = {
   logo_path: string | null;
   plano: string;
   status: string;
+  cor_tema: string;
 };
+
+export type CorTema = "roxo" | "azul" | "preto";
+
+export const CORES_TEMA: { valor: CorTema; nome: string; amostra: string }[] = [
+  { valor: "roxo", nome: "Violeta Pensya", amostra: "#7849F7" },
+  { valor: "azul", nome: "Azul Pensya", amostra: "#2E72E4" },
+  { valor: "preto", nome: "Preto", amostra: "#020A2D" },
+];
+
+/** Aplica o tema da clínica no <html> (data-tema). "roxo" é o padrão. */
+export function aplicarCorTema(cor: string | null | undefined) {
+  if (typeof document === "undefined") return;
+  if (cor && cor !== "roxo") document.documentElement.dataset.tema = cor;
+  else delete document.documentElement.dataset.tema;
+}
 
 export function clinicaLogoUrl(logoPath: string | null | undefined): string | null {
   if (!logoPath) return null;
