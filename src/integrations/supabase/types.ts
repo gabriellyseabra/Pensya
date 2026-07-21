@@ -1,0 +1,5406 @@
+export type Json =
+  | string
+  | number
+  | boolean
+  | null
+  | { [key: string]: Json | undefined }
+  | Json[]
+
+export type Database = {
+  // Allows to automatically instantiate createClient with right options
+  // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
+  __InternalSupabase: {
+    PostgrestVersion: "14.5"
+  }
+  public: {
+    Tables: {
+      departamentos: {
+        Row: {
+          ativo: boolean
+          cor: string
+          created_at: string
+          id: string
+          nome: string
+          ordem: number
+        }
+        Insert: {
+          ativo?: boolean
+          cor?: string
+          created_at?: string
+          id?: string
+          nome: string
+          ordem?: number
+        }
+        Update: {
+          ativo?: boolean
+          cor?: string
+          created_at?: string
+          id?: string
+          nome?: string
+          ordem?: number
+        }
+        Relationships: []
+      }
+      processos: {
+        Row: {
+          categoria: string | null
+          conteudo: Json
+          created_at: string
+          created_by: string | null
+          departamento_id: string | null
+          emoji: string | null
+          frequencia: string | null
+          id: string
+          objetivo: string | null
+          ordem: number
+          parent_id: string | null
+          responsavel_id: string | null
+          share_token: string
+          status: string
+          titulo: string
+          updated_at: string
+          visibilidade: string
+        }
+        Insert: {
+          categoria?: string | null
+          conteudo?: Json
+          created_at?: string
+          created_by?: string | null
+          departamento_id?: string | null
+          emoji?: string | null
+          frequencia?: string | null
+          id?: string
+          objetivo?: string | null
+          ordem?: number
+          parent_id?: string | null
+          responsavel_id?: string | null
+          share_token?: string
+          status?: string
+          titulo: string
+          updated_at?: string
+          visibilidade?: string
+        }
+        Update: {
+          categoria?: string | null
+          conteudo?: Json
+          created_at?: string
+          created_by?: string | null
+          departamento_id?: string | null
+          emoji?: string | null
+          frequencia?: string | null
+          id?: string
+          objetivo?: string | null
+          ordem?: number
+          parent_id?: string | null
+          responsavel_id?: string | null
+          share_token?: string
+          status?: string
+          titulo?: string
+          updated_at?: string
+          visibilidade?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "processos_departamento_id_fkey"
+            columns: ["departamento_id"]
+            isOneToOne: false
+            referencedRelation: "departamentos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "processos_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "processos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      processo_acessos: {
+        Row: {
+          created_at: string
+          id: string
+          papel: string
+          processo_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          papel?: string
+          processo_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          papel?: string
+          processo_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "processo_acessos_processo_id_fkey"
+            columns: ["processo_id"]
+            isOneToOne: false
+            referencedRelation: "processos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      atendimentos: {
+        Row: {
+          confirmacao_enviada_em: string | null
+          confirmado_em: string | null
+          created_at: string
+          created_by: string | null
+          fim: string
+          google_event_id: string | null
+          id: string
+          inicio: string
+          local_id: string | null
+          modalidade_id: string | null
+          observacoes: string | null
+          paciente_id: string
+          profissional_id: string | null
+          recorrencia: string | null
+          recorrencia_grupo: string | null
+          status_frequencia_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          confirmacao_enviada_em?: string | null
+          confirmado_em?: string | null
+          created_at?: string
+          created_by?: string | null
+          fim: string
+          google_event_id?: string | null
+          id?: string
+          inicio: string
+          local_id?: string | null
+          modalidade_id?: string | null
+          observacoes?: string | null
+          paciente_id: string
+          profissional_id?: string | null
+          recorrencia?: string | null
+          recorrencia_grupo?: string | null
+          status_frequencia_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          confirmacao_enviada_em?: string | null
+          confirmado_em?: string | null
+          created_at?: string
+          created_by?: string | null
+          fim?: string
+          google_event_id?: string | null
+          id?: string
+          inicio?: string
+          local_id?: string | null
+          modalidade_id?: string | null
+          observacoes?: string | null
+          paciente_id?: string
+          profissional_id?: string | null
+          recorrencia?: string | null
+          recorrencia_grupo?: string | null
+          status_frequencia_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "atendimentos_local_id_fkey"
+            columns: ["local_id"]
+            isOneToOne: false
+            referencedRelation: "locais"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "atendimentos_modalidade_id_fkey"
+            columns: ["modalidade_id"]
+            isOneToOne: false
+            referencedRelation: "modalidades"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "atendimentos_paciente_id_fkey"
+            columns: ["paciente_id"]
+            isOneToOne: false
+            referencedRelation: "pacientes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "atendimentos_profissional_id_fkey"
+            columns: ["profissional_id"]
+            isOneToOne: false
+            referencedRelation: "profissionais_consultorio"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "atendimentos_status_frequencia_id_fkey"
+            columns: ["status_frequencia_id"]
+            isOneToOne: false
+            referencedRelation: "status_frequencia"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      avaliacao_documentos: {
+        Row: {
+          avaliacao_id: string
+          created_at: string
+          id: string
+          nome: string
+          sessao_id: string | null
+          storage_path: string
+          tamanho: number | null
+          teste_id: string | null
+          tipo: string | null
+          updated_at: string
+          uploaded_by: string | null
+        }
+        Insert: {
+          avaliacao_id: string
+          created_at?: string
+          id?: string
+          nome: string
+          sessao_id?: string | null
+          storage_path: string
+          tamanho?: number | null
+          teste_id?: string | null
+          tipo?: string | null
+          updated_at?: string
+          uploaded_by?: string | null
+        }
+        Update: {
+          avaliacao_id?: string
+          created_at?: string
+          id?: string
+          nome?: string
+          sessao_id?: string | null
+          storage_path?: string
+          tamanho?: number | null
+          teste_id?: string | null
+          tipo?: string | null
+          updated_at?: string
+          uploaded_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "avaliacao_documentos_avaliacao_id_fkey"
+            columns: ["avaliacao_id"]
+            isOneToOne: false
+            referencedRelation: "avaliacoes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      avaliacao_sessoes_plano: {
+        Row: {
+          avaliacao_id: string
+          created_at: string
+          data_prevista: string | null
+          id: string
+          ordem: number
+          titulo: string | null
+        }
+        Insert: {
+          avaliacao_id: string
+          created_at?: string
+          data_prevista?: string | null
+          id?: string
+          ordem?: number
+          titulo?: string | null
+        }
+        Update: {
+          avaliacao_id?: string
+          created_at?: string
+          data_prevista?: string | null
+          id?: string
+          ordem?: number
+          titulo?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "avaliacao_sessoes_plano_avaliacao_id_fkey"
+            columns: ["avaliacao_id"]
+            isOneToOne: false
+            referencedRelation: "avaliacoes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      avaliacoes: {
+        Row: {
+          conclusao: string | null
+          created_at: string
+          data_fim: string | null
+          data_inicio: string | null
+          hipoteses: string | null
+          id: string
+          paciente_id: string
+          profissional_id: string | null
+          queixa: string | null
+          status: string
+          titulo: string
+          updated_at: string
+        }
+        Insert: {
+          conclusao?: string | null
+          created_at?: string
+          data_fim?: string | null
+          data_inicio?: string | null
+          hipoteses?: string | null
+          id?: string
+          paciente_id: string
+          profissional_id?: string | null
+          queixa?: string | null
+          status?: string
+          titulo: string
+          updated_at?: string
+        }
+        Update: {
+          conclusao?: string | null
+          created_at?: string
+          data_fim?: string | null
+          data_inicio?: string | null
+          hipoteses?: string | null
+          id?: string
+          paciente_id?: string
+          profissional_id?: string | null
+          queixa?: string | null
+          status?: string
+          titulo?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "avaliacoes_paciente_id_fkey"
+            columns: ["paciente_id"]
+            isOneToOne: false
+            referencedRelation: "pacientes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      bateria_itens: {
+        Row: {
+          avaliacao_id: string
+          created_at: string
+          id: string
+          observacoes: string | null
+          ordem: number
+          sessao_aplicacao_id: string | null
+          sessao_plano_id: string | null
+          status: string
+          teste_id: string
+          updated_at: string
+        }
+        Insert: {
+          avaliacao_id: string
+          created_at?: string
+          id?: string
+          observacoes?: string | null
+          ordem?: number
+          sessao_aplicacao_id?: string | null
+          sessao_plano_id?: string | null
+          status?: string
+          teste_id: string
+          updated_at?: string
+        }
+        Update: {
+          avaliacao_id?: string
+          created_at?: string
+          id?: string
+          observacoes?: string | null
+          ordem?: number
+          sessao_aplicacao_id?: string | null
+          sessao_plano_id?: string | null
+          status?: string
+          teste_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bateria_itens_avaliacao_id_fkey"
+            columns: ["avaliacao_id"]
+            isOneToOne: false
+            referencedRelation: "avaliacoes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bateria_itens_teste_id_fkey"
+            columns: ["teste_id"]
+            isOneToOne: false
+            referencedRelation: "testes_catalogo"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      baterias_modelo: {
+        Row: {
+          ativo: boolean
+          created_at: string
+          created_by: string | null
+          demanda: string
+          descricao: string | null
+          faixa_etaria: string | null
+          id: string
+          nome: string
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean
+          created_at?: string
+          created_by?: string | null
+          demanda: string
+          descricao?: string | null
+          faixa_etaria?: string | null
+          id?: string
+          nome: string
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean
+          created_at?: string
+          created_by?: string | null
+          demanda?: string
+          descricao?: string | null
+          faixa_etaria?: string | null
+          id?: string
+          nome?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      baterias_modelo_itens: {
+        Row: {
+          bateria_id: string
+          created_at: string
+          id: string
+          obrigatorio: boolean
+          observacoes: string | null
+          ordem: number
+          teste_id: string
+        }
+        Insert: {
+          bateria_id: string
+          created_at?: string
+          id?: string
+          obrigatorio?: boolean
+          observacoes?: string | null
+          ordem?: number
+          teste_id: string
+        }
+        Update: {
+          bateria_id?: string
+          created_at?: string
+          id?: string
+          obrigatorio?: boolean
+          observacoes?: string | null
+          ordem?: number
+          teste_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "baterias_modelo_itens_bateria_id_fkey"
+            columns: ["bateria_id"]
+            isOneToOne: false
+            referencedRelation: "baterias_modelo"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "baterias_modelo_itens_teste_id_fkey"
+            columns: ["teste_id"]
+            isOneToOne: false
+            referencedRelation: "testes_catalogo"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cadastro_publico: {
+        Row: {
+          convertido_em: string | null
+          created_at: string
+          created_by: string | null
+          dados_json: Json
+          enviado_para_nome: string | null
+          enviado_para_telefone: string | null
+          etapa_atual: number
+          expires_at: string
+          id: string
+          observacoes_admin: string | null
+          paciente_id_criado: string | null
+          preenchido_em: string | null
+          status: string
+          token: string
+          updated_at: string
+        }
+        Insert: {
+          convertido_em?: string | null
+          created_at?: string
+          created_by?: string | null
+          dados_json?: Json
+          enviado_para_nome?: string | null
+          enviado_para_telefone?: string | null
+          etapa_atual?: number
+          expires_at?: string
+          id?: string
+          observacoes_admin?: string | null
+          paciente_id_criado?: string | null
+          preenchido_em?: string | null
+          status?: string
+          token: string
+          updated_at?: string
+        }
+        Update: {
+          convertido_em?: string | null
+          created_at?: string
+          created_by?: string | null
+          dados_json?: Json
+          enviado_para_nome?: string | null
+          enviado_para_telefone?: string | null
+          etapa_atual?: number
+          expires_at?: string
+          id?: string
+          observacoes_admin?: string | null
+          paciente_id_criado?: string | null
+          preenchido_em?: string | null
+          status?: string
+          token?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cadastro_publico_paciente_id_criado_fkey"
+            columns: ["paciente_id_criado"]
+            isOneToOne: false
+            referencedRelation: "pacientes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      campanhas: {
+        Row: {
+          canal_id: string | null
+          created_at: string
+          created_by: string | null
+          custo_realizado: number | null
+          data_fim: string | null
+          data_inicio: string | null
+          id: string
+          meta_leads: number | null
+          nome: string
+          observacoes: string | null
+          orcamento: number | null
+          responsavel_id: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          canal_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          custo_realizado?: number | null
+          data_fim?: string | null
+          data_inicio?: string | null
+          id?: string
+          meta_leads?: number | null
+          nome: string
+          observacoes?: string | null
+          orcamento?: number | null
+          responsavel_id?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          canal_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          custo_realizado?: number | null
+          data_fim?: string | null
+          data_inicio?: string | null
+          id?: string
+          meta_leads?: number | null
+          nome?: string
+          observacoes?: string | null
+          orcamento?: number | null
+          responsavel_id?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "campanhas_canal_id_fkey"
+            columns: ["canal_id"]
+            isOneToOne: false
+            referencedRelation: "canais_marketing"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      canais_marketing: {
+        Row: {
+          ativo: boolean
+          created_at: string
+          id: string
+          nome: string
+          tipo_origem: string | null
+        }
+        Insert: {
+          ativo?: boolean
+          created_at?: string
+          id?: string
+          nome: string
+          tipo_origem?: string | null
+        }
+        Update: {
+          ativo?: boolean
+          created_at?: string
+          id?: string
+          nome?: string
+          tipo_origem?: string | null
+        }
+        Relationships: []
+      }
+      categorias_habilidades: {
+        Row: {
+          created_at: string
+          id: string
+          nome: string
+          ordem: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          nome: string
+          ordem?: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          nome?: string
+          ordem?: number
+        }
+        Relationships: []
+      }
+      centros_custo: {
+        Row: {
+          ativo: boolean
+          created_at: string
+          id: string
+          nome: string
+        }
+        Insert: {
+          ativo?: boolean
+          created_at?: string
+          id?: string
+          nome: string
+        }
+        Update: {
+          ativo?: boolean
+          created_at?: string
+          id?: string
+          nome?: string
+        }
+        Relationships: []
+      }
+      classificacao_normativa: {
+        Row: {
+          classificacao: string
+          cor: string | null
+          created_at: string
+          escore_max: number | null
+          escore_min: number | null
+          id: string
+          ordem: number
+          percentil_max: number | null
+          percentil_min: number | null
+          updated_at: string
+        }
+        Insert: {
+          classificacao: string
+          cor?: string | null
+          created_at?: string
+          escore_max?: number | null
+          escore_min?: number | null
+          id?: string
+          ordem: number
+          percentil_max?: number | null
+          percentil_min?: number | null
+          updated_at?: string
+        }
+        Update: {
+          classificacao?: string
+          cor?: string | null
+          created_at?: string
+          escore_max?: number | null
+          escore_min?: number | null
+          id?: string
+          ordem?: number
+          percentil_max?: number | null
+          percentil_min?: number | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      colaborador_config: {
+        Row: {
+          ativo: boolean
+          beneficios: number
+          comissao_percentual: number
+          created_at: string
+          dependentes: number
+          descontos_fixos: number
+          id: string
+          observacoes: string | null
+          profissional_id: string
+          salario_base: number
+          updated_at: string
+          valor_por_sessao: number
+          vinculo: string
+        }
+        Insert: {
+          ativo?: boolean
+          beneficios?: number
+          comissao_percentual?: number
+          created_at?: string
+          dependentes?: number
+          descontos_fixos?: number
+          id?: string
+          observacoes?: string | null
+          profissional_id: string
+          salario_base?: number
+          updated_at?: string
+          valor_por_sessao?: number
+          vinculo?: string
+        }
+        Update: {
+          ativo?: boolean
+          beneficios?: number
+          comissao_percentual?: number
+          created_at?: string
+          dependentes?: number
+          descontos_fixos?: number
+          id?: string
+          observacoes?: string | null
+          profissional_id?: string
+          salario_base?: number
+          updated_at?: string
+          valor_por_sessao?: number
+          vinculo?: string
+        }
+        Relationships: []
+      }
+      contas_financeiras: {
+        Row: {
+          ativo: boolean
+          created_at: string
+          id: string
+          nome: string
+          observacoes: string | null
+          ordem: number
+          saldo_inicial: number
+          tipo: string
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean
+          created_at?: string
+          id?: string
+          nome: string
+          observacoes?: string | null
+          ordem?: number
+          saldo_inicial?: number
+          tipo: string
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean
+          created_at?: string
+          id?: string
+          nome?: string
+          observacoes?: string | null
+          ordem?: number
+          saldo_inicial?: number
+          tipo?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      contas_fixas: {
+        Row: {
+          ativo: boolean
+          centro_custo_id: string | null
+          created_at: string
+          descricao: string
+          dia_vencimento: number
+          fornecedor_id: string | null
+          id: string
+          observacoes: string | null
+          plano_conta_id: string | null
+          tipo: string
+          updated_at: string
+          valor: number
+          variavel: boolean
+        }
+        Insert: {
+          ativo?: boolean
+          centro_custo_id?: string | null
+          created_at?: string
+          descricao: string
+          dia_vencimento?: number
+          fornecedor_id?: string | null
+          id?: string
+          observacoes?: string | null
+          plano_conta_id?: string | null
+          tipo?: string
+          updated_at?: string
+          valor: number
+          variavel?: boolean
+        }
+        Update: {
+          ativo?: boolean
+          centro_custo_id?: string | null
+          created_at?: string
+          descricao?: string
+          dia_vencimento?: number
+          fornecedor_id?: string | null
+          id?: string
+          observacoes?: string | null
+          plano_conta_id?: string | null
+          tipo?: string
+          updated_at?: string
+          valor?: number
+          variavel?: boolean
+        }
+        Relationships: []
+      }
+      contract_templates: {
+        Row: {
+          ativo: boolean
+          conteudo_html: string
+          created_at: string
+          descricao: string | null
+          id: string
+          modalidade_id: string | null
+          nome: string
+          updated_at: string
+          variaveis: Json
+        }
+        Insert: {
+          ativo?: boolean
+          conteudo_html?: string
+          created_at?: string
+          descricao?: string | null
+          id?: string
+          modalidade_id?: string | null
+          nome: string
+          updated_at?: string
+          variaveis?: Json
+        }
+        Update: {
+          ativo?: boolean
+          conteudo_html?: string
+          created_at?: string
+          descricao?: string | null
+          id?: string
+          modalidade_id?: string | null
+          nome?: string
+          updated_at?: string
+          variaveis?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contract_templates_modalidade_id_fkey"
+            columns: ["modalidade_id"]
+            isOneToOne: false
+            referencedRelation: "modalidades"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      contratos: {
+        Row: {
+          assinado_em: string | null
+          assinatura_imagem: string | null
+          created_at: string
+          dados_preenchimento: Json
+          enviado_em: string | null
+          hash_documento: string | null
+          id: string
+          ip_assinatura: string | null
+          paciente_id: string
+          pdf_assinado_path: string | null
+          pdf_storage_path: string | null
+          provider: string | null
+          provider_doc_id: string | null
+          signatario_cpf: string | null
+          signatario_email: string | null
+          signatario_nome: string | null
+          status: string
+          template_id: string | null
+          token_assinatura: string | null
+          updated_at: string
+        }
+        Insert: {
+          assinado_em?: string | null
+          assinatura_imagem?: string | null
+          created_at?: string
+          dados_preenchimento?: Json
+          enviado_em?: string | null
+          hash_documento?: string | null
+          id?: string
+          ip_assinatura?: string | null
+          paciente_id: string
+          pdf_assinado_path?: string | null
+          pdf_storage_path?: string | null
+          provider?: string | null
+          provider_doc_id?: string | null
+          signatario_cpf?: string | null
+          signatario_email?: string | null
+          signatario_nome?: string | null
+          status?: string
+          template_id?: string | null
+          token_assinatura?: string | null
+          updated_at?: string
+        }
+        Update: {
+          assinado_em?: string | null
+          assinatura_imagem?: string | null
+          created_at?: string
+          dados_preenchimento?: Json
+          enviado_em?: string | null
+          hash_documento?: string | null
+          id?: string
+          ip_assinatura?: string | null
+          paciente_id?: string
+          pdf_assinado_path?: string | null
+          pdf_storage_path?: string | null
+          provider?: string | null
+          provider_doc_id?: string | null
+          signatario_cpf?: string | null
+          signatario_email?: string | null
+          signatario_nome?: string | null
+          status?: string
+          template_id?: string | null
+          token_assinatura?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contratos_paciente_id_fkey"
+            columns: ["paciente_id"]
+            isOneToOne: false
+            referencedRelation: "pacientes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contratos_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "contract_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      diagnosticos: {
+        Row: {
+          ativo: boolean
+          codigo: string | null
+          created_at: string
+          descricao: string | null
+          id: string
+          nome: string
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean
+          codigo?: string | null
+          created_at?: string
+          descricao?: string | null
+          id?: string
+          nome: string
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean
+          codigo?: string | null
+          created_at?: string
+          descricao?: string | null
+          id?: string
+          nome?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      documento_templates: {
+        Row: {
+          ativo: boolean
+          created_at: string
+          created_by: string | null
+          descricao: string | null
+          estrutura: string
+          id: string
+          instrucoes_extra: string | null
+          nome: string
+          tipo: string
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean
+          created_at?: string
+          created_by?: string | null
+          descricao?: string | null
+          estrutura: string
+          id?: string
+          instrucoes_extra?: string | null
+          nome: string
+          tipo: string
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean
+          created_at?: string
+          created_by?: string | null
+          descricao?: string | null
+          estrutura?: string
+          id?: string
+          instrucoes_extra?: string | null
+          nome?: string
+          tipo?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      dominios_cognitivos: {
+        Row: {
+          created_at: string
+          descricao: string | null
+          id: string
+          nome: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          descricao?: string | null
+          id?: string
+          nome: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          descricao?: string | null
+          id?: string
+          nome?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      escolas: {
+        Row: {
+          contato: string | null
+          created_at: string
+          email: string | null
+          endereco: string | null
+          id: string
+          nome: string
+          observacoes: string | null
+          parceira: boolean
+          telefone: string | null
+          updated_at: string
+        }
+        Insert: {
+          contato?: string | null
+          created_at?: string
+          email?: string | null
+          endereco?: string | null
+          id?: string
+          nome: string
+          observacoes?: string | null
+          parceira?: boolean
+          telefone?: string | null
+          updated_at?: string
+        }
+        Update: {
+          contato?: string | null
+          created_at?: string
+          email?: string | null
+          endereco?: string | null
+          id?: string
+          nome?: string
+          observacoes?: string | null
+          parceira?: boolean
+          telefone?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      especialidades: {
+        Row: {
+          created_at: string
+          id: string
+          nome: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          nome: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          nome?: string
+        }
+        Relationships: []
+      }
+      extrato_identificadores: {
+        Row: {
+          created_at: string
+          fornecedor_id: string | null
+          id: string
+          natureza: string
+          ocorrencias: number
+          paciente_id: string | null
+          padrao: string
+          plano_conta_id: string | null
+          tipo_servico_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          fornecedor_id?: string | null
+          id?: string
+          natureza: string
+          ocorrencias?: number
+          paciente_id?: string | null
+          padrao: string
+          plano_conta_id?: string | null
+          tipo_servico_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          fornecedor_id?: string | null
+          id?: string
+          natureza?: string
+          ocorrencias?: number
+          paciente_id?: string | null
+          padrao?: string
+          plano_conta_id?: string | null
+          tipo_servico_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "extrato_identificadores_fornecedor_id_fkey"
+            columns: ["fornecedor_id"]
+            isOneToOne: false
+            referencedRelation: "fornecedores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "extrato_identificadores_paciente_id_fkey"
+            columns: ["paciente_id"]
+            isOneToOne: false
+            referencedRelation: "pacientes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "extrato_identificadores_plano_conta_id_fkey"
+            columns: ["plano_conta_id"]
+            isOneToOne: false
+            referencedRelation: "plano_contas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "extrato_identificadores_tipo_servico_id_fkey"
+            columns: ["tipo_servico_id"]
+            isOneToOne: false
+            referencedRelation: "tipos_servico"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      extrato_lotes: {
+        Row: {
+          conta_financeira_id: string | null
+          created_at: string
+          created_by: string | null
+          id: string
+          nome_arquivo: string | null
+          periodo_fim: string | null
+          periodo_inicio: string | null
+          total_duplicadas: number
+          total_linhas: number
+          total_novas: number
+        }
+        Insert: {
+          conta_financeira_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          nome_arquivo?: string | null
+          periodo_fim?: string | null
+          periodo_inicio?: string | null
+          total_duplicadas?: number
+          total_linhas?: number
+          total_novas?: number
+        }
+        Update: {
+          conta_financeira_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          nome_arquivo?: string | null
+          periodo_fim?: string | null
+          periodo_inicio?: string | null
+          total_duplicadas?: number
+          total_linhas?: number
+          total_novas?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "extrato_lotes_conta_financeira_id_fkey"
+            columns: ["conta_financeira_id"]
+            isOneToOne: false
+            referencedRelation: "contas_financeiras"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      extrato_transacoes: {
+        Row: {
+          conta_financeira_id: string | null
+          created_at: string
+          data: string
+          descricao: string
+          fitid: string
+          fornecedor_id: string | null
+          id: string
+          lancamento_id: string | null
+          lote_id: string
+          natureza: string
+          observacoes: string | null
+          paciente_id: string | null
+          pagamento_id: string | null
+          plano_conta_id: string | null
+          status: string
+          sugestao_origem: string | null
+          tipo_servico_id: string | null
+          valor: number
+        }
+        Insert: {
+          conta_financeira_id?: string | null
+          created_at?: string
+          data: string
+          descricao: string
+          fitid: string
+          fornecedor_id?: string | null
+          id?: string
+          lancamento_id?: string | null
+          lote_id: string
+          natureza: string
+          observacoes?: string | null
+          paciente_id?: string | null
+          pagamento_id?: string | null
+          plano_conta_id?: string | null
+          status?: string
+          sugestao_origem?: string | null
+          tipo_servico_id?: string | null
+          valor: number
+        }
+        Update: {
+          conta_financeira_id?: string | null
+          created_at?: string
+          data?: string
+          descricao?: string
+          fitid?: string
+          fornecedor_id?: string | null
+          id?: string
+          lancamento_id?: string | null
+          lote_id?: string
+          natureza?: string
+          observacoes?: string | null
+          paciente_id?: string | null
+          pagamento_id?: string | null
+          plano_conta_id?: string | null
+          status?: string
+          sugestao_origem?: string | null
+          tipo_servico_id?: string | null
+          valor?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "extrato_transacoes_conta_financeira_id_fkey"
+            columns: ["conta_financeira_id"]
+            isOneToOne: false
+            referencedRelation: "contas_financeiras"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "extrato_transacoes_fornecedor_id_fkey"
+            columns: ["fornecedor_id"]
+            isOneToOne: false
+            referencedRelation: "fornecedores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "extrato_transacoes_lancamento_id_fkey"
+            columns: ["lancamento_id"]
+            isOneToOne: false
+            referencedRelation: "lancamentos_financeiros"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "extrato_transacoes_lote_id_fkey"
+            columns: ["lote_id"]
+            isOneToOne: false
+            referencedRelation: "extrato_lotes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "extrato_transacoes_paciente_id_fkey"
+            columns: ["paciente_id"]
+            isOneToOne: false
+            referencedRelation: "pacientes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "extrato_transacoes_pagamento_id_fkey"
+            columns: ["pagamento_id"]
+            isOneToOne: false
+            referencedRelation: "pagamentos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "extrato_transacoes_plano_conta_id_fkey"
+            columns: ["plano_conta_id"]
+            isOneToOne: false
+            referencedRelation: "plano_contas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "extrato_transacoes_tipo_servico_id_fkey"
+            columns: ["tipo_servico_id"]
+            isOneToOne: false
+            referencedRelation: "tipos_servico"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      folha_pagamento: {
+        Row: {
+          beneficios: number
+          bonus: number
+          comissoes: number
+          competencia: string
+          created_at: string
+          descontos: number
+          detalhes: Json
+          encargos: number
+          fechada_em: string | null
+          id: string
+          lancamento_id: string | null
+          liquido: number
+          observacoes: string | null
+          paga_em: string | null
+          profissional_id: string
+          qtd_sessoes: number
+          salario_base: number
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          beneficios?: number
+          bonus?: number
+          comissoes?: number
+          competencia: string
+          created_at?: string
+          descontos?: number
+          detalhes?: Json
+          encargos?: number
+          fechada_em?: string | null
+          id?: string
+          lancamento_id?: string | null
+          liquido?: number
+          observacoes?: string | null
+          paga_em?: string | null
+          profissional_id: string
+          qtd_sessoes?: number
+          salario_base?: number
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          beneficios?: number
+          bonus?: number
+          comissoes?: number
+          competencia?: string
+          created_at?: string
+          descontos?: number
+          detalhes?: Json
+          encargos?: number
+          fechada_em?: string | null
+          id?: string
+          lancamento_id?: string | null
+          liquido?: number
+          observacoes?: string | null
+          paga_em?: string | null
+          profissional_id?: string
+          qtd_sessoes?: number
+          salario_base?: number
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      fornecedores: {
+        Row: {
+          ativo: boolean
+          created_at: string
+          documento: string | null
+          email: string | null
+          id: string
+          nome: string
+          observacoes: string | null
+          plano_conta_id: string | null
+          telefone: string | null
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean
+          created_at?: string
+          documento?: string | null
+          email?: string | null
+          id?: string
+          nome: string
+          observacoes?: string | null
+          plano_conta_id?: string | null
+          telefone?: string | null
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean
+          created_at?: string
+          documento?: string | null
+          email?: string | null
+          id?: string
+          nome?: string
+          observacoes?: string | null
+          plano_conta_id?: string | null
+          telefone?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fornecedores_plano_conta_id_fkey"
+            columns: ["plano_conta_id"]
+            isOneToOne: false
+            referencedRelation: "plano_contas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      frequencia: {
+        Row: {
+          atendimento_id: string | null
+          created_at: string
+          created_by: string | null
+          data_referencia: string
+          id: string
+          motivo: string | null
+          paciente_id: string
+          profissional_id: string | null
+          reposto_em: string | null
+          sessao_id: string | null
+          tipo: string
+        }
+        Insert: {
+          atendimento_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          data_referencia: string
+          id?: string
+          motivo?: string | null
+          paciente_id: string
+          profissional_id?: string | null
+          reposto_em?: string | null
+          sessao_id?: string | null
+          tipo: string
+        }
+        Update: {
+          atendimento_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          data_referencia?: string
+          id?: string
+          motivo?: string | null
+          paciente_id?: string
+          profissional_id?: string | null
+          reposto_em?: string | null
+          sessao_id?: string | null
+          tipo?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "frequencia_sessao_id_fkey"
+            columns: ["sessao_id"]
+            isOneToOne: false
+            referencedRelation: "prontuario_sessoes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      habilidades: {
+        Row: {
+          ativo: boolean
+          categoria_id: string | null
+          created_at: string
+          descricao: string | null
+          id: string
+          nome: string
+        }
+        Insert: {
+          ativo?: boolean
+          categoria_id?: string | null
+          created_at?: string
+          descricao?: string | null
+          id?: string
+          nome: string
+        }
+        Update: {
+          ativo?: boolean
+          categoria_id?: string | null
+          created_at?: string
+          descricao?: string | null
+          id?: string
+          nome?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "habilidades_categoria_id_fkey"
+            columns: ["categoria_id"]
+            isOneToOne: false
+            referencedRelation: "categorias_habilidades"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      infinitepay_config: {
+        Row: {
+          ativo: boolean
+          created_at: string
+          gerar_link_automatico: boolean
+          handle: string
+          id: string
+          ultima_sincronizacao: string | null
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean
+          created_at?: string
+          gerar_link_automatico?: boolean
+          handle: string
+          id?: string
+          ultima_sincronizacao?: string | null
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean
+          created_at?: string
+          gerar_link_automatico?: boolean
+          handle?: string
+          id?: string
+          ultima_sincronizacao?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      infinitepay_eventos: {
+        Row: {
+          erro: string | null
+          event_id: string | null
+          id: string
+          lancamento_id: string | null
+          pagamento_id: string | null
+          payload: Json
+          recebido_em: string
+          status_processamento: string
+          tipo: string
+        }
+        Insert: {
+          erro?: string | null
+          event_id?: string | null
+          id?: string
+          lancamento_id?: string | null
+          pagamento_id?: string | null
+          payload?: Json
+          recebido_em?: string
+          status_processamento?: string
+          tipo: string
+        }
+        Update: {
+          erro?: string | null
+          event_id?: string | null
+          id?: string
+          lancamento_id?: string | null
+          pagamento_id?: string | null
+          payload?: Json
+          recebido_em?: string
+          status_processamento?: string
+          tipo?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "infinitepay_eventos_lancamento_id_fkey"
+            columns: ["lancamento_id"]
+            isOneToOne: false
+            referencedRelation: "lancamentos_financeiros"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      investimentos: {
+        Row: {
+          aprovado_em: string | null
+          categoria: string
+          concluido_em: string | null
+          created_at: string
+          created_by: string | null
+          descricao: string | null
+          fornecedor_id: string | null
+          id: string
+          lancamento_id: string | null
+          nome: string
+          observacoes: string | null
+          plano_conta_id: string | null
+          prazo: string | null
+          prioridade: string
+          reserva_mensal: number
+          roi_esperado: string | null
+          status: string
+          updated_at: string
+          valor: number
+        }
+        Insert: {
+          aprovado_em?: string | null
+          categoria: string
+          concluido_em?: string | null
+          created_at?: string
+          created_by?: string | null
+          descricao?: string | null
+          fornecedor_id?: string | null
+          id?: string
+          lancamento_id?: string | null
+          nome: string
+          observacoes?: string | null
+          plano_conta_id?: string | null
+          prazo?: string | null
+          prioridade?: string
+          reserva_mensal?: number
+          roi_esperado?: string | null
+          status?: string
+          updated_at?: string
+          valor?: number
+        }
+        Update: {
+          aprovado_em?: string | null
+          categoria?: string
+          concluido_em?: string | null
+          created_at?: string
+          created_by?: string | null
+          descricao?: string | null
+          fornecedor_id?: string | null
+          id?: string
+          lancamento_id?: string | null
+          nome?: string
+          observacoes?: string | null
+          plano_conta_id?: string | null
+          prazo?: string | null
+          prioridade?: string
+          reserva_mensal?: number
+          roi_esperado?: string | null
+          status?: string
+          updated_at?: string
+          valor?: number
+        }
+        Relationships: []
+      }
+      lancamentos_financeiros: {
+        Row: {
+          centro_custo_id: string | null
+          competencia: string
+          comprovante_path: string | null
+          conta_destino_id: string | null
+          conta_id: string | null
+          created_at: string
+          created_by: string | null
+          descricao: string
+          forma_pagamento: string | null
+          fornecedor_id: string | null
+          id: string
+          observacoes: string | null
+          paciente_id: string | null
+          pagamento_id: string | null
+          pago_em: string | null
+          plano_conta_id: string | null
+          recorrencia_grupo: string | null
+          status: string
+          tipo: string
+          tipo_servico_id: string | null
+          updated_at: string
+          valor: number
+          vencimento: string
+        }
+        Insert: {
+          centro_custo_id?: string | null
+          competencia: string
+          comprovante_path?: string | null
+          conta_destino_id?: string | null
+          conta_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          descricao: string
+          forma_pagamento?: string | null
+          fornecedor_id?: string | null
+          id?: string
+          observacoes?: string | null
+          paciente_id?: string | null
+          pagamento_id?: string | null
+          pago_em?: string | null
+          plano_conta_id?: string | null
+          recorrencia_grupo?: string | null
+          status?: string
+          tipo: string
+          tipo_servico_id?: string | null
+          updated_at?: string
+          valor: number
+          vencimento: string
+        }
+        Update: {
+          centro_custo_id?: string | null
+          competencia?: string
+          comprovante_path?: string | null
+          conta_destino_id?: string | null
+          conta_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          descricao?: string
+          forma_pagamento?: string | null
+          fornecedor_id?: string | null
+          id?: string
+          observacoes?: string | null
+          paciente_id?: string | null
+          pagamento_id?: string | null
+          pago_em?: string | null
+          plano_conta_id?: string | null
+          recorrencia_grupo?: string | null
+          status?: string
+          tipo?: string
+          tipo_servico_id?: string | null
+          updated_at?: string
+          valor?: number
+          vencimento?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lancamentos_financeiros_centro_custo_id_fkey"
+            columns: ["centro_custo_id"]
+            isOneToOne: false
+            referencedRelation: "centros_custo"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lancamentos_financeiros_conta_destino_id_fkey"
+            columns: ["conta_destino_id"]
+            isOneToOne: false
+            referencedRelation: "contas_financeiras"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lancamentos_financeiros_conta_id_fkey"
+            columns: ["conta_id"]
+            isOneToOne: false
+            referencedRelation: "contas_financeiras"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lancamentos_financeiros_fornecedor_id_fkey"
+            columns: ["fornecedor_id"]
+            isOneToOne: false
+            referencedRelation: "fornecedores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lancamentos_financeiros_plano_conta_id_fkey"
+            columns: ["plano_conta_id"]
+            isOneToOne: false
+            referencedRelation: "plano_contas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lancamentos_financeiros_tipo_servico_id_fkey"
+            columns: ["tipo_servico_id"]
+            isOneToOne: false
+            referencedRelation: "tipos_servico"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lead_interacoes: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          descricao: string | null
+          etapa_anterior_id: string | null
+          etapa_nova_id: string | null
+          id: string
+          lead_id: string
+          tipo: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          descricao?: string | null
+          etapa_anterior_id?: string | null
+          etapa_nova_id?: string | null
+          id?: string
+          lead_id: string
+          tipo: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          descricao?: string | null
+          etapa_anterior_id?: string | null
+          etapa_nova_id?: string | null
+          id?: string
+          lead_id?: string
+          tipo?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lead_interacoes_etapa_anterior_id_fkey"
+            columns: ["etapa_anterior_id"]
+            isOneToOne: false
+            referencedRelation: "pipeline_etapas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lead_interacoes_etapa_nova_id_fkey"
+            columns: ["etapa_nova_id"]
+            isOneToOne: false
+            referencedRelation: "pipeline_etapas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lead_interacoes_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      leads: {
+        Row: {
+          campanha_id: string | null
+          canal_id: string | null
+          indicador_nome: string | null
+          origem_detalhe: string | null
+          parceiro_id: string | null
+          utm_campaign: string | null
+          utm_medium: string | null
+          utm_source: string | null
+          convertido_em: string | null
+          created_at: string
+          created_by: string | null
+          email: string | null
+          entrou_em: string
+          etapa_atualizada_em: string
+          etapa_id: string
+          id: string
+          indicador_nome: string | null
+          motivo_perda: string | null
+          nome: string
+          nome_paciente: string | null
+          observacoes: string | null
+          origem_detalhe: string | null
+          paciente_id_criado: string | null
+          proximo_contato_em: string | null
+          responsavel_id: string | null
+          telefone: string | null
+          ultimo_contato_em: string | null
+          updated_at: string
+          utm_campaign: string | null
+          utm_medium: string | null
+          utm_source: string | null
+          valor_estimado: number | null
+        }
+        Insert: {
+          campanha_id?: string | null
+          canal_id?: string | null
+          indicador_nome?: string | null
+          origem_detalhe?: string | null
+          parceiro_id?: string | null
+          utm_campaign?: string | null
+          utm_medium?: string | null
+          utm_source?: string | null
+          convertido_em?: string | null
+          created_at?: string
+          created_by?: string | null
+          email?: string | null
+          entrou_em?: string
+          etapa_atualizada_em?: string
+          etapa_id: string
+          id?: string
+          indicador_nome?: string | null
+          motivo_perda?: string | null
+          nome: string
+          nome_paciente?: string | null
+          observacoes?: string | null
+          origem_detalhe?: string | null
+          paciente_id_criado?: string | null
+          proximo_contato_em?: string | null
+          responsavel_id?: string | null
+          telefone?: string | null
+          ultimo_contato_em?: string | null
+          updated_at?: string
+          utm_campaign?: string | null
+          utm_medium?: string | null
+          utm_source?: string | null
+          valor_estimado?: number | null
+        }
+        Update: {
+          campanha_id?: string | null
+          canal_id?: string | null
+          indicador_nome?: string | null
+          origem_detalhe?: string | null
+          parceiro_id?: string | null
+          utm_campaign?: string | null
+          utm_medium?: string | null
+          utm_source?: string | null
+          convertido_em?: string | null
+          created_at?: string
+          created_by?: string | null
+          email?: string | null
+          entrou_em?: string
+          etapa_atualizada_em?: string
+          etapa_id?: string
+          id?: string
+          indicador_nome?: string | null
+          motivo_perda?: string | null
+          nome?: string
+          nome_paciente?: string | null
+          observacoes?: string | null
+          origem_detalhe?: string | null
+          paciente_id_criado?: string | null
+          proximo_contato_em?: string | null
+          responsavel_id?: string | null
+          telefone?: string | null
+          ultimo_contato_em?: string | null
+          updated_at?: string
+          utm_campaign?: string | null
+          utm_medium?: string | null
+          utm_source?: string | null
+          valor_estimado?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "leads_campanha_id_fkey"
+            columns: ["campanha_id"]
+            isOneToOne: false
+            referencedRelation: "campanhas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "leads_canal_id_fkey"
+            columns: ["canal_id"]
+            isOneToOne: false
+            referencedRelation: "canais_marketing"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "leads_etapa_id_fkey"
+            columns: ["etapa_id"]
+            isOneToOne: false
+            referencedRelation: "pipeline_etapas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "leads_paciente_id_criado_fkey"
+            columns: ["paciente_id_criado"]
+            isOneToOne: false
+            referencedRelation: "pacientes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      locais: {
+        Row: {
+          ativo: boolean
+          created_at: string
+          endereco: string | null
+          id: string
+          nome: string
+        }
+        Insert: {
+          ativo?: boolean
+          created_at?: string
+          endereco?: string | null
+          id?: string
+          nome: string
+        }
+        Update: {
+          ativo?: boolean
+          created_at?: string
+          endereco?: string | null
+          id?: string
+          nome?: string
+        }
+        Relationships: []
+      }
+      metas_terapeuticas: {
+        Row: {
+          concluida_em: string | null
+          created_at: string
+          created_by: string | null
+          descricao: string | null
+          dominio_cognitivo: string | null
+          id: string
+          iniciada_em: string | null
+          ordem: number
+          paciente_id: string
+          plano_id: string | null
+          prioridade: number
+          status: string
+          titulo: string
+          updated_at: string
+        }
+        Insert: {
+          concluida_em?: string | null
+          created_at?: string
+          created_by?: string | null
+          descricao?: string | null
+          dominio_cognitivo?: string | null
+          id?: string
+          iniciada_em?: string | null
+          ordem?: number
+          paciente_id: string
+          plano_id?: string | null
+          prioridade?: number
+          status?: string
+          titulo: string
+          updated_at?: string
+        }
+        Update: {
+          concluida_em?: string | null
+          created_at?: string
+          created_by?: string | null
+          descricao?: string | null
+          dominio_cognitivo?: string | null
+          id?: string
+          iniciada_em?: string | null
+          ordem?: number
+          paciente_id?: string
+          plano_id?: string | null
+          prioridade?: number
+          status?: string
+          titulo?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      modalidades: {
+        Row: {
+          ativo: boolean
+          cor: string | null
+          created_at: string
+          id: string
+          nome: string
+        }
+        Insert: {
+          ativo?: boolean
+          cor?: string | null
+          created_at?: string
+          id?: string
+          nome: string
+        }
+        Update: {
+          ativo?: boolean
+          cor?: string | null
+          created_at?: string
+          id?: string
+          nome?: string
+        }
+        Relationships: []
+      }
+      negocio_metas: {
+        Row: {
+          alvo: number
+          ano: number
+          created_at: string
+          id: string
+          indicador: string
+          observacoes: string | null
+        }
+        Insert: {
+          alvo: number
+          ano: number
+          created_at?: string
+          id?: string
+          indicador: string
+          observacoes?: string | null
+        }
+        Update: {
+          alvo?: number
+          ano?: number
+          created_at?: string
+          id?: string
+          indicador?: string
+          observacoes?: string | null
+        }
+        Relationships: []
+      }
+      paciente_diagnosticos: {
+        Row: {
+          data_diagnostico: string | null
+          diagnostico_id: string
+          observacoes: string | null
+          paciente_id: string
+        }
+        Insert: {
+          data_diagnostico?: string | null
+          diagnostico_id: string
+          observacoes?: string | null
+          paciente_id: string
+        }
+        Update: {
+          data_diagnostico?: string | null
+          diagnostico_id?: string
+          observacoes?: string | null
+          paciente_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "paciente_diagnosticos_diagnostico_id_fkey"
+            columns: ["diagnostico_id"]
+            isOneToOne: false
+            referencedRelation: "diagnosticos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "paciente_diagnosticos_paciente_id_fkey"
+            columns: ["paciente_id"]
+            isOneToOne: false
+            referencedRelation: "pacientes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      paciente_documentos: {
+        Row: {
+          categoria: string | null
+          created_at: string
+          descricao: string | null
+          extraido_em: string | null
+          fonte_tipo: string | null
+          galeria: boolean
+          id: string
+          link_externo: string | null
+          mime_type: string | null
+          origem: string | null
+          paciente_id: string
+          sessao_id: string | null
+          storage_path: string
+          tamanho_bytes: number | null
+          texto_extraido: string | null
+          titulo: string
+          uploaded_by: string | null
+          usar_como_fonte: boolean
+        }
+        Insert: {
+          categoria?: string | null
+          created_at?: string
+          descricao?: string | null
+          extraido_em?: string | null
+          fonte_tipo?: string | null
+          galeria?: boolean
+          id?: string
+          link_externo?: string | null
+          mime_type?: string | null
+          origem?: string | null
+          paciente_id: string
+          sessao_id?: string | null
+          storage_path: string
+          tamanho_bytes?: number | null
+          texto_extraido?: string | null
+          titulo: string
+          uploaded_by?: string | null
+          usar_como_fonte?: boolean
+        }
+        Update: {
+          categoria?: string | null
+          created_at?: string
+          descricao?: string | null
+          extraido_em?: string | null
+          fonte_tipo?: string | null
+          galeria?: boolean
+          id?: string
+          link_externo?: string | null
+          mime_type?: string | null
+          origem?: string | null
+          paciente_id?: string
+          sessao_id?: string | null
+          storage_path?: string
+          tamanho_bytes?: number | null
+          texto_extraido?: string | null
+          titulo?: string
+          uploaded_by?: string | null
+          usar_como_fonte?: boolean
+        }
+        Relationships: [
+          {
+            foreignKeyName: "paciente_documentos_paciente_id_fkey"
+            columns: ["paciente_id"]
+            isOneToOne: false
+            referencedRelation: "pacientes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      paciente_pre_anamnese: {
+        Row: {
+          cadastro_publico_id: string | null
+          campos_importados: Json
+          concluida_em: string | null
+          contexto_familiar: Json
+          created_at: string
+          exames_clinicos: Json
+          gestacao: Json
+          id: string
+          insights_validados: Json
+          modo_entrada: string | null
+          outros_especialistas: Json
+          paciente_id: string
+          parto: Json
+          radar_scores: Json
+          resumos_secao: Json
+          saude: Json
+          secoes_estruturadas: Json
+          tratamentos_anteriores: Json
+          updated_at: string
+        }
+        Insert: {
+          cadastro_publico_id?: string | null
+          campos_importados?: Json
+          concluida_em?: string | null
+          contexto_familiar?: Json
+          created_at?: string
+          exames_clinicos?: Json
+          gestacao?: Json
+          id?: string
+          insights_validados?: Json
+          modo_entrada?: string | null
+          outros_especialistas?: Json
+          paciente_id: string
+          parto?: Json
+          radar_scores?: Json
+          resumos_secao?: Json
+          saude?: Json
+          secoes_estruturadas?: Json
+          tratamentos_anteriores?: Json
+          updated_at?: string
+        }
+        Update: {
+          cadastro_publico_id?: string | null
+          campos_importados?: Json
+          concluida_em?: string | null
+          contexto_familiar?: Json
+          created_at?: string
+          exames_clinicos?: Json
+          gestacao?: Json
+          id?: string
+          insights_validados?: Json
+          modo_entrada?: string | null
+          outros_especialistas?: Json
+          paciente_id?: string
+          parto?: Json
+          radar_scores?: Json
+          resumos_secao?: Json
+          saude?: Json
+          secoes_estruturadas?: Json
+          tratamentos_anteriores?: Json
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "paciente_pre_anamnese_cadastro_publico_id_fkey"
+            columns: ["cadastro_publico_id"]
+            isOneToOne: false
+            referencedRelation: "cadastro_publico"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "paciente_pre_anamnese_paciente_id_fkey"
+            columns: ["paciente_id"]
+            isOneToOne: true
+            referencedRelation: "pacientes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      paciente_profissionais: {
+        Row: {
+          paciente_id: string
+          profissional_id: string
+        }
+        Insert: {
+          paciente_id: string
+          profissional_id: string
+        }
+        Update: {
+          paciente_id?: string
+          profissional_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "paciente_profissionais_paciente_id_fkey"
+            columns: ["paciente_id"]
+            isOneToOne: false
+            referencedRelation: "pacientes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "paciente_profissionais_profissional_id_fkey"
+            columns: ["profissional_id"]
+            isOneToOne: false
+            referencedRelation: "profissionais_consultorio"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pacientes: {
+        Row: {
+          arquivado: boolean
+          arquivado_em: string | null
+          autoriza_imagem: boolean | null
+          campanha_origem_id: string | null
+          canal_origem_id: string | null
+          contato_escola: string | null
+          cpf: string | null
+          created_at: string
+          data_alta: string | null
+          data_inicio: string | null
+          data_conversao_marketing: string | null
+          data_nascimento: string | null
+          data_ultima_avaliacao: string | null
+          dia_vencimento: number | null
+          documento: string | null
+          email: string | null
+          endereco: string | null
+          escola_id: string | null
+          escolaridade: string | null
+          expectativas: string | null
+          foto_path: string | null
+          foto_url: string | null
+          genero: string | null
+          hipotese_diagnostica: boolean | null
+          id: string
+          lead_origem_id: string | null
+          insight_cache: Json | null
+          insight_gerado_em: string | null
+          modalidade_id: string | null
+          modelo_pagamento: string | null
+          motivo_status: string | null
+          nome: string
+          numero_parcelas: number | null
+          observacoes: string | null
+          origem_criacao: string
+          perfil_vivo: Json
+          profissional_responsavel_id: string | null
+          queixa_principal: string | null
+          serie_curso: string | null
+          status: string
+          telefone: string | null
+          updated_at: string
+          valor_acordado: number | null
+        }
+        Insert: {
+          arquivado?: boolean
+          arquivado_em?: string | null
+          autoriza_imagem?: boolean | null
+          campanha_origem_id?: string | null
+          canal_origem_id?: string | null
+          contato_escola?: string | null
+          cpf?: string | null
+          created_at?: string
+          data_alta?: string | null
+          data_inicio?: string | null
+          data_conversao_marketing?: string | null
+          data_nascimento?: string | null
+          data_ultima_avaliacao?: string | null
+          dia_vencimento?: number | null
+          documento?: string | null
+          email?: string | null
+          endereco?: string | null
+          escola_id?: string | null
+          escolaridade?: string | null
+          expectativas?: string | null
+          foto_path?: string | null
+          foto_url?: string | null
+          genero?: string | null
+          hipotese_diagnostica?: boolean | null
+          id?: string
+          lead_origem_id?: string | null
+          insight_cache?: Json | null
+          insight_gerado_em?: string | null
+          modalidade_id?: string | null
+          modelo_pagamento?: string | null
+          motivo_status?: string | null
+          nome: string
+          numero_parcelas?: number | null
+          observacoes?: string | null
+          origem_criacao?: string
+          perfil_vivo?: Json
+          profissional_responsavel_id?: string | null
+          queixa_principal?: string | null
+          serie_curso?: string | null
+          status?: string
+          telefone?: string | null
+          updated_at?: string
+          valor_acordado?: number | null
+        }
+        Update: {
+          arquivado?: boolean
+          arquivado_em?: string | null
+          autoriza_imagem?: boolean | null
+          campanha_origem_id?: string | null
+          canal_origem_id?: string | null
+          contato_escola?: string | null
+          cpf?: string | null
+          created_at?: string
+          data_alta?: string | null
+          data_inicio?: string | null
+          data_conversao_marketing?: string | null
+          data_nascimento?: string | null
+          data_ultima_avaliacao?: string | null
+          dia_vencimento?: number | null
+          documento?: string | null
+          email?: string | null
+          endereco?: string | null
+          escola_id?: string | null
+          escolaridade?: string | null
+          expectativas?: string | null
+          foto_path?: string | null
+          foto_url?: string | null
+          genero?: string | null
+          hipotese_diagnostica?: boolean | null
+          id?: string
+          lead_origem_id?: string | null
+          insight_cache?: Json | null
+          insight_gerado_em?: string | null
+          modalidade_id?: string | null
+          modelo_pagamento?: string | null
+          motivo_status?: string | null
+          nome?: string
+          numero_parcelas?: number | null
+          observacoes?: string | null
+          origem_criacao?: string
+          perfil_vivo?: Json
+          profissional_responsavel_id?: string | null
+          queixa_principal?: string | null
+          serie_curso?: string | null
+          status?: string
+          telefone?: string | null
+          updated_at?: string
+          valor_acordado?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pacientes_campanha_origem_id_fkey"
+            columns: ["campanha_origem_id"]
+            isOneToOne: false
+            referencedRelation: "campanhas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pacientes_canal_origem_id_fkey"
+            columns: ["canal_origem_id"]
+            isOneToOne: false
+            referencedRelation: "canais_marketing"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pacientes_lead_origem_id_fkey"
+            columns: ["lead_origem_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pacientes_escola_id_fkey"
+            columns: ["escola_id"]
+            isOneToOne: false
+            referencedRelation: "escolas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pacientes_modalidade_id_fkey"
+            columns: ["modalidade_id"]
+            isOneToOne: false
+            referencedRelation: "modalidades"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pacientes_profissional_responsavel_id_fkey"
+            columns: ["profissional_responsavel_id"]
+            isOneToOne: false
+            referencedRelation: "profissionais_consultorio"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pagamentos: {
+        Row: {
+          competencia: string
+          created_at: string
+          forma_pagamento: string | null
+          id: string
+          infinitepay_checkout_url: string | null
+          infinitepay_invoice_id: string | null
+          infinitepay_status: string | null
+          nf_emitida: boolean | null
+          nf_numero: string | null
+          observacoes: string | null
+          paciente_id: string
+          pago_em: string | null
+          status: string
+          taxa_infinitepay: number | null
+          updated_at: string
+          valor: number
+          valor_recebido: number | null
+          vencimento: string
+        }
+        Insert: {
+          competencia: string
+          created_at?: string
+          forma_pagamento?: string | null
+          id?: string
+          infinitepay_checkout_url?: string | null
+          infinitepay_invoice_id?: string | null
+          infinitepay_status?: string | null
+          nf_emitida?: boolean | null
+          nf_numero?: string | null
+          observacoes?: string | null
+          paciente_id: string
+          pago_em?: string | null
+          status?: string
+          taxa_infinitepay?: number | null
+          updated_at?: string
+          valor: number
+          valor_recebido?: number | null
+          vencimento: string
+        }
+        Update: {
+          competencia?: string
+          created_at?: string
+          forma_pagamento?: string | null
+          id?: string
+          infinitepay_checkout_url?: string | null
+          infinitepay_invoice_id?: string | null
+          infinitepay_status?: string | null
+          nf_emitida?: boolean | null
+          nf_numero?: string | null
+          observacoes?: string | null
+          paciente_id?: string
+          pago_em?: string | null
+          status?: string
+          taxa_infinitepay?: number | null
+          updated_at?: string
+          valor?: number
+          valor_recebido?: number | null
+          vencimento?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pagamentos_paciente_id_fkey"
+            columns: ["paciente_id"]
+            isOneToOne: false
+            referencedRelation: "pacientes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      marketing_objetivos: {
+        Row: {
+          ativo: boolean
+          created_at: string
+          icone: string
+          id: string
+          nome: string
+          ordem: number
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean
+          created_at?: string
+          icone?: string
+          id?: string
+          nome: string
+          ordem?: number
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean
+          created_at?: string
+          icone?: string
+          id?: string
+          nome?: string
+          ordem?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      marketing_funis: {
+        Row: {
+          ativo: boolean
+          cor: string
+          created_at: string
+          descricao: string | null
+          etapas: Json
+          id: string
+          nome: string
+          numero: number
+          ordem: number
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean
+          cor?: string
+          created_at?: string
+          descricao?: string | null
+          etapas?: Json
+          id?: string
+          nome: string
+          numero: number
+          ordem?: number
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean
+          cor?: string
+          created_at?: string
+          descricao?: string | null
+          etapas?: Json
+          id?: string
+          nome?: string
+          numero?: number
+          ordem?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      marketing_funil_acoes: {
+        Row: {
+          ativo: boolean
+          created_at: string
+          funil_id: string
+          id: string
+          ordem: number
+          texto: string
+        }
+        Insert: {
+          ativo?: boolean
+          created_at?: string
+          funil_id: string
+          id?: string
+          ordem?: number
+          texto: string
+        }
+        Update: {
+          ativo?: boolean
+          created_at?: string
+          funil_id?: string
+          id?: string
+          ordem?: number
+          texto?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "marketing_funil_acoes_funil_id_fkey"
+            columns: ["funil_id"]
+            isOneToOne: false
+            referencedRelation: "marketing_funis"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      marketing_rotinas: {
+        Row: {
+          ativo: boolean
+          cadencia: string
+          created_at: string
+          funil_id: string | null
+          id: string
+          meta_qtd: number
+          ordem: number
+          titulo: string
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean
+          cadencia?: string
+          created_at?: string
+          funil_id?: string | null
+          id?: string
+          meta_qtd?: number
+          ordem?: number
+          titulo: string
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean
+          cadencia?: string
+          created_at?: string
+          funil_id?: string | null
+          id?: string
+          meta_qtd?: number
+          ordem?: number
+          titulo?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "marketing_rotinas_funil_id_fkey"
+            columns: ["funil_id"]
+            isOneToOne: false
+            referencedRelation: "marketing_funis"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      marketing_rotina_execucoes: {
+        Row: {
+          created_at: string
+          feito: boolean
+          feito_em: string | null
+          feito_por: string | null
+          id: string
+          periodo: string
+          quantidade: number
+          rotina_id: string
+        }
+        Insert: {
+          created_at?: string
+          feito?: boolean
+          feito_em?: string | null
+          feito_por?: string | null
+          id?: string
+          periodo: string
+          quantidade?: number
+          rotina_id: string
+        }
+        Update: {
+          created_at?: string
+          feito?: boolean
+          feito_em?: string | null
+          feito_por?: string | null
+          id?: string
+          periodo?: string
+          quantidade?: number
+          rotina_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "marketing_rotina_execucoes_rotina_id_fkey"
+            columns: ["rotina_id"]
+            isOneToOne: false
+            referencedRelation: "marketing_rotinas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      marketing_indicadores: {
+        Row: {
+          ativo: boolean
+          chave: string
+          cor: string
+          created_at: string
+          fonte: string | null
+          icone: string
+          id: string
+          nome: string
+          ordem: number
+          tipo: string
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean
+          chave: string
+          cor?: string
+          created_at?: string
+          fonte?: string | null
+          icone?: string
+          id?: string
+          nome: string
+          ordem?: number
+          tipo?: string
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean
+          chave?: string
+          cor?: string
+          created_at?: string
+          fonte?: string | null
+          icone?: string
+          id?: string
+          nome?: string
+          ordem?: number
+          tipo?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      marketing_indicador_valores: {
+        Row: {
+          competencia: string
+          created_at: string
+          id: string
+          indicador_id: string
+          updated_at: string
+          valor: number
+        }
+        Insert: {
+          competencia: string
+          created_at?: string
+          id?: string
+          indicador_id: string
+          updated_at?: string
+          valor?: number
+        }
+        Update: {
+          competencia?: string
+          created_at?: string
+          id?: string
+          indicador_id?: string
+          updated_at?: string
+          valor?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "marketing_indicador_valores_indicador_id_fkey"
+            columns: ["indicador_id"]
+            isOneToOne: false
+            referencedRelation: "marketing_indicadores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      marketing_principios: {
+        Row: {
+          ativo: boolean
+          created_at: string
+          id: string
+          ordem: number
+          texto: string
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean
+          created_at?: string
+          id?: string
+          ordem?: number
+          texto: string
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean
+          created_at?: string
+          id?: string
+          ordem?: number
+          texto?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      pipeline_etapas: {
+        Row: {
+          ativo: boolean
+          cor: string
+          created_at: string
+          id: string
+          nome: string
+          ordem: number
+          tipo: string
+        }
+        Insert: {
+          ativo?: boolean
+          cor?: string
+          created_at?: string
+          id?: string
+          nome: string
+          ordem?: number
+          tipo?: string
+        }
+        Update: {
+          ativo?: boolean
+          cor?: string
+          created_at?: string
+          id?: string
+          nome?: string
+          ordem?: number
+          tipo?: string
+        }
+        Relationships: []
+      }
+      plano_ciclo_revisoes: {
+        Row: {
+          aprovado_por: string | null
+          created_at: string
+          data_revisao: string
+          id: string
+          observacao: string | null
+          plano_id: string
+          resumo: Json | null
+          sugestoes: Json | null
+          tipo: string
+          updated_at: string
+        }
+        Insert: {
+          aprovado_por?: string | null
+          created_at?: string
+          data_revisao?: string
+          id?: string
+          observacao?: string | null
+          plano_id: string
+          resumo?: Json | null
+          sugestoes?: Json | null
+          tipo: string
+          updated_at?: string
+        }
+        Update: {
+          aprovado_por?: string | null
+          created_at?: string
+          data_revisao?: string
+          id?: string
+          observacao?: string | null
+          plano_id?: string
+          resumo?: Json | null
+          sugestoes?: Json | null
+          tipo?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "plano_ciclo_revisoes_plano_id_fkey"
+            columns: ["plano_id"]
+            isOneToOne: false
+            referencedRelation: "planos_terapeuticos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      plano_contas: {
+        Row: {
+          ativo: boolean
+          codigo: string | null
+          created_at: string
+          id: string
+          nome: string
+          ordem: number
+          parent_id: string | null
+          tipo: string
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean
+          codigo?: string | null
+          created_at?: string
+          id?: string
+          nome: string
+          ordem?: number
+          parent_id?: string | null
+          tipo: string
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean
+          codigo?: string | null
+          created_at?: string
+          id?: string
+          nome?: string
+          ordem?: number
+          parent_id?: string | null
+          tipo?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "plano_contas_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "plano_contas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      plano_formulacao_itens: {
+        Row: {
+          categoria: string
+          cif_codigo: string | null
+          confianca: string | null
+          created_at: string
+          descricao: string
+          frequencia: number | null
+          id: string
+          impacto: string | null
+          impacto_funcional: number | null
+          ordem: number
+          origem: string
+          plano_id: string
+          potencial_mudanca: number | null
+          prioridade: number | null
+          updated_at: string
+          urgencia: number | null
+        }
+        Insert: {
+          categoria: string
+          cif_codigo?: string | null
+          confianca?: string | null
+          created_at?: string
+          descricao: string
+          frequencia?: number | null
+          id?: string
+          impacto?: string | null
+          impacto_funcional?: number | null
+          ordem?: number
+          origem?: string
+          plano_id: string
+          potencial_mudanca?: number | null
+          prioridade?: number | null
+          updated_at?: string
+          urgencia?: number | null
+        }
+        Update: {
+          categoria?: string
+          cif_codigo?: string | null
+          confianca?: string | null
+          created_at?: string
+          descricao?: string
+          frequencia?: number | null
+          id?: string
+          impacto?: string | null
+          impacto_funcional?: number | null
+          ordem?: number
+          origem?: string
+          plano_id?: string
+          potencial_mudanca?: number | null
+          prioridade?: number | null
+          updated_at?: string
+          urgencia?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "plano_formulacao_itens_plano_id_fkey"
+            columns: ["plano_id"]
+            isOneToOne: false
+            referencedRelation: "planos_terapeuticos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      plano_meta_componentes: {
+        Row: {
+          created_at: string
+          id: string
+          meta_id: string
+          nome: string
+          ordem: number
+          tipo: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          meta_id: string
+          nome: string
+          ordem?: number
+          tipo?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          meta_id?: string
+          nome?: string
+          ordem?: number
+          tipo?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "plano_meta_componentes_meta_id_fkey"
+            columns: ["meta_id"]
+            isOneToOne: false
+            referencedRelation: "plano_metas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      plano_meta_fontes: {
+        Row: {
+          created_at: string
+          detalhe: string | null
+          id: string
+          meta_id: string
+          ordem: number
+          referencia: string | null
+          tipo: string
+        }
+        Insert: {
+          created_at?: string
+          detalhe?: string | null
+          id?: string
+          meta_id: string
+          ordem?: number
+          referencia?: string | null
+          tipo: string
+        }
+        Update: {
+          created_at?: string
+          detalhe?: string | null
+          id?: string
+          meta_id?: string
+          ordem?: number
+          referencia?: string | null
+          tipo?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "plano_meta_fontes_meta_id_fkey"
+            columns: ["meta_id"]
+            isOneToOne: false
+            referencedRelation: "plano_metas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      plano_objetivos: {
+        Row: {
+          created_at: string
+          descricao: string | null
+          dominio_funcional: string | null
+          id: string
+          ordem: number
+          origem: string
+          plano_id: string
+          status: string
+          titulo: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          descricao?: string | null
+          dominio_funcional?: string | null
+          id?: string
+          ordem?: number
+          origem?: string
+          plano_id: string
+          status?: string
+          titulo: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          descricao?: string | null
+          dominio_funcional?: string | null
+          id?: string
+          ordem?: number
+          origem?: string
+          plano_id?: string
+          status?: string
+          titulo?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "plano_objetivos_plano_id_fkey"
+            columns: ["plano_id"]
+            isOneToOne: false
+            referencedRelation: "planos_terapeuticos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      plano_devolutivas: {
+        Row: {
+          ai_modelo: string | null
+          conteudo: Json
+          created_at: string
+          gerado_por: string | null
+          id: string
+          observacao: string | null
+          paciente_id: string
+          plano_id: string | null
+        }
+        Insert: {
+          ai_modelo?: string | null
+          conteudo?: Json
+          created_at?: string
+          gerado_por?: string | null
+          id?: string
+          observacao?: string | null
+          paciente_id: string
+          plano_id?: string | null
+        }
+        Update: {
+          ai_modelo?: string | null
+          conteudo?: Json
+          created_at?: string
+          gerado_por?: string | null
+          id?: string
+          observacao?: string | null
+          paciente_id?: string
+          plano_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "plano_devolutivas_paciente_id_fkey"
+            columns: ["paciente_id"]
+            isOneToOne: false
+            referencedRelation: "pacientes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "plano_devolutivas_plano_id_fkey"
+            columns: ["plano_id"]
+            isOneToOne: false
+            referencedRelation: "planos_terapeuticos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      plano_estrategias: {
+        Row: {
+          como_aplicar: string | null
+          created_at: string
+          id: string
+          justificativa: string | null
+          meta_id: string
+          nome: string
+          ordem: number
+          referencia: string | null
+          updated_at: string
+        }
+        Insert: {
+          como_aplicar?: string | null
+          created_at?: string
+          id?: string
+          justificativa?: string | null
+          meta_id: string
+          nome: string
+          ordem?: number
+          referencia?: string | null
+          updated_at?: string
+        }
+        Update: {
+          como_aplicar?: string | null
+          created_at?: string
+          id?: string
+          justificativa?: string | null
+          meta_id?: string
+          nome?: string
+          ordem?: number
+          referencia?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "plano_estrategias_meta_id_fkey"
+            columns: ["meta_id"]
+            isOneToOne: false
+            referencedRelation: "plano_metas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      plano_evidencias: {
+        Row: {
+          ano: number | null
+          autores: string | null
+          created_at: string
+          id: string
+          journal: string | null
+          meta_id: string | null
+          plano_id: string
+          pmid: string | null
+          resumo: string | null
+          titulo: string
+          url: string | null
+        }
+        Insert: {
+          ano?: number | null
+          autores?: string | null
+          created_at?: string
+          id?: string
+          journal?: string | null
+          meta_id?: string | null
+          plano_id: string
+          pmid?: string | null
+          resumo?: string | null
+          titulo: string
+          url?: string | null
+        }
+        Update: {
+          ano?: number | null
+          autores?: string | null
+          created_at?: string
+          id?: string
+          journal?: string | null
+          meta_id?: string | null
+          plano_id?: string
+          pmid?: string | null
+          resumo?: string | null
+          titulo?: string
+          url?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "plano_evidencias_meta_id_fkey"
+            columns: ["meta_id"]
+            isOneToOne: false
+            referencedRelation: "plano_metas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "plano_evidencias_plano_id_fkey"
+            columns: ["plano_id"]
+            isOneToOne: false
+            referencedRelation: "planos_terapeuticos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      plano_gas: {
+        Row: {
+          created_at: string
+          descricao: string
+          id: string
+          meta_id: string
+          nivel: number
+        }
+        Insert: {
+          created_at?: string
+          descricao: string
+          id?: string
+          meta_id: string
+          nivel: number
+        }
+        Update: {
+          created_at?: string
+          descricao?: string
+          id?: string
+          meta_id?: string
+          nivel?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "plano_gas_meta_id_fkey"
+            columns: ["meta_id"]
+            isOneToOne: false
+            referencedRelation: "plano_metas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      plano_metas: {
+        Row: {
+          baseline: string | null
+          created_at: string
+          criterios_alta: string | null
+          criterios_progressao: string | null
+          confianca_justificativa: string | null
+          data_revisao: string | null
+          dominio: string | null
+          grau_confianca: string | null
+          id: string
+          justificativa: string | null
+          meta_terapeutica_id: string | null
+          nivel_gas_atingido: number | null
+          objetivo_id: string | null
+          ordem: number
+          ordem_progressao: number | null
+          plano_id: string
+          prazo_semanas: number | null
+          recursos: string | null
+          restricao_funcional: string | null
+          status: string
+          titulo_smart: string
+          updated_at: string
+        }
+        Insert: {
+          baseline?: string | null
+          created_at?: string
+          criterios_alta?: string | null
+          criterios_progressao?: string | null
+          confianca_justificativa?: string | null
+          data_revisao?: string | null
+          dominio?: string | null
+          grau_confianca?: string | null
+          id?: string
+          justificativa?: string | null
+          meta_terapeutica_id?: string | null
+          nivel_gas_atingido?: number | null
+          objetivo_id?: string | null
+          ordem?: number
+          ordem_progressao?: number | null
+          plano_id: string
+          prazo_semanas?: number | null
+          recursos?: string | null
+          restricao_funcional?: string | null
+          status?: string
+          titulo_smart: string
+          updated_at?: string
+        }
+        Update: {
+          baseline?: string | null
+          created_at?: string
+          criterios_alta?: string | null
+          criterios_progressao?: string | null
+          confianca_justificativa?: string | null
+          data_revisao?: string | null
+          dominio?: string | null
+          grau_confianca?: string | null
+          id?: string
+          justificativa?: string | null
+          meta_terapeutica_id?: string | null
+          nivel_gas_atingido?: number | null
+          objetivo_id?: string | null
+          ordem?: number
+          ordem_progressao?: number | null
+          plano_id?: string
+          prazo_semanas?: number | null
+          recursos?: string | null
+          restricao_funcional?: string | null
+          status?: string
+          titulo_smart?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "plano_metas_meta_terapeutica_id_fkey"
+            columns: ["meta_terapeutica_id"]
+            isOneToOne: false
+            referencedRelation: "metas_terapeuticas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "plano_metas_objetivo_id_fkey"
+            columns: ["objetivo_id"]
+            isOneToOne: false
+            referencedRelation: "plano_objetivos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "plano_metas_plano_id_fkey"
+            columns: ["plano_id"]
+            isOneToOne: false
+            referencedRelation: "planos_terapeuticos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      planos_terapeuticos: {
+        Row: {
+          ai_gerado_em: string | null
+          ai_modelo: string | null
+          aprovado_em: string | null
+          aprovado_por: string | null
+          ciclo_semanas: number
+          cif_ambientais: string | null
+          cif_atividades: string | null
+          cif_atividades_impacto: string | null
+          cif_funcoes: string | null
+          cif_funcoes_impacto: string | null
+          cif_participacao: string | null
+          cif_participacao_impacto: string | null
+          cif_pessoais: string | null
+          created_at: string
+          criado_por: string | null
+          data_inicio: string | null
+          data_revisao_prevista: string | null
+          data_revisao_realizada: string | null
+          diagnostico_resumo: string | null
+          frequencia_sessoes: string | null
+          id: string
+          medicacao: string | null
+          objetivo_participacao: string | null
+          observacoes_revisao: string | null
+          orientacoes_escola: string | null
+          orientacoes_familia: string | null
+          paciente_id: string
+          parceiros_clinicos: string | null
+          queixa_principal: string | null
+          raciocinio_clinico: Json | null
+          status: string
+          titulo: string
+          updated_at: string
+        }
+        Insert: {
+          ai_gerado_em?: string | null
+          ai_modelo?: string | null
+          aprovado_em?: string | null
+          aprovado_por?: string | null
+          ciclo_semanas?: number
+          cif_ambientais?: string | null
+          cif_atividades?: string | null
+          cif_atividades_impacto?: string | null
+          cif_funcoes?: string | null
+          cif_funcoes_impacto?: string | null
+          cif_participacao?: string | null
+          cif_participacao_impacto?: string | null
+          cif_pessoais?: string | null
+          created_at?: string
+          criado_por?: string | null
+          data_inicio?: string | null
+          data_revisao_prevista?: string | null
+          data_revisao_realizada?: string | null
+          diagnostico_resumo?: string | null
+          frequencia_sessoes?: string | null
+          id?: string
+          medicacao?: string | null
+          objetivo_participacao?: string | null
+          observacoes_revisao?: string | null
+          orientacoes_escola?: string | null
+          orientacoes_familia?: string | null
+          paciente_id: string
+          parceiros_clinicos?: string | null
+          queixa_principal?: string | null
+          raciocinio_clinico?: Json | null
+          status?: string
+          titulo?: string
+          updated_at?: string
+        }
+        Update: {
+          ai_gerado_em?: string | null
+          ai_modelo?: string | null
+          aprovado_em?: string | null
+          aprovado_por?: string | null
+          ciclo_semanas?: number
+          cif_ambientais?: string | null
+          cif_atividades?: string | null
+          cif_atividades_impacto?: string | null
+          cif_funcoes?: string | null
+          cif_funcoes_impacto?: string | null
+          cif_participacao?: string | null
+          cif_participacao_impacto?: string | null
+          cif_pessoais?: string | null
+          created_at?: string
+          criado_por?: string | null
+          data_inicio?: string | null
+          data_revisao_prevista?: string | null
+          data_revisao_realizada?: string | null
+          diagnostico_resumo?: string | null
+          frequencia_sessoes?: string | null
+          id?: string
+          medicacao?: string | null
+          objetivo_participacao?: string | null
+          observacoes_revisao?: string | null
+          orientacoes_escola?: string | null
+          orientacoes_familia?: string | null
+          paciente_id?: string
+          parceiros_clinicos?: string | null
+          queixa_principal?: string | null
+          raciocinio_clinico?: Json | null
+          status?: string
+          titulo?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "planos_terapeuticos_paciente_id_fkey"
+            columns: ["paciente_id"]
+            isOneToOne: false
+            referencedRelation: "pacientes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      portal_acessos: {
+        Row: {
+          ativo: boolean
+          created_at: string
+          id: string
+          paciente_id: string
+          parentesco: string | null
+          tipo: string
+          user_id: string
+        }
+        Insert: {
+          ativo?: boolean
+          created_at?: string
+          id?: string
+          paciente_id: string
+          parentesco?: string | null
+          tipo?: string
+          user_id: string
+        }
+        Update: {
+          ativo?: boolean
+          created_at?: string
+          id?: string
+          paciente_id?: string
+          parentesco?: string | null
+          tipo?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "portal_acessos_paciente_id_fkey"
+            columns: ["paciente_id"]
+            isOneToOne: false
+            referencedRelation: "pacientes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      portal_convites: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          email: string | null
+          expires_at: string
+          id: string
+          nome_convidado: string | null
+          paciente_id: string
+          revogado: boolean
+          tipo: string
+          token: string
+          usado_em: string | null
+          usado_por: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          email?: string | null
+          expires_at?: string
+          id?: string
+          nome_convidado?: string | null
+          paciente_id: string
+          revogado?: boolean
+          tipo?: string
+          token?: string
+          usado_em?: string | null
+          usado_por?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          email?: string | null
+          expires_at?: string
+          id?: string
+          nome_convidado?: string | null
+          paciente_id?: string
+          revogado?: boolean
+          tipo?: string
+          token?: string
+          usado_em?: string | null
+          usado_por?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "portal_convites_paciente_id_fkey"
+            columns: ["paciente_id"]
+            isOneToOne: false
+            referencedRelation: "pacientes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      portal_registros: {
+        Row: {
+          autor_nome: string
+          autor_tipo: string
+          autor_user_id: string
+          created_at: string
+          humor: number | null
+          id: string
+          paciente_id: string
+          texto: string
+          tipo: string
+        }
+        Insert: {
+          autor_nome?: string
+          autor_tipo?: string
+          autor_user_id: string
+          created_at?: string
+          humor?: number | null
+          id?: string
+          paciente_id: string
+          texto: string
+          tipo?: string
+        }
+        Update: {
+          autor_nome?: string
+          autor_tipo?: string
+          autor_user_id?: string
+          created_at?: string
+          humor?: number | null
+          id?: string
+          paciente_id?: string
+          texto?: string
+          tipo?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "portal_registros_paciente_id_fkey"
+            columns: ["paciente_id"]
+            isOneToOne: false
+            referencedRelation: "pacientes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profiles: {
+        Row: {
+          avatar_url: string | null
+          created_at: string
+          id: string
+          nome: string
+          telefone: string | null
+          updated_at: string
+        }
+        Insert: {
+          avatar_url?: string | null
+          created_at?: string
+          id: string
+          nome: string
+          telefone?: string | null
+          updated_at?: string
+        }
+        Update: {
+          avatar_url?: string | null
+          created_at?: string
+          id?: string
+          nome?: string
+          telefone?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      profissionais_consultorio: {
+        Row: {
+          ativo: boolean
+          cor: string | null
+          created_at: string
+          email: string | null
+          id: string
+          nome: string
+          registro_profissional: string | null
+          telefone: string | null
+          user_id: string | null
+        }
+        Insert: {
+          ativo?: boolean
+          cor?: string | null
+          created_at?: string
+          email?: string | null
+          id?: string
+          nome: string
+          registro_profissional?: string | null
+          telefone?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          ativo?: boolean
+          cor?: string | null
+          created_at?: string
+          email?: string | null
+          id?: string
+          nome?: string
+          registro_profissional?: string | null
+          telefone?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      profissionais_consultorio_especialidades: {
+        Row: {
+          especialidade_id: string
+          profissional_id: string
+        }
+        Insert: {
+          especialidade_id: string
+          profissional_id: string
+        }
+        Update: {
+          especialidade_id?: string
+          profissional_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "profissionais_consultorio_especialidades_especialidade_id_fkey"
+            columns: ["especialidade_id"]
+            isOneToOne: false
+            referencedRelation: "especialidades"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "profissionais_consultorio_especialidades_profissional_id_fkey"
+            columns: ["profissional_id"]
+            isOneToOne: false
+            referencedRelation: "profissionais_consultorio"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profissionais_externos: {
+        Row: {
+          created_at: string
+          email: string | null
+          especialidade_id: string | null
+          id: string
+          nome: string
+          observacoes: string | null
+          telefone: string | null
+        }
+        Insert: {
+          created_at?: string
+          email?: string | null
+          especialidade_id?: string | null
+          id?: string
+          nome: string
+          observacoes?: string | null
+          telefone?: string | null
+        }
+        Update: {
+          created_at?: string
+          email?: string | null
+          especialidade_id?: string | null
+          id?: string
+          nome?: string
+          observacoes?: string | null
+          telefone?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "profissionais_externos_especialidade_id_fkey"
+            columns: ["especialidade_id"]
+            isOneToOne: false
+            referencedRelation: "especialidades"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      prontuario_sessoes: {
+        Row: {
+          atendimento_id: string | null
+          audio_duracao_seg: number | null
+          audio_path: string | null
+          autorregulacao: number | null
+          avaliacao_id: string | null
+          created_at: string
+          created_by: string | null
+          data_sessao: string
+          duracao_min: number | null
+          engajamento: number | null
+          evolucao: string | null
+          habilidades_trabalhadas: Json
+          hora_inicio: string | null
+          ia_processado_em: string | null
+          ia_resumo: string | null
+          id: string
+          motivacao: number | null
+          nivel_suporte: string | null
+          nota_proxima_sessao: string | null
+          observacoes: string | null
+          orientacao_anexo_path: string | null
+          orientacao_atualizado_em: string | null
+          orientacao_casa: boolean
+          orientacao_status: string
+          orientacao_texto: string | null
+          paciente_id: string
+          participacao: number | null
+          portal_ocultar: boolean
+          persistencia: number | null
+          profissional_id: string | null
+          recursos_utilizados: string[] | null
+          soap_avaliacao: string | null
+          soap_objetivo: string | null
+          soap_plano: string | null
+          soap_subjetivo: string | null
+          tipo: string
+          transcricao: string | null
+          updated_at: string
+        }
+        Insert: {
+          atendimento_id?: string | null
+          audio_duracao_seg?: number | null
+          audio_path?: string | null
+          autorregulacao?: number | null
+          avaliacao_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          data_sessao?: string
+          duracao_min?: number | null
+          engajamento?: number | null
+          evolucao?: string | null
+          habilidades_trabalhadas?: Json
+          hora_inicio?: string | null
+          ia_processado_em?: string | null
+          ia_resumo?: string | null
+          id?: string
+          motivacao?: number | null
+          nivel_suporte?: string | null
+          nota_proxima_sessao?: string | null
+          observacoes?: string | null
+          orientacao_anexo_path?: string | null
+          orientacao_atualizado_em?: string | null
+          orientacao_casa?: boolean
+          orientacao_status?: string
+          orientacao_texto?: string | null
+          paciente_id: string
+          participacao?: number | null
+          portal_ocultar?: boolean
+          persistencia?: number | null
+          profissional_id?: string | null
+          recursos_utilizados?: string[] | null
+          soap_avaliacao?: string | null
+          soap_objetivo?: string | null
+          soap_plano?: string | null
+          soap_subjetivo?: string | null
+          tipo?: string
+          transcricao?: string | null
+          updated_at?: string
+        }
+        Update: {
+          atendimento_id?: string | null
+          audio_duracao_seg?: number | null
+          audio_path?: string | null
+          autorregulacao?: number | null
+          avaliacao_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          data_sessao?: string
+          duracao_min?: number | null
+          engajamento?: number | null
+          evolucao?: string | null
+          habilidades_trabalhadas?: Json
+          hora_inicio?: string | null
+          ia_processado_em?: string | null
+          ia_resumo?: string | null
+          id?: string
+          motivacao?: number | null
+          nivel_suporte?: string | null
+          nota_proxima_sessao?: string | null
+          observacoes?: string | null
+          orientacao_anexo_path?: string | null
+          orientacao_atualizado_em?: string | null
+          orientacao_casa?: boolean
+          orientacao_status?: string
+          orientacao_texto?: string | null
+          paciente_id?: string
+          participacao?: number | null
+          portal_ocultar?: boolean
+          persistencia?: number | null
+          profissional_id?: string | null
+          recursos_utilizados?: string[] | null
+          soap_avaliacao?: string | null
+          soap_objetivo?: string | null
+          soap_plano?: string | null
+          soap_subjetivo?: string | null
+          tipo?: string
+          transcricao?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      responsaveis: {
+        Row: {
+          created_at: string
+          dados_nf: string | null
+          deseja_nf: boolean | null
+          documento: string | null
+          email: string | null
+          estado_civil: string | null
+          id: string
+          idade: number | null
+          nome: string
+          paciente_id: string
+          parentesco: string | null
+          principal: boolean
+          profissao: string | null
+          telefone: string | null
+        }
+        Insert: {
+          created_at?: string
+          dados_nf?: string | null
+          deseja_nf?: boolean | null
+          documento?: string | null
+          email?: string | null
+          estado_civil?: string | null
+          id?: string
+          idade?: number | null
+          nome: string
+          paciente_id: string
+          parentesco?: string | null
+          principal?: boolean
+          profissao?: string | null
+          telefone?: string | null
+        }
+        Update: {
+          created_at?: string
+          dados_nf?: string | null
+          deseja_nf?: boolean | null
+          documento?: string | null
+          email?: string | null
+          estado_civil?: string | null
+          id?: string
+          idade?: number | null
+          nome?: string
+          paciente_id?: string
+          parentesco?: string | null
+          principal?: boolean
+          profissao?: string | null
+          telefone?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "responsaveis_paciente_id_fkey"
+            columns: ["paciente_id"]
+            isOneToOne: false
+            referencedRelation: "pacientes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      recursos: {
+        Row: {
+          ativo: boolean
+          arquivo_path: string | null
+          created_at: string
+          created_by: string | null
+          descricao: string | null
+          dominio: string | null
+          id: string
+          link: string | null
+          nome: string
+          tags: string[]
+          tipo: string
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean
+          arquivo_path?: string | null
+          created_at?: string
+          created_by?: string | null
+          descricao?: string | null
+          dominio?: string | null
+          id?: string
+          link?: string | null
+          nome: string
+          tags?: string[]
+          tipo?: string
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean
+          arquivo_path?: string | null
+          created_at?: string
+          created_by?: string | null
+          descricao?: string | null
+          dominio?: string | null
+          id?: string
+          link?: string | null
+          nome?: string
+          tags?: string[]
+          tipo?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      referencias: {
+        Row: {
+          ano: number | null
+          arquivo_path: string | null
+          ativo: boolean
+          autores: string | null
+          created_at: string
+          created_by: string | null
+          dominio: string | null
+          fixada: boolean
+          id: string
+          link: string | null
+          resumo: string | null
+          tags: string[]
+          texto_extraido: string | null
+          tipo: string
+          titulo: string
+          updated_at: string
+        }
+        Insert: {
+          ano?: number | null
+          arquivo_path?: string | null
+          ativo?: boolean
+          autores?: string | null
+          created_at?: string
+          created_by?: string | null
+          dominio?: string | null
+          fixada?: boolean
+          id?: string
+          link?: string | null
+          resumo?: string | null
+          tags?: string[]
+          texto_extraido?: string | null
+          tipo?: string
+          titulo: string
+          updated_at?: string
+        }
+        Update: {
+          ano?: number | null
+          arquivo_path?: string | null
+          ativo?: boolean
+          autores?: string | null
+          created_at?: string
+          created_by?: string | null
+          dominio?: string | null
+          fixada?: boolean
+          id?: string
+          link?: string | null
+          resumo?: string | null
+          tags?: string[]
+          texto_extraido?: string | null
+          tipo?: string
+          titulo?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      reunioes: {
+        Row: {
+          ata: string | null
+          audio_path: string | null
+          created_at: string
+          created_by: string | null
+          data_reuniao: string
+          decisoes: string | null
+          duracao_minutos: number | null
+          encaminhamentos: Json | null
+          id: string
+          notas: string | null
+          paciente_id: string
+          participantes: string | null
+          pauta: string | null
+          proxima_data: string | null
+          status: string
+          tipo: string
+          transcricao: string | null
+          updated_at: string
+        }
+        Insert: {
+          ata?: string | null
+          audio_path?: string | null
+          created_at?: string
+          created_by?: string | null
+          data_reuniao?: string
+          decisoes?: string | null
+          duracao_minutos?: number | null
+          encaminhamentos?: Json | null
+          id?: string
+          notas?: string | null
+          paciente_id: string
+          participantes?: string | null
+          pauta?: string | null
+          proxima_data?: string | null
+          status?: string
+          tipo?: string
+          transcricao?: string | null
+          updated_at?: string
+        }
+        Update: {
+          ata?: string | null
+          audio_path?: string | null
+          created_at?: string
+          created_by?: string | null
+          data_reuniao?: string
+          decisoes?: string | null
+          duracao_minutos?: number | null
+          encaminhamentos?: Json | null
+          id?: string
+          notas?: string | null
+          paciente_id?: string
+          participantes?: string | null
+          pauta?: string | null
+          proxima_data?: string | null
+          status?: string
+          tipo?: string
+          transcricao?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reunioes_paciente_id_fkey"
+            columns: ["paciente_id"]
+            isOneToOne: false
+            referencedRelation: "pacientes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      salas: {
+        Row: {
+          ativo: boolean
+          capacidade: number | null
+          cor: string | null
+          created_at: string
+          id: string
+          nome: string
+          observacoes: string | null
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean
+          capacidade?: number | null
+          cor?: string | null
+          created_at?: string
+          id?: string
+          nome: string
+          observacoes?: string | null
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean
+          capacidade?: number | null
+          cor?: string | null
+          created_at?: string
+          id?: string
+          nome?: string
+          observacoes?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      scripts: {
+        Row: {
+          categoria: string
+          conteudo: string
+          created_at: string
+          created_by: string | null
+          favorito: boolean
+          id: string
+          ordem: number
+          tags: string[]
+          titulo: string
+          updated_at: string
+        }
+        Insert: {
+          categoria?: string
+          conteudo: string
+          created_at?: string
+          created_by?: string | null
+          favorito?: boolean
+          id?: string
+          ordem?: number
+          tags?: string[]
+          titulo: string
+          updated_at?: string
+        }
+        Update: {
+          categoria?: string
+          conteudo?: string
+          created_at?: string
+          created_by?: string | null
+          favorito?: boolean
+          id?: string
+          ordem?: number
+          tags?: string[]
+          titulo?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      sessao_planejamentos: {
+        Row: {
+          atendimento_id: string | null
+          created_at: string
+          created_by: string | null
+          data_prevista: string | null
+          estrategias: string | null
+          foco: string | null
+          id: string
+          metas_foco: string[]
+          movido_de_atendimento_id: string | null
+          ordem: number
+          paciente_id: string
+          plano_id: string | null
+          recursos: string | null
+          sessao_id: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          atendimento_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          data_prevista?: string | null
+          estrategias?: string | null
+          foco?: string | null
+          id?: string
+          metas_foco?: string[]
+          movido_de_atendimento_id?: string | null
+          ordem?: number
+          paciente_id: string
+          plano_id?: string | null
+          recursos?: string | null
+          sessao_id?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          atendimento_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          data_prevista?: string | null
+          estrategias?: string | null
+          foco?: string | null
+          id?: string
+          metas_foco?: string[]
+          movido_de_atendimento_id?: string | null
+          ordem?: number
+          paciente_id?: string
+          plano_id?: string | null
+          recursos?: string | null
+          sessao_id?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sessao_planejamentos_paciente_id_fkey"
+            columns: ["paciente_id"]
+            isOneToOne: false
+            referencedRelation: "pacientes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sessao_planejamentos_plano_id_fkey"
+            columns: ["plano_id"]
+            isOneToOne: false
+            referencedRelation: "planos_terapeuticos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sessao_metas: {
+        Row: {
+          ajuste_plano: string | null
+          componentes_trabalhados: string[] | null
+          created_at: string
+          desempenho: number | null
+          engajamento: number | null
+          evidencias_clinicas: string | null
+          houve_progresso: string | null
+          id: string
+          meta_id: string
+          nivel_gas_observado: number | null
+          nivel_suporte: string | null
+          observacoes: string | null
+          observacoes_meta: string | null
+          plano_meta_id: string | null
+          sessao_id: string
+        }
+        Insert: {
+          ajuste_plano?: string | null
+          componentes_trabalhados?: string[] | null
+          created_at?: string
+          desempenho?: number | null
+          engajamento?: number | null
+          evidencias_clinicas?: string | null
+          houve_progresso?: string | null
+          id?: string
+          meta_id: string
+          nivel_gas_observado?: number | null
+          nivel_suporte?: string | null
+          observacoes?: string | null
+          observacoes_meta?: string | null
+          plano_meta_id?: string | null
+          sessao_id: string
+        }
+        Update: {
+          ajuste_plano?: string | null
+          componentes_trabalhados?: string[] | null
+          created_at?: string
+          desempenho?: number | null
+          engajamento?: number | null
+          evidencias_clinicas?: string | null
+          houve_progresso?: string | null
+          id?: string
+          meta_id?: string
+          nivel_gas_observado?: number | null
+          nivel_suporte?: string | null
+          observacoes?: string | null
+          observacoes_meta?: string | null
+          plano_meta_id?: string | null
+          sessao_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sessao_metas_meta_id_fkey"
+            columns: ["meta_id"]
+            isOneToOne: false
+            referencedRelation: "metas_terapeuticas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sessao_metas_plano_meta_id_fkey"
+            columns: ["plano_meta_id"]
+            isOneToOne: false
+            referencedRelation: "plano_metas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sessao_metas_sessao_id_fkey"
+            columns: ["sessao_id"]
+            isOneToOne: false
+            referencedRelation: "prontuario_sessoes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      status_frequencia: {
+        Row: {
+          conta_presenca: boolean
+          cor: string | null
+          created_at: string
+          id: string
+          nome: string
+        }
+        Insert: {
+          conta_presenca?: boolean
+          cor?: string | null
+          created_at?: string
+          id?: string
+          nome: string
+        }
+        Update: {
+          conta_presenca?: boolean
+          cor?: string | null
+          created_at?: string
+          id?: string
+          nome?: string
+        }
+        Relationships: []
+      }
+      sublocacao_contratos: {
+        Row: {
+          ativo: boolean
+          created_at: string
+          id: string
+          modelo: string
+          observacoes: string | null
+          percentual: number | null
+          sala_id: string
+          sublocador_id: string
+          updated_at: string
+          valor_base: number | null
+          valor_extra: number | null
+          valor_mensal: number | null
+          vigencia_fim: string | null
+          vigencia_inicio: string | null
+        }
+        Insert: {
+          ativo?: boolean
+          created_at?: string
+          id?: string
+          modelo: string
+          observacoes?: string | null
+          percentual?: number | null
+          sala_id: string
+          sublocador_id: string
+          updated_at?: string
+          valor_base?: number | null
+          valor_extra?: number | null
+          valor_mensal?: number | null
+          vigencia_fim?: string | null
+          vigencia_inicio?: string | null
+        }
+        Update: {
+          ativo?: boolean
+          created_at?: string
+          id?: string
+          modelo?: string
+          observacoes?: string | null
+          percentual?: number | null
+          sala_id?: string
+          sublocador_id?: string
+          updated_at?: string
+          valor_base?: number | null
+          valor_extra?: number | null
+          valor_mensal?: number | null
+          vigencia_fim?: string | null
+          vigencia_inicio?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sublocacao_contratos_sala_id_fkey"
+            columns: ["sala_id"]
+            isOneToOne: false
+            referencedRelation: "salas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sublocacao_contratos_sublocador_id_fkey"
+            columns: ["sublocador_id"]
+            isOneToOne: false
+            referencedRelation: "sublocadores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sublocacao_disponibilidade: {
+        Row: {
+          created_at: string
+          fim: string
+          id: string
+          inicio: string
+          motivo: string | null
+          recorrencia_json: Json | null
+          sala_id: string
+          tipo: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          fim: string
+          id?: string
+          inicio: string
+          motivo?: string | null
+          recorrencia_json?: Json | null
+          sala_id: string
+          tipo?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          fim?: string
+          id?: string
+          inicio?: string
+          motivo?: string | null
+          recorrencia_json?: Json | null
+          sala_id?: string
+          tipo?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sublocacao_disponibilidade_sala_id_fkey"
+            columns: ["sala_id"]
+            isOneToOne: false
+            referencedRelation: "salas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sublocacao_usos: {
+        Row: {
+          contrato_id: string
+          created_at: string
+          data: string
+          duracao_min: number | null
+          fim: string
+          id: string
+          inicio: string
+          lancamento_id: string | null
+          observacoes: string | null
+          sala_id: string
+          sublocador_id: string
+          updated_at: string
+          valor_atendimento: number | null
+          valor_calculado: number
+        }
+        Insert: {
+          contrato_id: string
+          created_at?: string
+          data: string
+          duracao_min?: number | null
+          fim: string
+          id?: string
+          inicio: string
+          lancamento_id?: string | null
+          observacoes?: string | null
+          sala_id: string
+          sublocador_id: string
+          updated_at?: string
+          valor_atendimento?: number | null
+          valor_calculado?: number
+        }
+        Update: {
+          contrato_id?: string
+          created_at?: string
+          data?: string
+          duracao_min?: number | null
+          fim?: string
+          id?: string
+          inicio?: string
+          lancamento_id?: string | null
+          observacoes?: string | null
+          sala_id?: string
+          sublocador_id?: string
+          updated_at?: string
+          valor_atendimento?: number | null
+          valor_calculado?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sublocacao_usos_contrato_id_fkey"
+            columns: ["contrato_id"]
+            isOneToOne: false
+            referencedRelation: "sublocacao_contratos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sublocacao_usos_lancamento_id_fkey"
+            columns: ["lancamento_id"]
+            isOneToOne: false
+            referencedRelation: "lancamentos_financeiros"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sublocacao_usos_sala_id_fkey"
+            columns: ["sala_id"]
+            isOneToOne: false
+            referencedRelation: "salas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sublocacao_usos_sublocador_id_fkey"
+            columns: ["sublocador_id"]
+            isOneToOne: false
+            referencedRelation: "sublocadores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sublocadores: {
+        Row: {
+          ativo: boolean
+          created_at: string
+          documento: string | null
+          email: string | null
+          especialidade: string | null
+          id: string
+          nome: string
+          observacoes: string | null
+          portal_token: string | null
+          telefone: string | null
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean
+          created_at?: string
+          documento?: string | null
+          email?: string | null
+          especialidade?: string | null
+          id?: string
+          nome: string
+          observacoes?: string | null
+          portal_token?: string | null
+          telefone?: string | null
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean
+          created_at?: string
+          documento?: string | null
+          email?: string | null
+          especialidade?: string | null
+          id?: string
+          nome?: string
+          observacoes?: string | null
+          portal_token?: string | null
+          telefone?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      tarefas: {
+        Row: {
+          concluida_em: string | null
+          created_at: string
+          created_by: string | null
+          criador_id: string | null
+          departamento: string | null
+          descricao: string | null
+          id: string
+          lead_id: string | null
+          meta_id: string | null
+          origem: string | null
+          paciente_id: string | null
+          prazo: string | null
+          prioridade: string
+          processo_id: string | null
+          responsavel_id: string | null
+          reuniao_id: string | null
+          sessao_id: string | null
+          status: string
+          titulo: string
+          updated_at: string
+        }
+        Insert: {
+          concluida_em?: string | null
+          created_at?: string
+          created_by?: string | null
+          criador_id?: string | null
+          departamento?: string | null
+          descricao?: string | null
+          id?: string
+          lead_id?: string | null
+          meta_id?: string | null
+          origem?: string | null
+          paciente_id?: string | null
+          prazo?: string | null
+          prioridade?: string
+          processo_id?: string | null
+          responsavel_id?: string | null
+          reuniao_id?: string | null
+          sessao_id?: string | null
+          status?: string
+          titulo: string
+          updated_at?: string
+        }
+        Update: {
+          concluida_em?: string | null
+          created_at?: string
+          created_by?: string | null
+          criador_id?: string | null
+          departamento?: string | null
+          descricao?: string | null
+          id?: string
+          lead_id?: string | null
+          meta_id?: string | null
+          origem?: string | null
+          paciente_id?: string | null
+          prazo?: string | null
+          prioridade?: string
+          processo_id?: string | null
+          responsavel_id?: string | null
+          reuniao_id?: string | null
+          sessao_id?: string | null
+          status?: string
+          titulo?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tarefas_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tarefas_meta_id_fkey"
+            columns: ["meta_id"]
+            isOneToOne: false
+            referencedRelation: "plano_metas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tarefas_paciente_id_fkey"
+            columns: ["paciente_id"]
+            isOneToOne: false
+            referencedRelation: "pacientes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tarefas_reuniao_id_fkey"
+            columns: ["reuniao_id"]
+            isOneToOne: false
+            referencedRelation: "reunioes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tarefas_sessao_id_fkey"
+            columns: ["sessao_id"]
+            isOneToOne: false
+            referencedRelation: "prontuario_sessoes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      testes_aplicados: {
+        Row: {
+          aplicado_por: string | null
+          avaliacao_id: string
+          classificacao: string | null
+          created_at: string
+          data_aplicacao: string | null
+          escore_bruto: number | null
+          escore_padrao: number | null
+          id: string
+          idade_aplicacao: string | null
+          impactos_cif: Json | null
+          interpretacao_clinica: string | null
+          observacoes_qualitativas: string | null
+          percentil: number | null
+          sessao_id: string | null
+          teste_id: string
+          updated_at: string
+          variaveis_valores: Json
+        }
+        Insert: {
+          aplicado_por?: string | null
+          avaliacao_id: string
+          classificacao?: string | null
+          created_at?: string
+          data_aplicacao?: string | null
+          escore_bruto?: number | null
+          escore_padrao?: number | null
+          id?: string
+          idade_aplicacao?: string | null
+          impactos_cif?: Json | null
+          interpretacao_clinica?: string | null
+          observacoes_qualitativas?: string | null
+          percentil?: number | null
+          sessao_id?: string | null
+          teste_id: string
+          updated_at?: string
+          variaveis_valores?: Json
+        }
+        Update: {
+          aplicado_por?: string | null
+          avaliacao_id?: string
+          classificacao?: string | null
+          created_at?: string
+          data_aplicacao?: string | null
+          escore_bruto?: number | null
+          escore_padrao?: number | null
+          id?: string
+          idade_aplicacao?: string | null
+          impactos_cif?: Json | null
+          interpretacao_clinica?: string | null
+          observacoes_qualitativas?: string | null
+          percentil?: number | null
+          sessao_id?: string | null
+          teste_id?: string
+          updated_at?: string
+          variaveis_valores?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "testes_aplicados_avaliacao_id_fkey"
+            columns: ["avaliacao_id"]
+            isOneToOne: false
+            referencedRelation: "avaliacoes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "testes_aplicados_teste_id_fkey"
+            columns: ["teste_id"]
+            isOneToOne: false
+            referencedRelation: "testes_catalogo"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      testes_catalogo: {
+        Row: {
+          ativo: boolean
+          cif_descricao: string | null
+          cif_dimensoes: Json | null
+          created_at: string
+          created_by: string | null
+          dominio_id: string | null
+          formula_agregacao: string | null
+          id: string
+          nome: string
+          objetivo: string | null
+          observacoes: string | null
+          updated_at: string
+          variaveis: Json | null
+        }
+        Insert: {
+          ativo?: boolean
+          cif_descricao?: string | null
+          cif_dimensoes?: Json | null
+          created_at?: string
+          created_by?: string | null
+          dominio_id?: string | null
+          formula_agregacao?: string | null
+          id?: string
+          nome: string
+          objetivo?: string | null
+          observacoes?: string | null
+          updated_at?: string
+          variaveis?: Json | null
+        }
+        Update: {
+          ativo?: boolean
+          cif_descricao?: string | null
+          cif_dimensoes?: Json | null
+          created_at?: string
+          created_by?: string | null
+          dominio_id?: string | null
+          formula_agregacao?: string | null
+          id?: string
+          nome?: string
+          objetivo?: string | null
+          observacoes?: string | null
+          updated_at?: string
+          variaveis?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "testes_catalogo_dominio_id_fkey"
+            columns: ["dominio_id"]
+            isOneToOne: false
+            referencedRelation: "dominios_cognitivos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tipos_servico: {
+        Row: {
+          ativo: boolean
+          created_at: string
+          descricao: string | null
+          id: string
+          nome: string
+          plano_conta_id: string | null
+          updated_at: string
+          valor_padrao: number | null
+        }
+        Insert: {
+          ativo?: boolean
+          created_at?: string
+          descricao?: string | null
+          id?: string
+          nome: string
+          plano_conta_id?: string | null
+          updated_at?: string
+          valor_padrao?: number | null
+        }
+        Update: {
+          ativo?: boolean
+          created_at?: string
+          descricao?: string | null
+          id?: string
+          nome?: string
+          plano_conta_id?: string | null
+          updated_at?: string
+          valor_padrao?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tipos_servico_plano_conta_id_fkey"
+            columns: ["plano_conta_id"]
+            isOneToOne: false
+            referencedRelation: "plano_contas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_roles: {
+        Row: {
+          created_at: string
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
+    }
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      pode_editar_processo: {
+        Args: { _processo_id: string }
+        Returns: boolean
+      }
+      processo_publico_get: {
+        Args: { _token: string }
+        Returns: {
+          atualizado_em: string
+          categoria: string
+          conteudo: Json
+          departamento_cor: string
+          departamento_nome: string
+          emoji: string
+          frequencia: string
+          id: string
+          objetivo: string
+          status: string
+          titulo: string
+        }[]
+      }
+      assinar_contrato: {
+        Args: {
+          _assinatura_imagem: string
+          _ip: string
+          _signatario_cpf: string
+          _signatario_nome: string
+          _token: string
+        }
+        Returns: string
+      }
+      cadastro_publico_get: {
+        Args: { _token: string }
+        Returns: {
+          dados_json: Json
+          etapa_atual: number
+          expires_at: string
+          id: string
+          status: string
+        }[]
+      }
+      cadastro_publico_save: {
+        Args: {
+          _concluir: boolean
+          _dados: Json
+          _etapa: number
+          _token: string
+        }
+        Returns: undefined
+      }
+      classificar_resultado: {
+        Args: { _escore: number; _percentil: number }
+        Returns: string
+      }
+      get_contrato_por_token: {
+        Args: { _token: string }
+        Returns: {
+          assinado_em: string
+          assinatura_imagem: string
+          conteudo_html: string
+          hash_documento: string
+          id: string
+          paciente_id: string
+          paciente_nome: string
+          signatario_cpf: string
+          signatario_email: string
+          signatario_nome: string
+          status: string
+        }[]
+      }
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
+      is_assigned_to_paciente: {
+        Args: { _paciente_id: string }
+        Returns: boolean
+      }
+      is_equipe: {
+        Args: { _user_id: string }
+        Returns: boolean
+      }
+      portal_aceitar_convite: {
+        Args: { _token: string }
+        Returns: string
+      }
+      portal_agenda: {
+        Args: { _paciente_id: string }
+        Returns: {
+          fim: string
+          id: string
+          inicio: string
+          local_nome: string | null
+          modalidade: string | null
+          profissional: string | null
+        }[]
+      }
+      portal_convite_info: {
+        Args: { _token: string }
+        Returns: {
+          expirado: boolean
+          nome_convidado: string | null
+          paciente_nome: string
+          tipo: string
+          usado: boolean
+          valido: boolean
+        }[]
+      }
+      portal_mensalidades: {
+        Args: { _paciente_id: string }
+        Returns: {
+          checkout_url: string | null
+          competencia: string
+          forma_pagamento: string | null
+          id: string
+          pago_em: string | null
+          status: string
+          valor: number
+          vencimento: string
+        }[]
+      }
+      portal_metas: {
+        Args: { _paciente_id: string }
+        Returns: {
+          dominio: string | null
+          id: string
+          nivel_gas_atingido: number | null
+          prazo_semanas: number | null
+          status: string
+          titulo: string
+        }[]
+      }
+      portal_meus_pacientes: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          nome: string
+          paciente_id: string
+          tipo: string
+        }[]
+      }
+      portal_orientacao_feedback: {
+        Args: { _sessao_id: string; _status: string }
+        Returns: undefined
+      }
+      portal_relatorio_mensal: {
+        Args: { _ano: number; _mes: number; _paciente_id: string }
+        Returns: Json
+      }
+      portal_relatorios_disponiveis: {
+        Args: { _paciente_id: string }
+        Returns: {
+          competencia: string
+        }[]
+      }
+      portal_plano: {
+        Args: { _paciente_id: string }
+        Returns: {
+          data_inicio: string | null
+          frequencia_sessoes: string | null
+          id: string
+          orientacoes_familia: string | null
+          status: string
+          titulo: string
+        }[]
+      }
+      portal_sessoes: {
+        Args: { _limite?: number; _paciente_id: string }
+        Returns: {
+          data_sessao: string
+          duracao_min: number | null
+          habilidades_trabalhadas: Json
+          id: string
+          orientacao_atualizado_em: string | null
+          orientacao_casa: boolean
+          orientacao_status: string
+          orientacao_texto: string | null
+          tipo: string
+        }[]
+      }
+      financeiro_faturamento_mensal: {
+        Args: { _anos: number[] }
+        Returns: {
+          ano: number
+          mes: number
+          previsto: number
+          realizado: number
+        }[]
+      }
+      contas_fixas_lancamentos: {
+        Args: { _ano: number; _mes: number }
+        Returns: {
+          conta_fixa_id: string
+          lancamento_id: string
+          pago_em: string | null
+          status: string
+          valor: number
+          vencimento: string
+        }[]
+      }
+      gerar_contas_fixas: {
+        Args: { _ano: number; _mes: number }
+        Returns: number
+      }
+      pacientes_novos_por_mes: {
+        Args: { _desde: string }
+        Returns: {
+          altas: number
+          mes: string
+          novos: number
+        }[]
+      }
+      sublocador_cancelar: {
+        Args: { _token: string; _uso_id: string }
+        Returns: undefined
+      }
+      sublocador_fechamento: {
+        Args: { _ano: number; _mes: number; _token: string }
+        Returns: Json
+      }
+      sublocador_mover: {
+        Args: { _fim: string; _inicio: string; _token: string; _uso_id: string }
+        Returns: undefined
+      }
+      sublocador_portal: {
+        Args: { _ate: string; _de: string; _token: string }
+        Returns: Json
+      }
+      sublocador_reservar: {
+        Args: { _contrato_id: string; _fim: string; _inicio: string; _token: string }
+        Returns: string
+      }
+      salas_agenda_publica: {
+        Args: { _ate: string; _de: string }
+        Returns: Json
+      }
+      tem_acesso_portal: {
+        Args: { _paciente_id: string }
+        Returns: boolean
+      }
+      storage_object_paciente_assigned: {
+        Args: { _bucket: string; _name: string }
+        Returns: boolean
+      }
+    }
+    Enums: {
+      app_role: "admin" | "profissional" | "secretaria"
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
+  }
+}
+
+type DatabaseWithoutInternals = Omit<Database, "__InternalSupabase">
+
+type DefaultSchema = DatabaseWithoutInternals[Extract<keyof Database, "public">]
+
+export type Tables<
+  DefaultSchemaTableNameOrOptions extends
+    | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
+    | { schema: keyof DatabaseWithoutInternals },
+  TableName extends DefaultSchemaTableNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
+        DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
+    : never = never,
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
+      DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])[TableName] extends {
+      Row: infer R
+    }
+    ? R
+    : never
+  : DefaultSchemaTableNameOrOptions extends keyof (DefaultSchema["Tables"] &
+        DefaultSchema["Views"])
+    ? (DefaultSchema["Tables"] &
+        DefaultSchema["Views"])[DefaultSchemaTableNameOrOptions] extends {
+        Row: infer R
+      }
+      ? R
+      : never
+    : never
+
+export type TablesInsert<
+  DefaultSchemaTableNameOrOptions extends
+    | keyof DefaultSchema["Tables"]
+    | { schema: keyof DatabaseWithoutInternals },
+  TableName extends DefaultSchemaTableNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
+    : never = never,
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
+      Insert: infer I
+    }
+    ? I
+    : never
+  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
+    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
+        Insert: infer I
+      }
+      ? I
+      : never
+    : never
+
+export type TablesUpdate<
+  DefaultSchemaTableNameOrOptions extends
+    | keyof DefaultSchema["Tables"]
+    | { schema: keyof DatabaseWithoutInternals },
+  TableName extends DefaultSchemaTableNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
+    : never = never,
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
+      Update: infer U
+    }
+    ? U
+    : never
+  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
+    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
+        Update: infer U
+      }
+      ? U
+      : never
+    : never
+
+export type Enums<
+  DefaultSchemaEnumNameOrOptions extends
+    | keyof DefaultSchema["Enums"]
+    | { schema: keyof DatabaseWithoutInternals },
+  EnumName extends DefaultSchemaEnumNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
+    : never = never,
+> = DefaultSchemaEnumNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"][EnumName]
+  : DefaultSchemaEnumNameOrOptions extends keyof DefaultSchema["Enums"]
+    ? DefaultSchema["Enums"][DefaultSchemaEnumNameOrOptions]
+    : never
+
+export type CompositeTypes<
+  PublicCompositeTypeNameOrOptions extends
+    | keyof DefaultSchema["CompositeTypes"]
+    | { schema: keyof DatabaseWithoutInternals },
+  CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
+    : never = never,
+> = PublicCompositeTypeNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"][CompositeTypeName]
+  : PublicCompositeTypeNameOrOptions extends keyof DefaultSchema["CompositeTypes"]
+    ? DefaultSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
+    : never
+
+export const Constants = {
+  public: {
+    Enums: {
+      app_role: ["admin", "profissional", "secretaria"],
+    },
+  },
+} as const

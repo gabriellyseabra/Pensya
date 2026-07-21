@@ -1,0 +1,1 @@
+ALTER TABLE public.pacientes ADD COLUMN IF NOT EXISTS perfil_vivo jsonb NOT NULL DEFAULT '{}'::jsonb;
