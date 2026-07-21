@@ -12,7 +12,7 @@ import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogT
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Plus, Trash2, Edit2, Image as ImageIcon, Loader2 } from "lucide-react";
 import { toast } from "sonner";
-import { CLINICA_LOGO_BUCKET, clinicaLogoUrl, getConfiguracaoClinica } from "@/lib/clinica-config";
+import { CLINICA_LOGO_BUCKET, clinicaLogoUrl, getMinhaOrganizacao } from "@/lib/clinica-config";
 
 export const Route = createFileRoute("/_authenticated/configuracoes/")({
   component: ConfigPage,
@@ -548,14 +548,14 @@ function ClinicaIdentidadeConfig() {
   });
 
   const { data: cfg } = useQuery({
-    queryKey: ["configuracao-clinica"],
-    queryFn: getConfiguracaoClinica,
+    queryKey: ["minha-organizacao"],
+    queryFn: getMinhaOrganizacao,
   });
 
   useEffect(() => {
     if (!cfg) return;
     setForm({
-      nome_clinica: cfg.nome_clinica ?? "",
+      nome_clinica: cfg.nome ?? "",
       razao_social: cfg.razao_social ?? "",
       cnpj: cfg.cnpj ?? "",
       endereco: cfg.endereco ?? "",
@@ -576,25 +576,25 @@ function ClinicaIdentidadeConfig() {
 
   const salvar = useMutation({
     mutationFn: async () => {
-      let logo_path = cfg?.logo_path ?? null;
+      if (!cfg?.id) throw new Error("Organização não encontrada");
+      let logo_path = cfg.logo_path ?? null;
       if (logo) {
         const ext = logo.name.split(".").pop() || "png";
-        const path = `logo-${Date.now()}.${ext}`;
+        const path = `${cfg.id}/logo-${Date.now()}.${ext}`;
         const { error: upErr } = await supabase.storage.from(CLINICA_LOGO_BUCKET).upload(path, logo, { upsert: true });
         if (upErr) throw upErr;
         logo_path = path;
       }
-      const payload = { ...form, logo_path };
-      if (cfg?.id) {
-        const { error } = await supabase.from("configuracoes_clinica").update(payload).eq("id", cfg.id);
-        if (error) throw error;
-      } else {
-        const { error } = await supabase.from("configuracoes_clinica").insert(payload);
-        if (error) throw error;
-      }
+      const { nome_clinica, ...resto } = form;
+      const { error } = await supabase
+        .from("organizacoes")
+        .update({ nome: nome_clinica, ...resto, logo_path })
+        .eq("id", cfg.id);
+      if (error) throw error;
     },
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["configuracao-clinica"] });
+      qc.invalidateQueries({ queryKey: ["minha-organizacao"] });
+      qc.invalidateQueries({ queryKey: ["organizacao-branding-publica"] });
       setLogo(null);
       toast.success("Identidade da clínica salva");
     },

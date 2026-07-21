@@ -127,7 +127,7 @@ function PortalChrome({ children, onSair }: { children: React.ReactNode; onSair:
     <div className="min-h-screen pb-20 md:pb-0">
       <header className="glass sticky top-0 z-30 border-b border-border/60">
         <div className="mx-auto flex max-w-3xl items-center gap-3 px-4 py-3">
-          <PensyaClinicaBadge />
+          <PensyaClinicaBadge pacienteId={paciente.paciente_id} />
           <div className="min-w-0 flex-1">
             <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Portal da Família</p>
             {pacientes.length > 1 ? (

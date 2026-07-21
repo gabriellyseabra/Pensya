@@ -39,7 +39,7 @@ import { toast } from "sonner";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { renderContratoHtml, VARIAVEIS_DISPONIVEIS, TEMPLATE_EXEMPLO } from "@/lib/contratos";
-import { getConfiguracaoClinica } from "@/lib/clinica-config";
+import { getMinhaOrganizacao } from "@/lib/clinica-config";
 import { PageHero } from "@/components/shared/PageHero";
 
 export const Route = createFileRoute("/_authenticated/contratos")({
@@ -430,7 +430,7 @@ function NovoContratoDialog({
       .order("principal", { ascending: false })
       .limit(1);
     const resp: any = resps?.[0] ?? {};
-    const clinicaCfg = await getConfiguracaoClinica();
+    const clinicaCfg = await getMinhaOrganizacao();
 
     const vars = {
       paciente,
@@ -444,7 +444,7 @@ function NovoContratoDialog({
       data_hoje: new Date().toLocaleDateString("pt-BR"),
       ano_contrato: new Date().getFullYear(),
       clinica: {
-        nome: clinicaCfg?.nome_clinica || "",
+        nome: clinicaCfg?.nome || "",
         razao_social: clinicaCfg?.razao_social || "",
         cnpj: clinicaCfg?.cnpj || "",
         endereco: clinicaCfg?.endereco || "",

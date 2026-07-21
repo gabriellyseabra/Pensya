@@ -36,12 +36,10 @@ export const gerarRelatorioPaciente = createServerFn({ method: "POST" })
     if (!pac) throw new Error("Paciente não encontrado");
 
     const { data: clinicaCfg } = await supabase
-      .from("configuracoes_clinica")
-      .select("nome_clinica")
-      .order("created_at", { ascending: false })
-      .limit(1)
+      .from("organizacoes")
+      .select("nome")
       .maybeSingle();
-    const nomeClinicaPrompt = clinicaCfg?.nome_clinica ? ` (${clinicaCfg.nome_clinica})` : "";
+    const nomeClinicaPrompt = clinicaCfg?.nome ? ` (${clinicaCfg.nome})` : "";
 
     const inicio = data.periodo_inicio ?? new Date(Date.now() - 90 * 86400000).toISOString().slice(0, 10);
     const fim = data.periodo_fim ?? new Date().toISOString().slice(0, 10);

@@ -18,7 +18,7 @@ import {
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { useQuery } from "@tanstack/react-query";
-import { getConfiguracaoClinica } from "@/lib/clinica-config";
+import { getOrganizacaoBrandingPublica } from "@/lib/clinica-config";
 import { PensyaClinicaLogo } from "@/components/shared/BrandLogos";
 
 export const Route = createFileRoute("/cadastro/$token")({
@@ -69,7 +69,8 @@ const ESCOLARIDADE_OPTIONS = [
 ];
 
 function Logo({ className }: { className?: string }) {
-  return <PensyaClinicaLogo className={className} />;
+  const { token } = Route.useParams();
+  return <PensyaClinicaLogo className={className} cadastroToken={token} />;
 }
 
 function CadastroPublicoPage() {
@@ -82,8 +83,11 @@ function CadastroPublicoPage() {
   const [done, setDone] = useState(false);
   const lgpdRef = useRef<HTMLDivElement>(null);
   const [showLgpdError, setShowLgpdError] = useState(false);
-  const { data: clinicaCfg } = useQuery({ queryKey: ["configuracao-clinica"], queryFn: getConfiguracaoClinica });
-  const nomeClinica = clinicaCfg?.nome_clinica?.trim() || "nossa clínica";
+  const { data: clinicaCfg } = useQuery({
+    queryKey: ["organizacao-branding-publica", "cadastro", token],
+    queryFn: () => getOrganizacaoBrandingPublica({ cadastroToken: token }),
+  });
+  const nomeClinica = clinicaCfg?.nome?.trim() || "nossa clínica";
 
   useEffect(() => {
     (async () => {
