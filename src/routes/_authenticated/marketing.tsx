@@ -1,37 +1,31 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { LayoutDashboard, GitBranch, Megaphone, FileText, Filter, Compass, ListChecks } from "lucide-react";
+import { LayoutDashboard, GitBranch, FileText, Handshake } from "lucide-react";
 import { DashboardMarketing } from "@/components/marketing/DashboardMarketing";
-import { Estrategia } from "@/components/marketing/Estrategia";
-import { Rotinas } from "@/components/marketing/Rotinas";
-import { Funil } from "@/components/marketing/Funil";
 import { Pipeline } from "@/components/marketing/Pipeline";
-import { Campanhas } from "@/components/marketing/Campanhas";
 import { Scripts } from "@/components/marketing/Scripts";
 import { PageHero } from "@/components/shared/PageHero";
 
 export const Route = createFileRoute("/_authenticated/marketing")({
-  component: MarketingPage,
+  component: ComercialPage,
 });
 
+// Estratégia, Rotinas, Funil e Campanhas ficam ocultas por enquanto —
+// o foco do Comercial é o CRM: pipeline, métricas e scripts.
 const GRUPOS = [
   { key: "visao", label: "Painel", icon: LayoutDashboard, render: () => <DashboardMarketing /> },
-  { key: "estrategia", label: "Estratégia", icon: Compass, render: () => <Estrategia /> },
-  { key: "rotinas", label: "Rotinas", icon: ListChecks, render: () => <Rotinas /> },
   { key: "pipeline", label: "Pipeline", icon: GitBranch, render: () => <Pipeline /> },
-  { key: "funil", label: "Funil", icon: Filter, render: () => <Funil /> },
-  { key: "campanhas", label: "Campanhas", icon: Megaphone, render: () => <Campanhas /> },
   { key: "scripts", label: "Scripts", icon: FileText, render: () => <Scripts /> },
 ];
 
-function MarketingPage() {
+function ComercialPage() {
   return (
     <div className="space-y-6">
       <PageHero
-        icon={Megaphone}
+        icon={Handshake}
         eyebrow="Crescimento"
-        title="Marketing"
-        description="Pipeline de leads, campanhas e scripts para o time comercial girar mais rápido."
+        title="Comercial"
+        description="CRM de leads: pipeline, conversão por canal, follow-ups e scripts de contato."
       />
 
       <Tabs defaultValue={GRUPOS[0].key}>
