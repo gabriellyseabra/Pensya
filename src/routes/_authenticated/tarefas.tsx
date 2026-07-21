@@ -46,7 +46,7 @@ function TarefasPage() {
       let q = supabase
         .from("tarefas")
         .select("*, paciente:pacientes(id, nome), lead:leads(id, nome)")
-        .is("sessao_para_casa", null) // Exclui sessões que ficaram para casa
+        .is("sessao_id", null) // Exclui tarefas de sessão (orientações "para casa")
         .order("prazo", { ascending: true, nullsFirst: false });
       if (statusFilter === "abertas") q = q.neq("status", "concluida");
       if (statusFilter === "concluidas") q = q.eq("status", "concluida");
@@ -97,6 +97,7 @@ function TarefasPage() {
       const { data } = await supabase
         .from("tarefas")
         .select("departamento, status")
+        .is("sessao_id", null)
         .neq("status", "concluida");
       const map = new Map<string, number>();
       (data ?? []).forEach((t: any) => {
