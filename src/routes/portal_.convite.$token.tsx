@@ -95,7 +95,7 @@ function ConvitePage() {
     <div className="flex min-h-screen items-center justify-center px-4">
       <div className="glass-strong w-full max-w-md rounded-3xl p-8 shadow-soft">
         <div className="mb-6 text-center">
-          <PensyaClinicaLogo className="h-16" />
+          <PensyaClinicaLogo className="h-16" conviteToken={token} />
           <h1 className="mt-3 font-display text-xl font-semibold">Portal da Família</h1>
         </div>
         {children}

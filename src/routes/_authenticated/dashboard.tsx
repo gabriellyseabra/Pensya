@@ -52,7 +52,7 @@ import { ptBR } from "date-fns/locale";
 import { SmartCard } from "@/components/shared/SmartCard";
 import { cn } from "@/lib/utils";
 import { listarMetasEstagnadas } from "@/lib/insights.functions";
-import { clinicaLogoUrl, getConfiguracaoClinica } from "@/lib/clinica-config";
+import { clinicaLogoUrl, getMinhaOrganizacao } from "@/lib/clinica-config";
 
 export const Route = createFileRoute("/_authenticated/dashboard")({
   component: DashboardPage,
@@ -504,8 +504,8 @@ function DashboardPage() {
 
   // Identidade da clínica (logo própria da profissional, opcional)
   const { data: clinicaCfg } = useQuery({
-    queryKey: ["configuracao-clinica"],
-    queryFn: getConfiguracaoClinica,
+    queryKey: ["minha-organizacao"],
+    queryFn: getMinhaOrganizacao,
   });
   const clinicaLogo = clinicaLogoUrl(clinicaCfg?.logo_path);
 

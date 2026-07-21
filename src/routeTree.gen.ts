@@ -12,7 +12,9 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as SalasRouteImport } from './routes/salas'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as PortalRouteImport } from './routes/portal'
+import { Route as OnboardingRouteImport } from './routes/onboarding'
 import { Route as AuthRouteImport } from './routes/auth'
+import { Route as AdminPensyaRouteImport } from './routes/admin-pensya'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as PortalIndexRouteImport } from './routes/portal.index'
@@ -67,9 +69,19 @@ const PortalRoute = PortalRouteImport.update({
   path: '/portal',
   getParentRoute: () => rootRouteImport,
 } as any)
+const OnboardingRoute = OnboardingRouteImport.update({
+  id: '/onboarding',
+  path: '/onboarding',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AuthRoute = AuthRouteImport.update({
   id: '/auth',
   path: '/auth',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminPensyaRoute = AdminPensyaRouteImport.update({
+  id: '/admin-pensya',
+  path: '/admin-pensya',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
@@ -278,7 +290,9 @@ const ApiPublicWebhooksInfinitepayRoute =
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/admin-pensya': typeof AdminPensyaRoute
   '/auth': typeof AuthRoute
+  '/onboarding': typeof OnboardingRoute
   '/portal': typeof PortalRouteWithChildren
   '/reset-password': typeof ResetPasswordRoute
   '/salas': typeof SalasRouteWithChildren
@@ -321,7 +335,9 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/admin-pensya': typeof AdminPensyaRoute
   '/auth': typeof AuthRoute
+  '/onboarding': typeof OnboardingRoute
   '/reset-password': typeof ResetPasswordRoute
   '/salas': typeof SalasRouteWithChildren
   '/agenda': typeof AuthenticatedAgendaRoute
@@ -364,7 +380,9 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
+  '/admin-pensya': typeof AdminPensyaRoute
   '/auth': typeof AuthRoute
+  '/onboarding': typeof OnboardingRoute
   '/portal': typeof PortalRouteWithChildren
   '/reset-password': typeof ResetPasswordRoute
   '/salas': typeof SalasRouteWithChildren
@@ -409,7 +427,9 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/admin-pensya'
     | '/auth'
+    | '/onboarding'
     | '/portal'
     | '/reset-password'
     | '/salas'
@@ -452,7 +472,9 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/admin-pensya'
     | '/auth'
+    | '/onboarding'
     | '/reset-password'
     | '/salas'
     | '/agenda'
@@ -494,7 +516,9 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/_authenticated'
+    | '/admin-pensya'
     | '/auth'
+    | '/onboarding'
     | '/portal'
     | '/reset-password'
     | '/salas'
@@ -539,7 +563,9 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
+  AdminPensyaRoute: typeof AdminPensyaRoute
   AuthRoute: typeof AuthRoute
+  OnboardingRoute: typeof OnboardingRoute
   PortalRoute: typeof PortalRouteWithChildren
   ResetPasswordRoute: typeof ResetPasswordRoute
   SalasRoute: typeof SalasRouteWithChildren
@@ -574,11 +600,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PortalRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/onboarding': {
+      id: '/onboarding'
+      path: '/onboarding'
+      fullPath: '/onboarding'
+      preLoaderRoute: typeof OnboardingRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/auth': {
       id: '/auth'
       path: '/auth'
       fullPath: '/auth'
       preLoaderRoute: typeof AuthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin-pensya': {
+      id: '/admin-pensya'
+      path: '/admin-pensya'
+      fullPath: '/admin-pensya'
+      preLoaderRoute: typeof AdminPensyaRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_authenticated': {
@@ -956,7 +996,9 @@ const SalasRouteWithChildren = SalasRoute._addFileChildren(SalasRouteChildren)
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
+  AdminPensyaRoute: AdminPensyaRoute,
   AuthRoute: AuthRoute,
+  OnboardingRoute: OnboardingRoute,
   PortalRoute: PortalRouteWithChildren,
   ResetPasswordRoute: ResetPasswordRoute,
   SalasRoute: SalasRouteWithChildren,

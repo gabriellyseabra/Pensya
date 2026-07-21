@@ -1,5 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
-import { clinicaLogoDataUrl, getConfiguracaoClinica } from "@/lib/clinica-config";
+import { minhaOrganizacaoLogoDataUrl, getMinhaOrganizacao } from "@/lib/clinica-config";
 
 // Documento HTML personalizado do Plano Terapêutico, para impressão/PDF —
 // aberto em nova janela, com a identidade da clínica (logo/nome) embutida.
@@ -44,11 +44,11 @@ export async function gerarPlanoDocumentoHTML(planoId: string): Promise<string> 
       .select("*, paciente:pacientes(nome, data_nascimento, escolaridade, serie_curso)")
       .eq("id", planoId)
       .single(),
-    clinicaLogoDataUrl(),
-    getConfiguracaoClinica(),
+    minhaOrganizacaoLogoDataUrl(),
+    getMinhaOrganizacao(),
   ]);
   if (!plano) throw new Error("Plano não encontrado");
-  const nomeClinica = clinicaCfg?.nome_clinica?.trim() || "";
+  const nomeClinica = clinicaCfg?.nome?.trim() || "";
 
   const [{ data: formulacao }, { data: objetivos }, { data: metas }] = await Promise.all([
     supabase.from("plano_formulacao_itens").select("*").eq("plano_id", planoId).order("categoria").order("ordem"),
