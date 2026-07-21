@@ -592,9 +592,9 @@ function DashboardPage() {
             <Link
               to="/configuracoes"
               title="Identidade da clínica"
-              className="absolute bottom-4 right-4 z-10 flex h-11 w-11 items-center justify-center rounded-full bg-white/80 p-1.5 shadow-sm backdrop-blur transition hover:bg-white"
+              className="absolute bottom-4 right-4 z-10 hidden items-center justify-center rounded-2xl bg-white/85 px-4 py-3 shadow-sm backdrop-blur transition hover:bg-white sm:flex"
             >
-              <img src={clinicaLogo} alt="" className="h-full w-full object-contain" />
+              <img src={clinicaLogo} alt="Logo da clínica" className="h-16 w-auto max-w-[11rem] object-contain" />
             </Link>
           )}
           <div className="relative max-w-lg">
