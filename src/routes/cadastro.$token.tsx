@@ -19,6 +19,7 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { useQuery } from "@tanstack/react-query";
 import { getConfiguracaoClinica } from "@/lib/clinica-config";
+import { PensyaClinicaLogo } from "@/components/shared/BrandLogos";
 
 export const Route = createFileRoute("/cadastro/$token")({
   ssr: false,
@@ -68,13 +69,7 @@ const ESCOLARIDADE_OPTIONS = [
 ];
 
 function Logo({ className }: { className?: string }) {
-  return (
-    <img
-      src="/pensya-logo.svg"
-      alt="Pensya"
-      className={cn("w-auto object-contain", className)}
-    />
-  );
+  return <PensyaClinicaLogo className={className} />;
 }
 
 function CadastroPublicoPage() {

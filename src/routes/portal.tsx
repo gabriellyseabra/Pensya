@@ -7,6 +7,7 @@ import { PortalProvider, usePortal, primeiroNome } from "@/components/portal/por
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { PensyaClinicaLogo, PensyaClinicaBadge } from "@/components/shared/BrandLogos";
 
 export const Route = createFileRoute("/portal")({
   ssr: false,
@@ -69,7 +70,7 @@ function PortalLayout() {
     return (
       <div className="flex min-h-screen items-center justify-center px-4">
         <div className="glass-strong w-full max-w-md rounded-3xl p-8 text-center shadow-soft">
-          <img src="/pensya-logo.svg" alt="Pensya" className="mx-auto h-16 w-auto object-contain" />
+          <PensyaClinicaLogo className="h-16" />
           <h1 className="mt-4 font-display text-xl font-semibold">Portal da Família</h1>
           {contaInfo?.isEquipe ? (
             <p className="mt-3 text-sm text-muted-foreground">
@@ -126,7 +127,7 @@ function PortalChrome({ children, onSair }: { children: React.ReactNode; onSair:
     <div className="min-h-screen pb-20 md:pb-0">
       <header className="glass sticky top-0 z-30 border-b border-border/60">
         <div className="mx-auto flex max-w-3xl items-center gap-3 px-4 py-3">
-          <img src="/pensya-icon.svg" alt="Pensya" className="h-9 w-9 object-contain" />
+          <PensyaClinicaBadge />
           <div className="min-w-0 flex-1">
             <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Portal da Família</p>
             {pacientes.length > 1 ? (
