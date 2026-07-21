@@ -8,8 +8,9 @@ import { QuickSearch } from "@/components/quick-search";
 import { GlobalFAB } from "@/components/shared/GlobalFAB";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { useRoles, setPreviewRole } from "@/hooks/use-role";
+import { useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { getVisaoAdmin } from "@/lib/clinica-config";
+import { getVisaoAdmin, getMinhaOrganizacao, aplicarCorTema } from "@/lib/clinica-config";
 
 function PreviewBanner() {
   const { previewing } = useRoles();
@@ -62,7 +63,20 @@ function AdminVisaoBanner() {
   );
 }
 
+function useCorTemaClinica() {
+  const { data: org } = useQuery({
+    queryKey: ["minha-organizacao"],
+    queryFn: getMinhaOrganizacao,
+    staleTime: 5 * 60_000,
+  });
+  useEffect(() => {
+    aplicarCorTema(org?.cor_tema);
+    return () => aplicarCorTema(null);
+  }, [org?.cor_tema]);
+}
+
 export function AppShell({ children }: { children: ReactNode }) {
+  useCorTemaClinica();
   return (
     <TooltipProvider delayDuration={200}>
       <div className="flex min-h-screen w-full gap-4 p-3 md:p-4">

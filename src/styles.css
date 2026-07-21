@@ -85,10 +85,10 @@
   --popover: oklch(0.99 0.003 240);
   --popover-foreground: oklch(0.22 0.04 250);
 
-  /* Brand Nave — Azul Escuro #064570 → Azul Médio #5585b1 */
-  --brand: oklch(0.42 0.09 240);            /* #064570 aprox */
+  /* Brand Pensya — Violeta #7849F7 → degradê da logo */
+  --brand: oklch(0.55 0.22 293);            /* #7849F7 aprox */
   --brand-foreground: oklch(0.99 0 0);
-  --brand-glow: oklch(0.62 0.09 235);       /* #5585b1 aprox */
+  --brand-glow: oklch(0.68 0.16 290);
   --brand-yellow: oklch(0.86 0.16 90);      /* #f9ca0a */
   --brand-pink: oklch(0.83 0.05 10);        /* #deb0bd */
 
@@ -103,7 +103,7 @@
   --rail-active: oklch(0.98 0.01 300);
   --rail-active-bg: oklch(0.32 0.06 290);
 
-  --primary: oklch(0.42 0.09 240);
+  --primary: oklch(0.55 0.22 293);
   --primary-foreground: oklch(0.99 0 0);
 
   --secondary: oklch(0.95 0.015 235);
@@ -121,7 +121,7 @@
 
   --border: oklch(0.88 0.015 235 / 0.6);
   --input: oklch(0.92 0.012 235);
-  --ring: oklch(0.62 0.09 235);
+  --ring: oklch(0.68 0.16 290);
 
   --chart-1: oklch(0.42 0.09 240);  /* azul escuro */
   --chart-2: oklch(0.62 0.09 235);  /* azul médio */
@@ -131,7 +131,7 @@
 
   --sidebar: oklch(1 0 0 / 0.55);
   --sidebar-foreground: oklch(0.28 0.04 245);
-  --sidebar-primary: oklch(0.42 0.09 240);
+  --sidebar-primary: oklch(0.55 0.22 293);
   --sidebar-primary-foreground: oklch(0.99 0 0);
   --sidebar-accent: oklch(0.94 0.03 235 / 0.7);
   --sidebar-accent-foreground: oklch(0.32 0.07 240);
@@ -163,9 +163,9 @@
   --popover: oklch(0.22 0.04 250);
   --popover-foreground: oklch(0.96 0.01 240);
 
-  --brand: oklch(0.72 0.1 235);
+  --brand: oklch(0.72 0.15 290);
   --brand-foreground: oklch(0.15 0.03 250);
-  --brand-glow: oklch(0.78 0.09 230);
+  --brand-glow: oklch(0.78 0.12 288);
   --brand-yellow: oklch(0.86 0.16 90);
   --brand-pink: oklch(0.83 0.05 10);
 
@@ -200,7 +200,7 @@
 
   --sidebar: oklch(0.2 0.04 250 / 0.6);
   --sidebar-foreground: oklch(0.94 0.01 240);
-  --sidebar-primary: oklch(0.72 0.1 235);
+  --sidebar-primary: oklch(0.72 0.15 290);
   --sidebar-primary-foreground: oklch(0.15 0.03 250);
   --sidebar-accent: oklch(0.3 0.06 240 / 0.5);
   --sidebar-accent-foreground: oklch(0.96 0.01 240);
@@ -217,6 +217,42 @@
   --shadow-soft: 0 8px 24px -12px oklch(0 0 0 / 0.5);
   --shadow-card: 0 2px 4px -2px oklch(0 0 0 / 0.4), 0 12px 32px -16px oklch(0 0 0 / 0.55);
   --shadow-elegant: 0 20px 50px -20px oklch(0 0 0 / 0.7);
+}
+
+/* ============================================================
+ * Temas por clínica (organizacoes.cor_tema, aplicado como
+ * data-tema no <html>). Padrão sem data-tema: violeta Pensya.
+ * ============================================================ */
+[data-tema="azul"] {
+  --brand: oklch(0.56 0.17 262);            /* #2E72E4 aprox */
+  --brand-glow: oklch(0.7 0.13 258);
+  --primary: oklch(0.56 0.17 262);
+  --sidebar-primary: oklch(0.56 0.17 262);
+  --ring: oklch(0.7 0.13 258);
+}
+.dark[data-tema="azul"] {
+  --brand: oklch(0.72 0.13 258);
+  --brand-glow: oklch(0.78 0.1 255);
+  --primary: oklch(0.96 0.01 240);
+  --sidebar-primary: oklch(0.72 0.13 258);
+  --ring: oklch(0.72 0.13 258);
+}
+
+[data-tema="preto"] {
+  --brand: oklch(0.2 0.03 265);             /* #020A2D aprox */
+  --brand-glow: oklch(0.42 0.03 265);
+  --primary: oklch(0.2 0.03 265);
+  --sidebar-primary: oklch(0.2 0.03 265);
+  --ring: oklch(0.45 0.03 265);
+}
+.dark[data-tema="preto"] {
+  --brand: oklch(0.9 0.005 265);
+  --brand-foreground: oklch(0.18 0.02 265);
+  --brand-glow: oklch(0.75 0.01 265);
+  --primary: oklch(0.96 0.01 240);
+  --sidebar-primary: oklch(0.9 0.005 265);
+  --sidebar-primary-foreground: oklch(0.18 0.02 265);
+  --ring: oklch(0.7 0.01 265);
 }
 
 @layer base {

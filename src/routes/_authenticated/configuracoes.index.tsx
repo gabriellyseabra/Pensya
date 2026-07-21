@@ -10,9 +10,10 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Trash2, Edit2, Image as ImageIcon, Loader2 } from "lucide-react";
+import { Plus, Trash2, Edit2, Image as ImageIcon, Loader2, Check } from "lucide-react";
 import { toast } from "sonner";
-import { CLINICA_LOGO_BUCKET, clinicaLogoUrl, getMinhaOrganizacao } from "@/lib/clinica-config";
+import { CLINICA_LOGO_BUCKET, clinicaLogoUrl, getMinhaOrganizacao, CORES_TEMA, aplicarCorTema } from "@/lib/clinica-config";
+import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_authenticated/configuracoes/")({
   component: ConfigPage,
@@ -546,6 +547,7 @@ function ClinicaIdentidadeConfig() {
     nome_clinica: "", razao_social: "", cnpj: "", endereco: "",
     cidade: "", telefone: "", email: "", responsavel_nome: "",
   });
+  const [corTema, setCorTema] = useState<string>("roxo");
 
   const { data: cfg } = useQuery({
     queryKey: ["minha-organizacao"],
@@ -564,6 +566,7 @@ function ClinicaIdentidadeConfig() {
       email: cfg.email ?? "",
       responsavel_nome: cfg.responsavel_nome ?? "",
     });
+    setCorTema(cfg.cor_tema ?? "roxo");
   }, [cfg]);
 
   const logoAtual = preview ?? clinicaLogoUrl(cfg?.logo_path);
@@ -588,13 +591,14 @@ function ClinicaIdentidadeConfig() {
       const { nome_clinica, ...resto } = form;
       const { error } = await supabase
         .from("organizacoes")
-        .update({ nome: nome_clinica, ...resto, logo_path })
+        .update({ nome: nome_clinica, ...resto, logo_path, cor_tema: corTema })
         .eq("id", cfg.id);
       if (error) throw error;
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["minha-organizacao"] });
       qc.invalidateQueries({ queryKey: ["organizacao-branding-publica"] });
+      aplicarCorTema(corTema);
       setLogo(null);
       toast.success("Identidade da clínica salva");
     },
@@ -672,6 +676,35 @@ function ClinicaIdentidadeConfig() {
         <div>
           <Label>E-mail</Label>
           <Input type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />
+        </div>
+      </div>
+
+      <div>
+        <Label>Cor do sistema</Label>
+        <p className="mb-2 text-xs text-muted-foreground">
+          Define a cor dos botões e destaques do sistema para toda a sua equipe.
+        </p>
+        <div className="flex flex-wrap gap-2">
+          {CORES_TEMA.map((c) => (
+            <button
+              key={c.valor}
+              type="button"
+              onClick={() => setCorTema(c.valor)}
+              className={cn(
+                "flex items-center gap-2 rounded-full border px-3 py-1.5 text-sm transition-colors",
+                corTema === c.valor
+                  ? "border-brand bg-brand/10 font-medium"
+                  : "border-border hover:bg-muted",
+              )}
+            >
+              <span
+                className="h-4 w-4 rounded-full border border-black/10"
+                style={{ backgroundColor: c.amostra }}
+              />
+              {c.nome}
+              {corTema === c.valor && <Check className="h-3.5 w-3.5 text-brand" />}
+            </button>
+          ))}
         </div>
       </div>
 
