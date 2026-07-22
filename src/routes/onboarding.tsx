@@ -14,6 +14,10 @@ export const Route = createFileRoute("/onboarding")({
   beforeLoad: async () => {
     const { data, error } = await supabase.auth.getUser();
     if (error || !data.user) throw redirect({ to: "/auth" });
+    // Convidado para uma clínica existente não deve criar uma nova.
+    const convite =
+      typeof window !== "undefined" ? localStorage.getItem("pensya-convite-pendente") : null;
+    if (convite) throw redirect({ to: "/equipe/convite/$token", params: { token: convite } });
   },
   component: OnboardingPage,
 });

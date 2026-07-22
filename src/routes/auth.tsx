@@ -39,6 +39,20 @@ async function destinoPosLogin(userId: string) {
   return "/onboarding";
 }
 
+// Navega após login respeitando um convite de equipe pendente (quem foi
+// convidado para uma clínica existente volta para a aceitação, não vai criar
+// uma nova clínica no onboarding).
+async function irParaDestino(navigate: ReturnType<typeof useNavigate>, userId: string) {
+  const dest = await destinoPosLogin(userId);
+  const convite =
+    typeof window !== "undefined" ? localStorage.getItem("pensya-convite-pendente") : null;
+  if (dest === "/onboarding" && convite) {
+    navigate({ to: "/equipe/convite/$token", params: { token: convite }, replace: true });
+    return;
+  }
+  navigate({ to: dest, replace: true });
+}
+
 function AuthPage() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
@@ -48,7 +62,7 @@ function AuthPage() {
 
   useEffect(() => {
     supabase.auth.getSession().then(async ({ data }) => {
-      if (data.session) navigate({ to: await destinoPosLogin(data.session.user.id), replace: true });
+      if (data.session) await irParaDestino(navigate, data.session.user.id);
     });
   }, [navigate]);
 
@@ -58,7 +72,7 @@ function AuthPage() {
     const { data, error } = await supabase.auth.signInWithPassword({ email, password });
     setLoading(false);
     if (error) return toast.error(error.message);
-    navigate({ to: await destinoPosLogin(data.user.id), replace: true });
+    await irParaDestino(navigate, data.user.id);
   }
 
   async function handleForgotPassword() {

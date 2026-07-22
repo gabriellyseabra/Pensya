@@ -35,6 +35,14 @@ export const Route = createFileRoute("/_authenticated")({
       .limit(1);
     if (acessoPortal && acessoPortal.length > 0) throw redirect({ to: "/portal" });
 
+    // Tem um convite de equipe pendente? Volta para a aceitação (a pessoa foi
+    // convidada para uma clínica existente, não deve criar uma nova).
+    const convitePendente =
+      typeof window !== "undefined" ? localStorage.getItem("pensya-convite-pendente") : null;
+    if (convitePendente) {
+      throw redirect({ to: "/equipe/convite/$token", params: { token: convitePendente } });
+    }
+
     throw redirect({ to: "/onboarding" });
   },
   component: AuthenticatedLayout,

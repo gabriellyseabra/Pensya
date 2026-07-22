@@ -52,12 +52,26 @@ function ConviteEquipePage() {
     supabase.auth
       .getSession()
       .then(({ data }) => setSessionEmail(data.session?.user.email ?? null));
-  }, []);
+    // Guarda o convite pendente: se o cadastro passar por confirmação de e-mail
+    // e o usuário voltar pela raiz do app, o roteamento o traz de volta para cá
+    // (em vez de mandá-lo criar uma clínica no onboarding).
+    if (typeof window !== "undefined" && token) {
+      localStorage.setItem("pensya-convite-pendente", token);
+    }
+  }, [token]);
 
   const { data: info, isLoading } = useQuery({
     queryKey: ["equipe-convite", token],
     queryFn: () => equipeConviteInfo(token),
   });
+
+  // Convite inválido/expirado/usado não deve prender o usuário: limpa o
+  // marcador para que ele possa seguir o fluxo normal (login/onboarding).
+  useEffect(() => {
+    if (info && !info.valido && typeof window !== "undefined") {
+      localStorage.removeItem("pensya-convite-pendente");
+    }
+  }, [info]);
 
   function escolherFoto(f?: File | null) {
     if (!f) return;
@@ -80,6 +94,7 @@ function ConviteEquipePage() {
       await equipeAceitarConvite(token);
     },
     onSuccess: () => {
+      if (typeof window !== "undefined") localStorage.removeItem("pensya-convite-pendente");
       toast.success("Acesso liberado! Bem-vindo(a) à equipe.");
       navigate({ to: "/dashboard", replace: true });
     },
