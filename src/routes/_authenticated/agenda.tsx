@@ -60,6 +60,7 @@ import {
 } from "lucide-react";
 import { SessaoDialog } from "@/components/prontuario/SessaoDialog";
 import { AtendimentoQuickInfo } from "@/components/agenda/AtendimentoQuickInfo";
+import { consumirReposicaoPendente } from "@/lib/frequencia";
 import { toast } from "sonner";
 import {
   addDays,
@@ -166,8 +167,8 @@ const FREQ_STATUS_META: Record<
   { Icon: typeof CheckCircle2; cls: string; label: string }
 > = {
   confirmada: { Icon: CheckCircle2, cls: "text-emerald-600", label: "Presença confirmada" },
-  falta_reposicao: { Icon: RotateCcw, cls: "text-amber-600", label: "Falta — com reposição" },
-  falta_sem_reposicao: { Icon: XCircle, cls: "text-red-600", label: "Falta — sem reposição" },
+  falta_reposicao: { Icon: XCircle, cls: "text-amber-600", label: "Falta justificada (gera reposição)" },
+  falta_sem_reposicao: { Icon: Ban, cls: "text-red-600", label: "Falta não justificada" },
   cancelado: { Icon: Ban, cls: "text-muted-foreground", label: "Cancelado pelo profissional" },
 };
 
@@ -1439,7 +1440,7 @@ function AtendimentoDrawer({
 
   const registrarFrequencia = useMutation({
     mutationFn: async (
-      tipo: "presente" | "falta_justificada" | "falta_nao_justificada" | "cancelado_profissional",
+      tipo: "presente" | "reposicao" | "falta_justificada" | "falta_nao_justificada" | "cancelado_profissional",
     ) => {
       const {
         data: { user },
@@ -1460,9 +1461,13 @@ function AtendimentoDrawer({
         });
         if (error) throw error;
       }
+      // Reposição consome a falta justificada pendente mais antiga.
+      if (tipo === "reposicao") {
+        await consumirReposicaoPendente(atendimento.paciente_id, dataReferencia);
+      }
       const nomeAlvo =
-        tipo === "presente"
-          ? /presen/i
+        tipo === "presente" || tipo === "reposicao"
+          ? /presen|realiz|reposi/i
           : tipo === "falta_justificada"
             ? /justif/i
             : tipo === "falta_nao_justificada"
@@ -1667,10 +1672,18 @@ function AtendimentoDrawer({
           <Button
             size="sm"
             variant="outline"
+            className="text-blue-700 border-blue-600 hover:bg-blue-50"
+            onClick={() => registrarFrequencia.mutate("reposicao")}
+          >
+            <RotateCcw className="w-4 h-4 mr-1.5" /> Reposição
+          </Button>
+          <Button
+            size="sm"
+            variant="outline"
             className="text-amber-700 border-amber-600 hover:bg-amber-50"
             onClick={() => registrarFrequencia.mutate("falta_justificada")}
           >
-            <RotateCcw className="w-4 h-4 mr-1.5" /> Falta c/ reposição
+            <XCircle className="w-4 h-4 mr-1.5" /> Falta justificada
           </Button>
           <Button
             size="sm"
@@ -1678,7 +1691,7 @@ function AtendimentoDrawer({
             className="text-red-700 border-red-600 hover:bg-red-50"
             onClick={() => registrarFrequencia.mutate("falta_nao_justificada")}
           >
-            <XCircle className="w-4 h-4 mr-1.5" /> Falta s/ reposição
+            <Ban className="w-4 h-4 mr-1.5" /> Falta não justificada
           </Button>
           <Button
             size="sm"

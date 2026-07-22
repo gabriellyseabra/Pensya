@@ -19,6 +19,7 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import { SessaoDialog } from "@/components/prontuario/SessaoDialog";
+import { consumirReposicaoPendente } from "@/lib/frequencia";
 import {
   Plus, FlaskConical, Target as TargetIcon, CalendarCheck2, ListTodo,
   FileUp, Sparkles, ChevronDown,
@@ -181,6 +182,9 @@ function RegistrarFrequenciaDialog({
         created_by: user?.id,
       });
       if (error) throw error;
+      if (tipo === "reposicao") {
+        await consumirReposicaoPendente(pacienteId, repostoEm || data);
+      }
       toast.success("Frequência registrada");
       onOpenChange(false); onSaved(); setMotivo(""); setRepostoEm("");
     } catch (e: any) {

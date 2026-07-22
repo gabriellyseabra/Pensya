@@ -68,10 +68,10 @@ export function ResumoTab({ pacienteId }: { pacienteId: string }) {
         const m = await supabase.from("plano_metas").select("id, titulo_smart, dominio").eq("plano_id", plano.data.id);
         metasAtivas = m.data ?? [];
       }
-      const reposPendentes = (freqPend.data ?? []).filter((f: any) => {
-        const t = (f.tipo ?? "").toLowerCase();
-        return t.includes("falta") || t.includes("ausen");
-      });
+      // Reposição pendente só para falta JUSTIFICADA (não reposta).
+      const reposPendentes = (freqPend.data ?? []).filter(
+        (f: any) => f.tipo === "falta_justificada",
+      );
       return {
         freq: freq.data ?? [],
         prox: prox.data,

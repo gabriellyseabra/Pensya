@@ -19,6 +19,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Plus, ChevronLeft, ChevronRight, Trash2, CalendarCheck, Eye } from "lucide-react";
 import { SessaoDialog } from "@/components/prontuario/SessaoDialog";
+import { consumirReposicaoPendente } from "@/lib/frequencia";
 
 const TIPOS = [
   { value: "presente", label: "Presente", cor: "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300", presenca: true },
@@ -261,6 +262,10 @@ function FreqDialog({
         ? await supabase.from("frequencia").update(payload).eq("id", editing.id)
         : await supabase.from("frequencia").insert(payload);
       if (res.error) throw res.error;
+      // Lançar uma reposição consome a falta justificada pendente mais antiga.
+      if (form.tipo === "reposicao") {
+        await consumirReposicaoPendente(pacienteId, form.reposto_em || form.data_referencia || new Date().toISOString().slice(0, 10));
+      }
       toast.success("Salvo");
       onSaved();
       onOpenChange(false);

@@ -26,7 +26,8 @@ export function AtendimentoQuickInfo({ pacienteId }: { pacienteId?: string | nul
       const all = data ?? [];
       const presente = all.filter((r) => /presen|realiz/i.test(r.tipo)).length;
       const falta = all.filter((r) => /falt|ausen/i.test(r.tipo)).length;
-      const reposicaoPendente = all.filter((r) => /falt|ausen/i.test(r.tipo) && !r.reposto_em).length;
+      // Só falta JUSTIFICADA (não reposta) gera reposição pendente.
+      const reposicaoPendente = all.filter((r) => r.tipo === "falta_justificada" && !r.reposto_em).length;
       const total = all.length;
       const taxa = total > 0 ? Math.round((presente / total) * 100) : null;
       return { presente, falta, reposicaoPendente, total, taxa };
