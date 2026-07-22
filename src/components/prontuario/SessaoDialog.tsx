@@ -682,15 +682,34 @@ export function SessaoDialog({
           .insert(payload).select("id").single();
         if (error) throw error;
         sessaoIdFinal = ins!.id;
-        // Frequência presente automática (apenas no insert)
-        await supabase.from("frequencia").insert({
-          paciente_id: pacienteId,
-          sessao_id: sessaoIdFinal,
-          atendimento_id: atendimentoId ?? null,
-          data_referencia: data,
-          tipo: "presente",
-          created_by: user?.id,
-        });
+        // Frequência presente automática — reaproveita o registro do atendimento
+        // (ou do dia) se já existir, para não duplicar com o lançamento manual.
+        let freqExistente: { id: string } | null = null;
+        if (atendimentoId) {
+          const { data: f } = await supabase
+            .from("frequencia").select("id").eq("atendimento_id", atendimentoId).limit(1).maybeSingle();
+          freqExistente = f ?? null;
+        }
+        if (!freqExistente) {
+          const { data: f } = await supabase
+            .from("frequencia").select("id")
+            .eq("paciente_id", pacienteId).eq("data_referencia", data).is("sessao_id", null).limit(1).maybeSingle();
+          freqExistente = f ?? null;
+        }
+        if (freqExistente?.id) {
+          await supabase.from("frequencia")
+            .update({ tipo: "presente", sessao_id: sessaoIdFinal, atendimento_id: atendimentoId ?? null })
+            .eq("id", freqExistente.id);
+        } else {
+          await supabase.from("frequencia").insert({
+            paciente_id: pacienteId,
+            sessao_id: sessaoIdFinal,
+            atendimento_id: atendimentoId ?? null,
+            data_referencia: data,
+            tipo: "presente",
+            created_by: user?.id,
+          });
+        }
         // Conecta o planejamento desta sessão: marca como realizado e vincula a sessão
         if (planejamentoAtend?.id) {
           await supabase.from("sessao_planejamentos")

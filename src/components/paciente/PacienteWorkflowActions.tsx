@@ -44,7 +44,6 @@ export function PacienteWorkflowActions({ pacienteId, variant = "bar" }: Pacient
   const qc = useQueryClient();
 
   const [openSessao, setOpenSessao] = useState<null | "avaliacao" | "intervencao">(null);
-  const [openFreq, setOpenFreq] = useState(false);
   const [openTarefa, setOpenTarefa] = useState(false);
 
   const invalidate = () => {
@@ -72,9 +71,6 @@ export function PacienteWorkflowActions({ pacienteId, variant = "bar" }: Pacient
       <DropdownMenuLabel className="text-[11px] uppercase text-muted-foreground">
         Ações rápidas
       </DropdownMenuLabel>
-      <DropdownMenuItem onClick={() => setOpenFreq(true)}>
-        <CalendarCheck2 className="mr-2 h-4 w-4" /> Registrar frequência
-      </DropdownMenuItem>
       <DropdownMenuItem onClick={() => setOpenTarefa(true)}>
         <ListTodo className="mr-2 h-4 w-4" /> Nova tarefa
       </DropdownMenuItem>
@@ -95,9 +91,6 @@ export function PacienteWorkflowActions({ pacienteId, variant = "bar" }: Pacient
           </Button>
           <Button size="sm" variant="secondary" onClick={() => setOpenSessao("avaliacao")}>
             <FlaskConical className="mr-2 h-4 w-4" /> Avaliação
-          </Button>
-          <Button size="sm" variant="outline" onClick={() => setOpenFreq(true)}>
-            <CalendarCheck2 className="mr-2 h-4 w-4" /> Frequência
           </Button>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -143,12 +136,6 @@ export function PacienteWorkflowActions({ pacienteId, variant = "bar" }: Pacient
           onSaved={invalidate}
         />
       )}
-      <RegistrarFrequenciaDialog
-        open={openFreq}
-        onOpenChange={setOpenFreq}
-        pacienteId={pacienteId}
-        onSaved={invalidate}
-      />
       <NovaTarefaDialog
         open={openTarefa}
         onOpenChange={setOpenTarefa}

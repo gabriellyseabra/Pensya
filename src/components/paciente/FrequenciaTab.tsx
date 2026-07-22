@@ -19,7 +19,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Plus, ChevronLeft, ChevronRight, Trash2, CalendarCheck, Eye } from "lucide-react";
 import { SessaoDialog } from "@/components/prontuario/SessaoDialog";
-import { consumirReposicaoPendente } from "@/lib/frequencia";
+import { consumirReposicaoPendente, listarFaltasPendentes } from "@/lib/frequencia";
 
 const TIPOS = [
   { value: "presente", label: "Presente", cor: "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300", presenca: true },
@@ -242,11 +242,20 @@ function FreqDialog({
   const today = new Date().toISOString().slice(0, 10);
   const [form, setForm] = useState<Partial<Freq>>(editing ?? { data_referencia: today, tipo: "falta_justificada" });
   const [saving, setSaving] = useState(false);
+  const [faltaAlvo, setFaltaAlvo] = useState<string>("");
 
   useMemo(() => {
     setForm(editing ?? { data_referencia: today, tipo: "falta_justificada" });
+    setFaltaAlvo("");
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [editing, open]);
+
+  // Faltas justificadas pendentes, para escolher qual está sendo reposta.
+  const { data: faltasPendentes } = useQuery({
+    queryKey: ["faltas-pendentes", pacienteId],
+    enabled: open && form.tipo === "reposicao",
+    queryFn: () => listarFaltasPendentes(pacienteId),
+  });
 
   async function salvar() {
     setSaving(true);
@@ -264,7 +273,11 @@ function FreqDialog({
       if (res.error) throw res.error;
       // Lançar uma reposição consome a falta justificada pendente mais antiga.
       if (form.tipo === "reposicao") {
-        await consumirReposicaoPendente(pacienteId, form.reposto_em || form.data_referencia || new Date().toISOString().slice(0, 10));
+        await consumirReposicaoPendente(
+          pacienteId,
+          form.reposto_em || form.data_referencia || new Date().toISOString().slice(0, 10),
+          faltaAlvo || undefined,
+        );
       }
       toast.success("Salvo");
       onSaved();
@@ -293,10 +306,32 @@ function FreqDialog({
             </Select>
           </div>
           {form.tipo === "reposicao" && (
-            <div>
-              <Label className="text-xs">Data da reposição</Label>
-              <Input type="date" value={form.reposto_em ?? ""} onChange={(e) => setForm({ ...form, reposto_em: e.target.value })} />
-            </div>
+            <>
+              <div>
+                <Label className="text-xs">Data da reposição</Label>
+                <Input type="date" value={form.reposto_em ?? ""} onChange={(e) => setForm({ ...form, reposto_em: e.target.value })} />
+              </div>
+              <div>
+                <Label className="text-xs">Falta que está sendo reposta</Label>
+                {(faltasPendentes?.length ?? 0) === 0 ? (
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Nenhuma falta justificada pendente. A reposição será apenas registrada.
+                  </p>
+                ) : (
+                  <Select value={faltaAlvo || "auto"} onValueChange={(v) => setFaltaAlvo(v === "auto" ? "" : v)}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="auto">Mais antiga pendente</SelectItem>
+                      {(faltasPendentes ?? []).map((f) => (
+                        <SelectItem key={f.id} value={f.id}>
+                          {formatData(f.data_referencia, "dd/MM/yyyy")}{f.motivo ? ` — ${f.motivo}` : ""}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+              </div>
+            </>
           )}
           <div>
             <Label className="text-xs">Motivo / observações</Label>

@@ -60,6 +60,7 @@ import {
 } from "lucide-react";
 import { SessaoDialog } from "@/components/prontuario/SessaoDialog";
 import { AtendimentoQuickInfo } from "@/components/agenda/AtendimentoQuickInfo";
+import { ReporFaltaDialog } from "@/components/paciente/ReporFaltaDialog";
 import { consumirReposicaoPendente } from "@/lib/frequencia";
 import { toast } from "sonner";
 import {
@@ -1310,6 +1311,7 @@ function AtendimentoDrawer({
 }) {
   const [editing, setEditing] = useState(false);
   const [sessaoTipo, setSessaoTipo] = useState<"avaliacao" | "intervencao" | null>(null);
+  const [reporOpen, setReporOpen] = useState(false);
   const qc = useQueryClient();
 
   const { data: statusList } = useQuery({
@@ -1439,9 +1441,13 @@ function AtendimentoDrawer({
   });
 
   const registrarFrequencia = useMutation({
-    mutationFn: async (
-      tipo: "presente" | "reposicao" | "falta_justificada" | "falta_nao_justificada" | "cancelado_profissional",
-    ) => {
+    mutationFn: async ({
+      tipo,
+      faltaId,
+    }: {
+      tipo: "presente" | "reposicao" | "falta_justificada" | "falta_nao_justificada" | "cancelado_profissional";
+      faltaId?: string | null;
+    }) => {
       const {
         data: { user },
       } = await supabase.auth.getUser();
@@ -1461,9 +1467,9 @@ function AtendimentoDrawer({
         });
         if (error) throw error;
       }
-      // Reposição consome a falta justificada pendente mais antiga.
+      // Reposição consome a falta justificada escolhida (ou a mais antiga).
       if (tipo === "reposicao") {
-        await consumirReposicaoPendente(atendimento.paciente_id, dataReferencia);
+        await consumirReposicaoPendente(atendimento.paciente_id, dataReferencia, faltaId);
       }
       const nomeAlvo =
         tipo === "presente" || tipo === "reposicao"
@@ -1487,6 +1493,7 @@ function AtendimentoDrawer({
       qc.invalidateQueries({ queryKey: ["freq-agenda"] });
       qc.invalidateQueries({ queryKey: ["agenda"] });
       qc.invalidateQueries({ queryKey: ["drawer-freq", atendimento.paciente_id] });
+      qc.invalidateQueries({ queryKey: ["faltas-pendentes", atendimento.paciente_id] });
     },
     onError: (e: Error) => toast.error(e.message),
   });
@@ -1625,29 +1632,6 @@ function AtendimentoDrawer({
         </div>
       )}
 
-      {/* Status */}
-      <div>
-        <Label className="text-xs uppercase tracking-wider text-muted-foreground">
-          Status de frequência
-        </Label>
-        <Select
-          value={atendimento.status_frequencia_id ?? "__none__"}
-          onValueChange={(v) => setStatus.mutate(v === "__none__" ? null : v)}
-        >
-          <SelectTrigger>
-            <SelectValue placeholder="—" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="__none__">Sem status</SelectItem>
-            {statusList?.map((s) => (
-              <SelectItem key={s.id} value={s.id}>
-                {s.nome}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
-
       {/* Registro de frequência — mesmo lançamento que aparece no painel do paciente */}
       <div className="rounded-xl border p-3 space-y-2">
         <div className="flex items-center justify-between">
@@ -1665,7 +1649,7 @@ function AtendimentoDrawer({
           <Button
             size="sm"
             className="bg-emerald-600 hover:bg-emerald-700 text-white"
-            onClick={() => registrarFrequencia.mutate("presente")}
+            onClick={() => registrarFrequencia.mutate({ tipo: "presente" })}
           >
             <CheckCircle2 className="w-4 h-4 mr-1.5" /> Presente
           </Button>
@@ -1673,7 +1657,7 @@ function AtendimentoDrawer({
             size="sm"
             variant="outline"
             className="text-blue-700 border-blue-600 hover:bg-blue-50"
-            onClick={() => registrarFrequencia.mutate("reposicao")}
+            onClick={() => setReporOpen(true)}
           >
             <RotateCcw className="w-4 h-4 mr-1.5" /> Reposição
           </Button>
@@ -1681,7 +1665,7 @@ function AtendimentoDrawer({
             size="sm"
             variant="outline"
             className="text-amber-700 border-amber-600 hover:bg-amber-50"
-            onClick={() => registrarFrequencia.mutate("falta_justificada")}
+            onClick={() => registrarFrequencia.mutate({ tipo: "falta_justificada" })}
           >
             <XCircle className="w-4 h-4 mr-1.5" /> Falta justificada
           </Button>
@@ -1689,19 +1673,26 @@ function AtendimentoDrawer({
             size="sm"
             variant="outline"
             className="text-red-700 border-red-600 hover:bg-red-50"
-            onClick={() => registrarFrequencia.mutate("falta_nao_justificada")}
+            onClick={() => registrarFrequencia.mutate({ tipo: "falta_nao_justificada" })}
           >
             <Ban className="w-4 h-4 mr-1.5" /> Falta não justificada
           </Button>
           <Button
             size="sm"
             variant="outline"
-            onClick={() => registrarFrequencia.mutate("cancelado_profissional")}
+            onClick={() => registrarFrequencia.mutate({ tipo: "cancelado_profissional" })}
           >
             <Ban className="w-4 h-4 mr-1.5" /> Cancelado (profissional)
           </Button>
         </div>
       </div>
+
+      <ReporFaltaDialog
+        pacienteId={atendimento.paciente_id}
+        open={reporOpen}
+        onOpenChange={setReporOpen}
+        onConfirm={(faltaId) => registrarFrequencia.mutate({ tipo: "reposicao", faltaId })}
+      />
 
       {/* Registro de sessão */}
       {paciente?.id && (
