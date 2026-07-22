@@ -54,19 +54,31 @@ function EquipePage() {
   const { data: members } = useQuery({
     queryKey: ["equipe"],
     queryFn: async () => {
-      const [{ data: profiles }, { data: roles }, { data: profs }] = await Promise.all([
-        supabase.from("profiles").select("*").order("nome"),
-        supabase.from("user_roles").select("user_id, role"),
+      // Escopa a equipe aos membros da organização atual (organizacao_membros),
+      // não a todos os profiles do sistema — assim a pensya_admin que está só
+      // "visitando" a clínica não aparece como membro.
+      const { data: orgId } = await supabase.rpc("my_org_id");
+      if (!orgId) return [];
+      const { data: membros } = await supabase
+        .from("organizacao_membros")
+        .select("user_id, papel")
+        .eq("org_id", orgId)
+        .eq("ativo", true);
+      const ids = (membros ?? []).map((m) => m.user_id);
+      if (ids.length === 0) return [];
+      const [{ data: profiles }, { data: profs }] = await Promise.all([
+        supabase.from("profiles").select("*").in("id", ids),
         supabase
           .from("profissionais_consultorio")
           .select("id, user_id, especialidade_id, cor, email")
           .not("user_id", "is", null),
       ]);
-      return (profiles ?? []).map((p) => {
-        const prof = (profs ?? []).find((x: any) => x.user_id === p.id);
+      return (membros ?? []).map((m) => {
+        const p: any = (profiles ?? []).find((x) => x.id === m.user_id) ?? { id: m.user_id, nome: "—" };
+        const prof = (profs ?? []).find((x: any) => x.user_id === m.user_id);
         return {
           ...p,
-          roles: (roles ?? []).filter((r) => r.user_id === p.id).map((r) => r.role),
+          roles: [m.papel],
           prof_id: prof?.id ?? null,
           especialidade_id: prof?.especialidade_id ?? null,
           cor: prof?.cor ?? null,
@@ -109,8 +121,12 @@ function EquipePage() {
 
   const setRole = useMutation({
     mutationFn: async ({ userId, role }: { userId: string; role: (typeof ROLES)[number] }) => {
-      await supabase.from("user_roles").delete().eq("user_id", userId);
-      const { error } = await supabase.from("user_roles").insert({ user_id: userId, role });
+      // Papel dentro da organização = organizacao_membros.papel (o que has_role
+      // usa no banco e o que o menu passa a ler).
+      const { error } = await supabase
+        .from("organizacao_membros")
+        .update({ papel: role })
+        .eq("user_id", userId);
       if (error) throw error;
     },
     onSuccess: () => {

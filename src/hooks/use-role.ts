@@ -49,6 +49,17 @@ function useRawRoles() {
       // A administradora da plataforma (pensya_admin) navega as clínicas com
       // poderes de admin — mesmo tratamento que has_role() dá no banco.
       if (roles.includes("pensya_admin")) return ["admin"];
+      // Fonte de verdade do papel no multi-tenant: organizacao_membros.papel
+      // (é o que has_role() usa no banco). Quem cria a clínica pelo link entra
+      // como admin aqui mesmo sem depender de user_roles.
+      const { data: membro } = await supabase
+        .from("organizacao_membros")
+        .select("papel")
+        .eq("user_id", u.user.id)
+        .eq("ativo", true)
+        .maybeSingle();
+      if (membro?.papel) return [membro.papel as AppRole];
+      // Legado: papéis diretos em user_roles.
       return roles.filter((r): r is AppRole => r !== "pensya_admin");
     },
     staleTime: 5 * 60_000,
