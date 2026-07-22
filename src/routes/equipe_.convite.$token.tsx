@@ -3,8 +3,9 @@ import { useMutation, useQuery } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { LogIn, UserPlus, Camera, Loader2, ShieldCheck } from "lucide-react";
+import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
-import { equipeConviteInfo, equipeAceitarConvite } from "@/lib/equipe.functions";
+import { equipeConviteInfo, equipeAceitarConvite, criarContaConvite } from "@/lib/equipe.functions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -110,21 +111,23 @@ function ConviteEquipePage() {
     finalizar.mutate();
   }
 
+  const criarConta = useServerFn(criarContaConvite);
+
   async function handleSignup(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
-    const { data, error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        emailRedirectTo: `${window.location.origin}/equipe/convite/${token}`,
-        data: { nome },
-      },
-    });
-    setLoading(false);
-    if (error) return toast.error(error.message);
-    if (data.session) finalizar.mutate();
-    else setAguardandoConfirmacao(true);
+    try {
+      // Cria a conta já confirmada (via convite) — sem depender do e-mail de
+      // confirmação — e entra direto.
+      await criarConta({ data: { token, email, password, nome: nome || info?.nome || null } });
+      const { error } = await supabase.auth.signInWithPassword({ email, password });
+      if (error) throw error;
+      finalizar.mutate();
+    } catch (err: any) {
+      toast.error(err?.message ?? "Falha ao criar acesso");
+    } finally {
+      setLoading(false);
+    }
   }
 
   async function trocarConta() {
