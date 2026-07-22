@@ -14,8 +14,29 @@ export const Route = createFileRoute("/auth")({
 
 /** Equipe (admin/profissional/secretaria) vai para o sistema; sem papel, vai para o portal da família. */
 async function destinoPosLogin(userId: string) {
-  const { data: roles } = await supabase.from("user_roles").select("role").eq("user_id", userId);
-  return roles && roles.length > 0 ? "/dashboard" : "/portal";
+  // Mesma lógica do guard de /_authenticated, para o login levar cada perfil
+  // ao lugar certo: membro de clínica → sistema; admin da plataforma → sistema;
+  // família com acesso ao portal → portal; senão (conta nova sem clínica) →
+  // onboarding para criar a própria clínica.
+  const { data: membro } = await supabase
+    .from("organizacao_membros")
+    .select("org_id")
+    .eq("user_id", userId)
+    .eq("ativo", true)
+    .maybeSingle();
+  if (membro) return "/dashboard";
+
+  const { data: pensyaAdmin } = await supabase.rpc("is_pensya_admin");
+  if (pensyaAdmin) return "/dashboard";
+
+  const { data: acessoPortal } = await supabase
+    .from("portal_acessos")
+    .select("id")
+    .eq("user_id", userId)
+    .limit(1);
+  if (acessoPortal && acessoPortal.length > 0) return "/portal";
+
+  return "/onboarding";
 }
 
 function AuthPage() {
