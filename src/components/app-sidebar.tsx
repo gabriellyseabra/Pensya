@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Link, useRouterState } from "@tanstack/react-router";
 import {
   LayoutDashboard,
@@ -16,6 +16,8 @@ import {
   DoorOpen,
   LogOut,
   Menu,
+  ChevronUp,
+  ChevronDown,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
@@ -83,14 +85,51 @@ async function sair() {
   window.location.href = "/auth";
 }
 
+// Detecta se a lista de navegação tem conteúdo além da área visível, para
+// mostrar indicadores de rolagem (⌃/⌄) — assim ninguém deixa de descobrir
+// páginas por não saber que precisa rolar.
+function useScrollHints(deps: unknown) {
+  const ref = useRef<HTMLDivElement>(null);
+  const [hints, setHints] = useState({ up: false, down: false });
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const update = () =>
+      setHints({
+        up: el.scrollTop > 4,
+        down: el.scrollTop + el.clientHeight < el.scrollHeight - 4,
+      });
+    update();
+    el.addEventListener("scroll", update, { passive: true });
+    const ro = new ResizeObserver(update);
+    ro.observe(el);
+    return () => {
+      el.removeEventListener("scroll", update);
+      ro.disconnect();
+    };
+  }, [deps]);
+  const scrollStep = (dir: number) => ref.current?.scrollBy({ top: dir * 220, behavior: "smooth" });
+  return { ref, hints, scrollStep };
+}
+
 /** Rail vertical escuro flutuante — expande no hover para mostrar os rótulos. */
 export function AppSidebar() {
   const isActive = useIsActive();
   const visibleGroups = useVisibleGroups();
+  const { ref, hints, scrollStep } = useScrollHints(visibleGroups);
   return (
     <aside className="group sticky top-4 z-50 hidden h-[calc(100vh-2rem)] w-16 shrink-0 md:block">
       <nav className="absolute left-0 top-0 z-40 flex h-full w-16 flex-col gap-1 overflow-hidden rounded-[28px] bg-rail px-2 py-4 text-rail-foreground shadow-elegant transition-[width] duration-200 ease-out group-hover:w-60 group-hover:shadow-2xl">
-        <div className="flex min-h-0 flex-1 flex-col gap-1 overflow-y-auto no-scrollbar">
+        {hints.up && (
+          <button
+            onClick={() => scrollStep(-1)}
+            title="Rolar para cima"
+            className="mb-1 flex h-6 shrink-0 items-center justify-center rounded-lg text-rail-foreground/70 transition-colors hover:bg-white/10 hover:text-rail-active"
+          >
+            <ChevronUp className="h-4 w-4" />
+          </button>
+        )}
+        <div ref={ref} className="flex min-h-0 flex-1 flex-col gap-1 overflow-y-auto no-scrollbar">
           {visibleGroups.map((g, gi) => (
             <div key={g.label} className="flex flex-col gap-1">
               {gi > 0 && <span className="my-1 ml-2.5 h-px w-6 bg-white/10" />}
@@ -100,6 +139,15 @@ export function AppSidebar() {
             </div>
           ))}
         </div>
+        {hints.down && (
+          <button
+            onClick={() => scrollStep(1)}
+            title="Mais opções abaixo"
+            className="mt-1 flex h-6 shrink-0 animate-bounce items-center justify-center rounded-lg text-rail-active transition-colors hover:bg-white/10"
+          >
+            <ChevronDown className="h-4 w-4" />
+          </button>
+        )}
         <button
           onClick={sair}
           className="mt-2 flex h-11 w-full items-center gap-3 rounded-2xl px-3 text-rail-foreground transition-colors hover:bg-white/10 hover:text-rail-active"
