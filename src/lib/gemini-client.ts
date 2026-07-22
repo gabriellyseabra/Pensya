@@ -2,6 +2,20 @@ const GEMINI_API_BASE = "https://generativelanguage.googleapis.com/v1beta/models
 
 export type GeminiModel = "gemini-2.5-flash-lite" | "gemini-2.5-flash" | "gemini-2.5-pro";
 
+// Os modelos datados gemini-2.5-* foram descontinuados para novas contas
+// (404 "no longer available") em jul/2026. Os aliases "-latest" apontam sempre
+// para a geração atual, evitando quebrar de novo a cada descontinuação.
+// https://ai.google.dev/gemini-api/docs/changelog
+const MODEL_ALIASES: Record<string, string> = {
+  "gemini-2.5-flash": "gemini-flash-latest",
+  "gemini-2.5-flash-lite": "gemini-flash-lite-latest",
+  "gemini-2.5-pro": "gemini-pro-latest",
+};
+
+function resolveModel(model: string): string {
+  return MODEL_ALIASES[model] ?? model;
+}
+
 interface GeminiFile {
   mimeType: string;
   base64: string;
@@ -32,7 +46,7 @@ export async function callGemini({ model, systemPrompt, userPrompt, json = true,
   let lastError: Error | null = null;
 
   for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
-    const res = await fetch(`${GEMINI_API_BASE}/${model}:generateContent`, {
+    const res = await fetch(`${GEMINI_API_BASE}/${resolveModel(model)}:generateContent`, {
       method: "POST",
       headers: { "Content-Type": "application/json", "x-goog-api-key": key },
       body: JSON.stringify({
