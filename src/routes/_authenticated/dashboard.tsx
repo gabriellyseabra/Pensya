@@ -524,16 +524,25 @@ function DashboardPage() {
     },
   });
 
-  // Equipe (membros com papel) para o card "Members"
+  // Equipe (membros da organização atual) para o card "Members".
   const { data: equipe } = useQuery({
     queryKey: ["dash-equipe"],
     queryFn: async () => {
-      const [{ data: profiles }, { data: roles }] = await Promise.all([
-        supabase.from("profiles").select("id, nome, avatar_url").order("nome"),
-        supabase.from("user_roles").select("user_id"),
-      ]);
-      const comPapel = new Set((roles ?? []).map((r) => r.user_id));
-      return (profiles ?? []).filter((p) => comPapel.has(p.id));
+      const { data: orgId } = await supabase.rpc("my_org_id");
+      if (!orgId) return [];
+      const { data: membros } = await supabase
+        .from("organizacao_membros")
+        .select("user_id")
+        .eq("org_id", orgId)
+        .eq("ativo", true);
+      const ids = (membros ?? []).map((m) => m.user_id);
+      if (ids.length === 0) return [];
+      const { data: profiles } = await supabase
+        .from("profiles")
+        .select("id, nome, avatar_url")
+        .in("id", ids)
+        .order("nome");
+      return profiles ?? [];
     },
   });
 
