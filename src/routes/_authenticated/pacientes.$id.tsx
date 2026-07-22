@@ -39,6 +39,7 @@ import { ArquivosTab } from "@/components/paciente/ArquivosTab";
 import { FichaCadastralTab } from "@/components/paciente/FichaCadastralTab";
 import { BrainStateCard } from "@/components/paciente/BrainStateCard";
 import { PACIENTE_STATUS, PACIENTE_STATUS_LABEL } from "@/lib/paciente-status";
+import { useRoles } from "@/hooks/use-role";
 
 export const Route = createFileRoute("/_authenticated/pacientes/$id")({
   component: PacienteDetailPage,
@@ -53,6 +54,8 @@ function PacienteDetailPage() {
   const qc = useQueryClient();
   const [abaAtiva, setAbaAtiva] = useState("resumo");
   const [adminSubTab, setAdminSubTab] = useState("financeiro");
+  // Terapeuta não vê a aba Administrativo (dados financeiros do paciente).
+  const { isTerapeutaRestrito: ehTerapeuta } = useRoles();
 
   const { data: paciente, isLoading } = useQuery({
     queryKey: ["paciente", id],
@@ -341,7 +344,7 @@ function PacienteDetailPage() {
               ["frequencia", "Frequência"],
               ["monitoramento", "Monitoramento"],
               ["arquivos", "Arquivos"],
-              ["administrativo", "Administrativo"],
+              ...(ehTerapeuta ? [] : [["administrativo", "Administrativo"]]),
             ].map(([v, label]) => (
               <TabsTrigger
                 key={v}

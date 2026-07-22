@@ -4,18 +4,30 @@ import { AppShell } from "@/components/app-shell";
 
 export const Route = createFileRoute("/_authenticated")({
   ssr: false,
-  beforeLoad: async () => {
+  beforeLoad: async ({ location }) => {
     const { data, error } = await supabase.auth.getUser();
     if (error || !data.user) throw redirect({ to: "/auth" });
 
     // Já pertence a uma clínica (papel dentro de organizacao_membros)? Segue normal.
     const { data: membro } = await supabase
       .from("organizacao_membros")
-      .select("org_id")
+      .select("org_id, papel")
       .eq("user_id", data.user.id)
       .eq("ativo", true)
       .maybeSingle();
-    if (membro) return { user: data.user };
+    if (membro) {
+      // Terapeuta (papel "profissional") tem acesso restrito: só dashboard,
+      // agenda, pacientes e tarefas. Bloqueia o resto (financeiro, gestão,
+      // configurações, equipe) mesmo por URL direta.
+      if (membro.papel === "profissional") {
+        const permitidos = ["/dashboard", "/agenda", "/pacientes", "/tarefas"];
+        const liberado = permitidos.some(
+          (p) => location.pathname === p || location.pathname.startsWith(p + "/"),
+        );
+        if (!liberado) throw redirect({ to: "/dashboard" });
+      }
+      return { user: data.user };
+    }
 
     // Administradora da plataforma Pensya: com visão de clínica ativa navega
     // o sistema escopado àquela clínica; sem visão, vai pro painel de gestão.

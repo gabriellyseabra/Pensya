@@ -18,6 +18,7 @@ import { format, parseISO } from "date-fns";
 import { DataDrawer } from "@/components/shared/DataDrawer";
 import { PageHero } from "@/components/shared/PageHero";
 import { TwoColumn, PanelCard, BigStatCard, StatTile, NotifRow } from "@/components/shared/panels";
+import { useRoles } from "@/hooks/use-role";
 
 export const Route = createFileRoute("/_authenticated/tarefas")({
   component: TarefasPage,
@@ -39,9 +40,10 @@ function TarefasPage() {
   const [depFilter, setDepFilter] = useState<DepartamentoValue | "todos">("todos");
   const [selected, setSelected] = useState<any | null>(null);
   const qc = useQueryClient();
+  const { isTerapeutaRestrito } = useRoles();
 
   const { data: tarefas } = useQuery({
-    queryKey: ["tarefas", statusFilter, depFilter],
+    queryKey: ["tarefas", statusFilter, depFilter, isTerapeutaRestrito],
     queryFn: async () => {
       let q = supabase
         .from("tarefas")
@@ -51,6 +53,11 @@ function TarefasPage() {
       if (statusFilter === "abertas") q = q.neq("status", "concluida");
       if (statusFilter === "concluidas") q = q.eq("status", "concluida");
       if (depFilter !== "todos") q = q.eq("departamento", depFilter);
+      // Terapeuta só vê tarefas atribuídas a ela (ou criadas por ela).
+      if (isTerapeutaRestrito) {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) q = q.or(`responsavel_id.eq.${user.id},criador_id.eq.${user.id}`);
+      }
       const { data } = await q;
 
       // Calcula status "atrasado" automaticamente
@@ -92,13 +99,18 @@ function TarefasPage() {
 
   // Contagem por departamento
   const { data: contagemDep } = useQuery({
-    queryKey: ["tarefas-contagem-dep"],
+    queryKey: ["tarefas-contagem-dep", isTerapeutaRestrito],
     queryFn: async () => {
-      const { data } = await supabase
+      let cq = supabase
         .from("tarefas")
         .select("departamento, status")
         .is("sessao_id", null)
         .neq("status", "concluida");
+      if (isTerapeutaRestrito) {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) cq = cq.or(`responsavel_id.eq.${user.id},criador_id.eq.${user.id}`);
+      }
+      const { data } = await cq;
       const map = new Map<string, number>();
       (data ?? []).forEach((t: any) => {
         const k = t.departamento ?? "sem";
@@ -353,12 +365,27 @@ function NovaTarefaDialog({ onCreated }: { onCreated: () => void }) {
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState({
     titulo: "", descricao: "", paciente_id: "", prazo: "",
-    prioridade: "media", departamento: "" as string,
+    prioridade: "media", departamento: "" as string, responsavel_id: "",
   });
 
   const { data: pacientes } = useQuery({
     queryKey: ["pac-mini-t"],
     queryFn: async () => (await supabase.from("pacientes").select("id, nome").order("nome")).data ?? [],
+  });
+
+  // Membros da equipe (para atribuir a tarefa a um responsável).
+  const { data: membros } = useQuery({
+    queryKey: ["tarefa-membros"],
+    queryFn: async () => {
+      const { data: orgId } = await supabase.rpc("my_org_id");
+      if (!orgId) return [];
+      const { data: m } = await supabase
+        .from("organizacao_membros").select("user_id").eq("org_id", orgId).eq("ativo", true);
+      const ids = (m ?? []).map((x) => x.user_id);
+      if (!ids.length) return [];
+      const { data: profs } = await supabase.from("profiles").select("id, nome").in("id", ids).order("nome");
+      return profs ?? [];
+    },
   });
 
   const mutation = useMutation({
@@ -371,6 +398,7 @@ function NovaTarefaDialog({ onCreated }: { onCreated: () => void }) {
         prazo: form.prazo || null,
         prioridade: form.prioridade,
         departamento: form.departamento || null,
+        responsavel_id: form.responsavel_id || null,
         origem: "manual",
         criador_id: user?.id ?? null,
         status: "pendente",
@@ -380,7 +408,7 @@ function NovaTarefaDialog({ onCreated }: { onCreated: () => void }) {
     onSuccess: () => {
       toast.success("Tarefa criada!");
       setOpen(false);
-      setForm({ titulo: "", descricao: "", paciente_id: "", prazo: "", prioridade: "media", departamento: "" });
+      setForm({ titulo: "", descricao: "", paciente_id: "", prazo: "", prioridade: "media", departamento: "", responsavel_id: "" });
       onCreated();
     },
     onError: (e: Error) => toast.error(e.message),
@@ -423,6 +451,14 @@ function NovaTarefaDialog({ onCreated }: { onCreated: () => void }) {
                 <SelectContent>{pacientes?.map((p) => <SelectItem key={p.id} value={p.id}>{p.nome}</SelectItem>)}</SelectContent>
               </Select>
             </div>
+          </div>
+          <div>
+            <Label>Responsável (quem vai executar)</Label>
+            <Select value={form.responsavel_id} onValueChange={(v) => setForm({ ...form, responsavel_id: v })}>
+              <SelectTrigger><SelectValue placeholder="Sem responsável definido" /></SelectTrigger>
+              <SelectContent>{(membros ?? []).map((m: any) => <SelectItem key={m.id} value={m.id}>{m.nome || "—"}</SelectItem>)}</SelectContent>
+            </Select>
+            <p className="mt-1 text-[11px] text-muted-foreground">Terapeutas só veem as tarefas atribuídas a elas.</p>
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>

@@ -53,6 +53,7 @@ import { SmartCard } from "@/components/shared/SmartCard";
 import { cn } from "@/lib/utils";
 import { listarMetasEstagnadas } from "@/lib/insights.functions";
 import { clinicaLogoUrl, getMinhaOrganizacao } from "@/lib/clinica-config";
+import { useRoles } from "@/hooks/use-role";
 
 export const Route = createFileRoute("/_authenticated/dashboard")({
   component: DashboardPage,
@@ -168,6 +169,8 @@ function Avatar({
 
 function DashboardPage() {
   const today = new Date();
+  // Terapeuta (acesso restrito) não vê dados financeiros da clínica.
+  const { isTerapeutaRestrito: ehTerapeuta } = useRoles();
   const [escopo, setEscopo] = useState<"semana" | "mes">("semana");
   const [weekOffset, setWeekOffset] = useState(0);
   const [ocultarValores, setOcultarValores] = useState(false);
@@ -197,8 +200,19 @@ function DashboardPage() {
   const inicio6Meses = startOfMonth(subMonths(today, 5));
 
   const { data: stats } = useQuery({
-    queryKey: ["dash-stats"],
+    queryKey: ["dash-stats", ehTerapeuta],
     queryFn: async () => {
+      // Terapeuta: contadores de tarefas contam só as atribuídas a ela.
+      let uidT: string | null = null;
+      if (ehTerapeuta) {
+        const { data: { user } } = await supabase.auth.getUser();
+        uidT = user?.id ?? null;
+      }
+      const tarefasBase = () => {
+        let q = supabase.from("tarefas").select("*", { count: "exact", head: true }).neq("status", "concluida");
+        if (ehTerapeuta && uidT) q = q.or(`responsavel_id.eq.${uidT},criador_id.eq.${uidT}`);
+        return q;
+      };
       const [
         { count: pacientesAtivos },
         { count: novosPacientesMes },
@@ -235,15 +249,8 @@ function DashboardPage() {
           .select("*", { count: "exact", head: true })
           .gte("inicio", inicioSemanaPassada.toISOString())
           .lte("inicio", fimSemanaPassada.toISOString()),
-        supabase
-          .from("tarefas")
-          .select("*", { count: "exact", head: true })
-          .neq("status", "concluida"),
-        supabase
-          .from("tarefas")
-          .select("*", { count: "exact", head: true })
-          .neq("status", "concluida")
-          .lt("prazo", format(today, "yyyy-MM-dd")),
+        tarefasBase(),
+        tarefasBase().lt("prazo", format(today, "yyyy-MM-dd")),
         supabase
           .from("cadastro_publico")
           .select("*", { count: "exact", head: true })
@@ -281,6 +288,7 @@ function DashboardPage() {
 
   const { data: fin } = useQuery({
     queryKey: ["dash-fin-6m", inicioMes.toISOString()],
+    enabled: !ehTerapeuta, // terapeuta não acessa dados financeiros
     queryFn: async () => {
       // Mensalidades/cobranças (pagamentos) + receitas manuais (lançamentos),
       // para que o card possa mostrar "só mensalidades" ou "tudo" — igual ao Financeiro.
@@ -376,6 +384,7 @@ function DashboardPage() {
 
   const { data: capitalGiro } = useQuery({
     queryKey: ["dash-capital-giro"],
+    enabled: !ehTerapeuta, // terapeuta não acessa dados financeiros
     queryFn: async () => {
       const { data } = await supabase
         .from("contas_financeiras")
@@ -424,14 +433,20 @@ function DashboardPage() {
   const proximoAtendimento = atendimentosHojeList?.find((a) => new Date(a.inicio) > new Date());
 
   const { data: tarefas } = useQuery({
-    queryKey: ["tarefas-dash"],
+    queryKey: ["tarefas-dash", ehTerapeuta],
     queryFn: async () => {
-      const { data } = await supabase
+      let q = supabase
         .from("tarefas")
         .select("id, titulo, prioridade, status, prazo, departamento, paciente:pacientes(nome)")
         .neq("status", "concluida")
         .order("prazo", { ascending: true })
         .limit(5);
+      // Terapeuta só vê as tarefas atribuídas a ela (ou criadas por ela).
+      if (ehTerapeuta) {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) q = q.or(`responsavel_id.eq.${user.id},criador_id.eq.${user.id}`);
+      }
+      const { data } = await q;
       return data ?? [];
     },
   });
@@ -556,8 +571,9 @@ function DashboardPage() {
       : null;
 
   const insights = buildInsights({
-    fin,
-    capitalGiro: capitalGiro ?? 0,
+    // Terapeuta não recebe alertas financeiros (inadimplência, receita, caixa).
+    fin: ehTerapeuta ? undefined : fin,
+    capitalGiro: ehTerapeuta ? 0 : capitalGiro ?? 0,
     stats,
     presenca,
     ocultarValores,
@@ -699,6 +715,7 @@ function DashboardPage() {
             </CardContent>
           </Card>
 
+          {!ehTerapeuta && (
           <Card className="animate-fade-up card-lift" style={{ animationDelay: "120ms" }}>
             <CardContent className="space-y-2 p-5">
               <div className="flex items-center justify-between gap-2">
@@ -761,6 +778,7 @@ function DashboardPage() {
               )}
             </CardContent>
           </Card>
+          )}
 
           <Card className="animate-fade-up card-lift" style={{ animationDelay: "180ms" }}>
             <CardContent className="space-y-2 p-5">

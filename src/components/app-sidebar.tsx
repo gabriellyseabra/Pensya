@@ -27,8 +27,9 @@ import { Button } from "@/components/ui/button";
 
 type Item = { title: string; url: string; icon: React.ComponentType<{ className?: string }> };
 
-// Terapeuta com acesso restrito só enxerga estas seções
-const TERAPEUTA_URLS = new Set(["/agenda", "/pacientes"]);
+// Terapeuta com acesso restrito só enxerga estas seções (inclui a home/dashboard
+// e as tarefas — filtradas às atribuídas a ela; sem financeiro nem gestão).
+const TERAPEUTA_URLS = new Set(["/dashboard", "/agenda", "/pacientes", "/tarefas"]);
 
 function useVisibleGroups() {
   const { isTerapeutaRestrito } = useRoles();
