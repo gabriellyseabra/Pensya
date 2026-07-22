@@ -20,7 +20,10 @@ import {
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import {
-  Plus, Trash2, Pencil, ArrowLeft, GripVertical, ArrowUp, ArrowDown, LayoutTemplate, Star,
+  Accordion, AccordionContent, AccordionItem, AccordionTrigger,
+} from "@/components/ui/accordion";
+import {
+  Plus, Trash2, Pencil, ArrowLeft, GripVertical, ArrowUp, ArrowDown, LayoutTemplate, Star, ListChecks, Info,
 } from "lucide-react";
 import { toast } from "sonner";
 import { PageHero } from "@/components/shared/PageHero";
@@ -84,6 +87,103 @@ function faixaResumo(m: { idade_min: number | null; idade_max: number | null }):
   if (idade_min != null && idade_max != null) return `${idade_min}–${idade_max} anos`;
   if (idade_min != null) return `${idade_min}+ anos`;
   return `até ${idade_max} anos`;
+}
+
+// ============================================================
+// Perguntas FIXAS do cadastro público (referência somente-leitura).
+// Espelha as etapas de src/routes/cadastro.$token.tsx para que a
+// profissional saiba o que o formulário já pergunta antes de criar extras.
+// ============================================================
+const CADASTRO_BASE_OUTLINE: { etapa: string; perguntas: string[] }[] = [
+  {
+    etapa: "1. Dados do paciente",
+    perguntas: [
+      "Nome completo", "Data de nascimento", "CPF", "Gênero",
+      "Foto do paciente", "Escola / Universidade", "Série / Ano", "Período (manhã/tarde/integral)",
+      "Contato na escola (nome, telefone, e-mail)", "Autorização de imagem",
+      "Endereço residencial (CEP, logradouro, número, bairro, cidade, UF)",
+    ],
+  },
+  {
+    etapa: "2. Queixa e histórico clínico",
+    perguntas: [
+      "Queixa principal", "Expectativas com o acompanhamento",
+      "Já possui diagnóstico?", "Qual(is) diagnóstico(s)?",
+      "Acompanhamento com outros especialistas",
+      "Exames e avaliações relevantes (com anexos)",
+    ],
+  },
+  {
+    etapa: "3. Responsáveis e financeiro",
+    perguntas: [
+      "Responsável 1 — nome, idade, profissão, parentesco",
+      "Responsável 2 (opcional) — nome, idade, profissão, parentesco",
+      "Estado civil dos responsáveis", "WhatsApp do responsável", "E-mail",
+      "Dia de vencimento preferido", "Deseja Nota Fiscal? (se a clínica emite)",
+    ],
+  },
+  {
+    etapa: "4. Contexto familiar",
+    perguntas: [
+      "Com quem mora a criança?", "Relação entre os pais / responsáveis",
+      "Rede de apoio e contraturno", "Histórico familiar semelhante",
+      "Rotina da família (manhã, tarde, noite)",
+    ],
+  },
+  {
+    etapa: "5. Desenvolvimento",
+    perguntas: [
+      "Gestação — planejada, pré-natal, intercorrências, semanas",
+      "Parto — tipo, intercorrências",
+      "Marcos — engatinhar, andar, primeiras palavras, sinais de atraso",
+      "Perfil — esportes/atividades, interesses, restrições, disciplinas de dificuldade, uso de eletrônicos",
+    ],
+  },
+  {
+    etapa: "6. Saúde e revisão",
+    perguntas: [
+      "Internações e cirurgias", "Outras questões de saúde",
+      "Tratamentos anteriores", "Medicações de uso contínuo",
+      "Revisão final + aceite de LGPD",
+    ],
+  },
+];
+
+function CadastroBaseReference({ defaultOpen = false }: { defaultOpen?: boolean }) {
+  return (
+    <Accordion type="single" collapsible defaultValue={defaultOpen ? "base" : undefined}>
+      <AccordionItem value="base" className="border rounded-xl px-4 bg-muted/20">
+        <AccordionTrigger className="hover:no-underline">
+          <span className="flex items-center gap-2 text-sm font-medium">
+            <ListChecks className="h-4 w-4 text-brand" />
+            O que o cadastro público já pergunta
+          </span>
+        </AccordionTrigger>
+        <AccordionContent>
+          <p className="text-xs text-muted-foreground mb-3 flex items-start gap-1.5">
+            <Info className="h-3.5 w-3.5 mt-0.5 shrink-0" />
+            Estas perguntas são fixas e sempre aparecem no formulário. Use os modelos abaixo apenas
+            para <strong>acrescentar</strong> perguntas específicas por faixa de idade — sem repetir o que já existe.
+          </p>
+          <div className="grid gap-3 sm:grid-cols-2">
+            {CADASTRO_BASE_OUTLINE.map((s) => (
+              <div key={s.etapa} className="rounded-lg border border-border/60 bg-card/60 p-3">
+                <p className="text-xs font-semibold mb-1.5">{s.etapa}</p>
+                <ul className="space-y-1">
+                  {s.perguntas.map((p) => (
+                    <li key={p} className="text-xs text-muted-foreground flex items-start gap-1.5">
+                      <span className="text-brand mt-0.5">•</span>
+                      <span>{p}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ))}
+          </div>
+        </AccordionContent>
+      </AccordionItem>
+    </Accordion>
+  );
 }
 
 // ============================================================
@@ -168,6 +268,8 @@ function ModelosPage() {
           </div>
         }
       />
+
+      <CadastroBaseReference />
 
       <div className="grid gap-3">
         {(modelos ?? []).length === 0 && (
@@ -364,9 +466,11 @@ function EditorModelo({
             </label>
           </div>
 
+          <CadastroBaseReference />
+
           <div>
             <div className="flex items-center justify-between mb-2">
-              <Label>Perguntas ({perguntas.length})</Label>
+              <Label>Perguntas extras deste modelo ({perguntas.length})</Label>
               <Button type="button" size="sm" variant="outline" onClick={addPergunta}>
                 <Plus className="w-4 h-4 mr-1.5" />Adicionar pergunta
               </Button>
