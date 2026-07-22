@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useState } from "react";
@@ -13,8 +13,12 @@ import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger,
 } from "@/components/ui/dialog";
 import {
-  Link2, Plus, Copy, Check, MessageCircle, ExternalLink, UserPlus, CheckCircle2, Eye, Trash2, Ban,
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from "@/components/ui/select";
+import {
+  Link2, Plus, Copy, Check, MessageCircle, ExternalLink, UserPlus, CheckCircle2, Eye, Trash2, Ban, LayoutTemplate,
 } from "lucide-react";
+import { useIsAdmin } from "@/hooks/use-role";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
@@ -154,7 +158,10 @@ function CadastrosPage() {
         title="Cadastros públicos"
         description="Envie o link para a família preencher e converta em paciente com um clique."
         actions={
-          <NovoCadastroDialog onCreated={() => qc.invalidateQueries({ queryKey: ["cadastros"] })} />
+          <div className="flex flex-wrap gap-2">
+            <ModelosButton />
+            <NovoCadastroDialog onCreated={() => qc.invalidateQueries({ queryKey: ["cadastros"] })} />
+          </div>
         }
         stats={[
           { label: "Total", value: totalCad, icon: Link2Icon },
@@ -661,14 +668,72 @@ function PreviewDados({ dados }: { dados: any }) {
   );
 }
 
+function ModelosButton() {
+  const isAdmin = useIsAdmin();
+  if (!isAdmin) return null;
+  return (
+    <Button variant="outline" asChild>
+      <Link to="/cadastros/modelos"><LayoutTemplate className="w-4 h-4 mr-1.5" />Modelos</Link>
+    </Button>
+  );
+}
+
+// Idade em anos a partir de uma data (yyyy-mm-dd).
+function idadeDe(data: string): number | null {
+  if (!data) return null;
+  const d = new Date(data);
+  if (isNaN(d.getTime())) return null;
+  const hoje = new Date();
+  let a = hoje.getFullYear() - d.getFullYear();
+  const m = hoje.getMonth() - d.getMonth();
+  if (m < 0 || (m === 0 && hoje.getDate() < d.getDate())) a--;
+  return a >= 0 ? a : null;
+}
+
 function NovoCadastroDialog({ onCreated }: { onCreated: () => void }) {
   const [open, setOpen] = useState(false);
   const [nome, setNome] = useState("");
   const [telefone, setTelefone] = useState("");
+  const [nascimento, setNascimento] = useState("");
+  const [modeloId, setModeloId] = useState<string>("auto");
   const [link, setLink] = useState<string | null>(null);
   const criar = useServerFn(criarCadastroPublico);
+
+  const { data: modelos } = useQuery({
+    queryKey: ["cadastro-modelos", "ativos"],
+    enabled: open,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("cadastro_modelos")
+        .select("id, nome, faixa, idade_min, idade_max, ativo, padrao")
+        .eq("ativo", true)
+        .order("ordem", { ascending: true });
+      return data ?? [];
+    },
+  });
+
+  // Sugestão automática de modelo com base na idade informada.
+  const idade = idadeDe(nascimento);
+  const modeloAuto =
+    idade == null
+      ? (modelos ?? []).find((m) => m.padrao)
+      : (modelos ?? []).find(
+          (m) =>
+            (m.idade_min == null || idade >= m.idade_min) &&
+            (m.idade_max == null || idade <= m.idade_max),
+        ) ?? (modelos ?? []).find((m) => m.padrao);
+
   const mut = useMutation({
-    mutationFn: () => criar({ data: { nome, telefone, diasValidade: 30 } }),
+    mutationFn: () =>
+      criar({
+        data: {
+          nome,
+          telefone,
+          diasValidade: 30,
+          dataNascimento: nascimento || null,
+          modeloId: modeloId === "auto" ? null : modeloId,
+        },
+      }),
     onSuccess: (r: any) => {
       const url = cadastroUrl(r.token);
       setLink(url);
@@ -678,7 +743,7 @@ function NovoCadastroDialog({ onCreated }: { onCreated: () => void }) {
   });
 
   function close() {
-    setOpen(false); setLink(null); setNome(""); setTelefone("");
+    setOpen(false); setLink(null); setNome(""); setTelefone(""); setNascimento(""); setModeloId("auto");
   }
 
   return (
@@ -695,7 +760,30 @@ function NovoCadastroDialog({ onCreated }: { onCreated: () => void }) {
           <div className="space-y-4">
             <div><Label>Nome do paciente (opcional)</Label><Input value={nome} onChange={(e) => setNome(e.target.value)} /></div>
             <div><Label>Telefone do responsável (opcional, p/ WhatsApp)</Label><Input value={telefone} onChange={(e) => setTelefone(e.target.value)} placeholder="55 21 99999-9999" /></div>
-            <p className="text-xs text-muted-foreground">O link expira em 30 dias.</p>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label>Data de nascimento (opcional)</Label>
+                <Input type="date" value={nascimento} onChange={(e) => setNascimento(e.target.value)} />
+                {idade != null && <p className="text-[11px] text-muted-foreground mt-1">{idade} anos</p>}
+              </div>
+              <div>
+                <Label>Modelo de perguntas</Label>
+                <Select value={modeloId} onValueChange={setModeloId}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="auto">
+                      Automático{modeloAuto ? ` (${modeloAuto.faixa || modeloAuto.nome})` : ""}
+                    </SelectItem>
+                    {(modelos ?? []).map((m) => (
+                      <SelectItem key={m.id} value={m.id}>{m.nome}{m.faixa ? ` · ${m.faixa}` : ""}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              No modo automático, o modelo é escolhido pela idade do paciente. O link expira em 30 dias.
+            </p>
           </div>
         ) : (
           <div className="space-y-3">

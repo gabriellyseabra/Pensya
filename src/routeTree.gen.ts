@@ -52,6 +52,7 @@ import { Route as AuthenticatedConfiguracoesProtocolosRouteImport } from './rout
 import { Route as AuthenticatedConfiguracoesInstrumentosRouteImport } from './routes/_authenticated/configuracoes.instrumentos'
 import { Route as AuthenticatedConfiguracoesIaRouteImport } from './routes/_authenticated/configuracoes.ia'
 import { Route as AuthenticatedConfiguracoesBateriasRouteImport } from './routes/_authenticated/configuracoes.baterias'
+import { Route as AuthenticatedCadastrosModelosRouteImport } from './routes/_authenticated/cadastros_.modelos'
 import { Route as ApiPublicWebhooksInfinitepayRouteImport } from './routes/api/public/webhooks/infinitepay'
 
 const SalasRoute = SalasRouteImport.update({
@@ -281,6 +282,12 @@ const AuthenticatedConfiguracoesBateriasRoute =
     path: '/baterias',
     getParentRoute: () => AuthenticatedConfiguracoesRoute,
   } as any)
+const AuthenticatedCadastrosModelosRoute =
+  AuthenticatedCadastrosModelosRouteImport.update({
+    id: '/cadastros_/modelos',
+    path: '/cadastros/modelos',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const ApiPublicWebhooksInfinitepayRoute =
   ApiPublicWebhooksInfinitepayRouteImport.update({
     id: '/api/public/webhooks/infinitepay',
@@ -318,6 +325,7 @@ export interface FileRoutesByFullPath {
   '/processo-publico/$token': typeof ProcessoPublicoTokenRoute
   '/salas/$token': typeof SalasTokenRoute
   '/portal/': typeof PortalIndexRoute
+  '/cadastros/modelos': typeof AuthenticatedCadastrosModelosRoute
   '/configuracoes/baterias': typeof AuthenticatedConfiguracoesBateriasRoute
   '/configuracoes/ia': typeof AuthenticatedConfiguracoesIaRoute
   '/configuracoes/instrumentos': typeof AuthenticatedConfiguracoesInstrumentosRoute
@@ -361,6 +369,7 @@ export interface FileRoutesByTo {
   '/processo-publico/$token': typeof ProcessoPublicoTokenRoute
   '/salas/$token': typeof SalasTokenRoute
   '/portal': typeof PortalIndexRoute
+  '/cadastros/modelos': typeof AuthenticatedCadastrosModelosRoute
   '/configuracoes/baterias': typeof AuthenticatedConfiguracoesBateriasRoute
   '/configuracoes/ia': typeof AuthenticatedConfiguracoesIaRoute
   '/configuracoes/instrumentos': typeof AuthenticatedConfiguracoesInstrumentosRoute
@@ -408,6 +417,7 @@ export interface FileRoutesById {
   '/processo-publico/$token': typeof ProcessoPublicoTokenRoute
   '/salas/$token': typeof SalasTokenRoute
   '/portal/': typeof PortalIndexRoute
+  '/_authenticated/cadastros_/modelos': typeof AuthenticatedCadastrosModelosRoute
   '/_authenticated/configuracoes/baterias': typeof AuthenticatedConfiguracoesBateriasRoute
   '/_authenticated/configuracoes/ia': typeof AuthenticatedConfiguracoesIaRoute
   '/_authenticated/configuracoes/instrumentos': typeof AuthenticatedConfiguracoesInstrumentosRoute
@@ -455,6 +465,7 @@ export interface FileRouteTypes {
     | '/processo-publico/$token'
     | '/salas/$token'
     | '/portal/'
+    | '/cadastros/modelos'
     | '/configuracoes/baterias'
     | '/configuracoes/ia'
     | '/configuracoes/instrumentos'
@@ -498,6 +509,7 @@ export interface FileRouteTypes {
     | '/processo-publico/$token'
     | '/salas/$token'
     | '/portal'
+    | '/cadastros/modelos'
     | '/configuracoes/baterias'
     | '/configuracoes/ia'
     | '/configuracoes/instrumentos'
@@ -544,6 +556,7 @@ export interface FileRouteTypes {
     | '/processo-publico/$token'
     | '/salas/$token'
     | '/portal/'
+    | '/_authenticated/cadastros_/modelos'
     | '/_authenticated/configuracoes/baterias'
     | '/_authenticated/configuracoes/ia'
     | '/_authenticated/configuracoes/instrumentos'
@@ -880,6 +893,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedConfiguracoesBateriasRouteImport
       parentRoute: typeof AuthenticatedConfiguracoesRoute
     }
+    '/_authenticated/cadastros_/modelos': {
+      id: '/_authenticated/cadastros_/modelos'
+      path: '/cadastros/modelos'
+      fullPath: '/cadastros/modelos'
+      preLoaderRoute: typeof AuthenticatedCadastrosModelosRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/api/public/webhooks/infinitepay': {
       id: '/api/public/webhooks/infinitepay'
       path: '/api/public/webhooks/infinitepay'
@@ -935,6 +955,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedProdutosRoute: typeof AuthenticatedProdutosRoute
   AuthenticatedSublocacaoRoute: typeof AuthenticatedSublocacaoRoute
   AuthenticatedTarefasRoute: typeof AuthenticatedTarefasRoute
+  AuthenticatedCadastrosModelosRoute: typeof AuthenticatedCadastrosModelosRoute
   AuthenticatedPacientesIdRoute: typeof AuthenticatedPacientesIdRoute
   AuthenticatedProcessosIdRoute: typeof AuthenticatedProcessosIdRoute
   AuthenticatedPacientesIndexRoute: typeof AuthenticatedPacientesIndexRoute
@@ -955,6 +976,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedProdutosRoute: AuthenticatedProdutosRoute,
   AuthenticatedSublocacaoRoute: AuthenticatedSublocacaoRoute,
   AuthenticatedTarefasRoute: AuthenticatedTarefasRoute,
+  AuthenticatedCadastrosModelosRoute: AuthenticatedCadastrosModelosRoute,
   AuthenticatedPacientesIdRoute: AuthenticatedPacientesIdRoute,
   AuthenticatedProcessosIdRoute: AuthenticatedProcessosIdRoute,
   AuthenticatedPacientesIndexRoute: AuthenticatedPacientesIndexRoute,
@@ -1012,13 +1034,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}

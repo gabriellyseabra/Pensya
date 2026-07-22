@@ -16,12 +16,19 @@ export const criarCadastroPublico = createServerFn({ method: "POST" })
       nome: z.string().trim().max(200).optional(),
       telefone: z.string().trim().max(40).optional(),
       diasValidade: z.number().int().min(1).max(180).default(30),
+      modeloId: z.string().uuid().optional().nullable(),
+      dataNascimento: z.string().trim().max(20).optional().nullable(),
     }).parse(input),
   )
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
     const token = genToken();
     const expires = new Date(Date.now() + data.diasValidade * 86400_000).toISOString();
+    // Pré-preenche a data de nascimento (quando informada) para que a faixa
+    // etária — e o modelo de perguntas — já seja resolvida no formulário.
+    const dadosIniciais = data.dataNascimento
+      ? { paciente: { data_nascimento: data.dataNascimento } }
+      : undefined;
     const { data: row, error } = await supabase
       .from("cadastro_publico")
       .insert({
@@ -31,6 +38,8 @@ export const criarCadastroPublico = createServerFn({ method: "POST" })
         enviado_para_telefone: data.telefone ?? null,
         expires_at: expires,
         created_by: userId,
+        modelo_id: data.modeloId ?? null,
+        ...(dadosIniciais ? { dados_json: dadosIniciais } : {}),
       })
       .select("id, token, expires_at")
       .single();
@@ -205,8 +214,13 @@ export const converterCadastroEmPaciente = createServerFn({ method: "POST" })
     await supabase.from("paciente_pre_anamnese").insert({
       paciente_id: novoPac.id,
       cadastro_publico_id: cad.id,
-      // Preserva rotina (dentro de contexto_familiar) e marcos/perfil (desenvolvimento).
-      contexto_familiar: { ...(d.contexto_familiar ?? {}), desenvolvimento: d.desenvolvimento ?? {} },
+      // Preserva rotina (dentro de contexto_familiar), marcos/perfil (desenvolvimento)
+      // e as respostas das perguntas extras do modelo de cadastro (personalizado).
+      contexto_familiar: {
+        ...(d.contexto_familiar ?? {}),
+        desenvolvimento: d.desenvolvimento ?? {},
+        ...(d.personalizado ? { perguntas_modelo: d.personalizado } : {}),
+      },
       gestacao: d.gestacao ?? {},
       parto: d.parto ?? {},
       saude: d.saude ?? {},

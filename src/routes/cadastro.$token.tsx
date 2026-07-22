@@ -48,8 +48,32 @@ type Dados = {
   tratamentos?: any;
   financeiro?: any;
   origem?: any;
+  personalizado?: Record<string, any>;
   lgpd?: boolean;
 };
+
+// Perguntas extras definidas pela clínica num "modelo de cadastro".
+type TipoPergunta = "texto" | "textarea" | "numero" | "data" | "select" | "multi" | "sim_nao";
+type PerguntaModelo = {
+  id: string;
+  label: string;
+  tipo: TipoPergunta;
+  opcoes?: string[];
+  obrigatoria?: boolean;
+  ajuda?: string;
+};
+
+// Idade em anos completos a partir de uma data (yyyy-mm-dd).
+function idadeEmAnos(data?: string | null): number | null {
+  if (!data) return null;
+  const d = new Date(data);
+  if (isNaN(d.getTime())) return null;
+  const hoje = new Date();
+  let a = hoje.getFullYear() - d.getFullYear();
+  const m = hoje.getMonth() - d.getMonth();
+  if (m < 0 || (m === 0 && hoje.getDate() < d.getDate())) a--;
+  return a >= 0 ? a : null;
+}
 
 const STEP_LABELS = [
   "Dados do paciente",
@@ -88,6 +112,25 @@ function CadastroPublicoPage() {
     queryFn: () => getOrganizacaoBrandingPublica({ cadastroToken: token }),
   });
   const nomeClinica = clinicaCfg?.nome?.trim() || "nossa clínica";
+
+  // Modelo de perguntas extras resolvido pela faixa etária do paciente
+  // (ou fixado no link). Reavalia quando a idade informada muda.
+  const idadePaciente = idadeEmAnos(dados.paciente?.data_nascimento);
+  const { data: modeloResolvido } = useQuery({
+    queryKey: ["cadastro-modelo", token, idadePaciente],
+    enabled: !!cadId,
+    queryFn: async () => {
+      const { data } = await supabase.rpc("cadastro_modelo_resolver", {
+        _token: token,
+        _idade: idadePaciente ?? undefined,
+      });
+      const row = Array.isArray(data) ? data[0] : data;
+      return row ?? null;
+    },
+  });
+  const perguntasModelo: PerguntaModelo[] = Array.isArray(modeloResolvido?.perguntas)
+    ? (modeloResolvido!.perguntas as unknown as PerguntaModelo[])
+    : [];
 
   useEffect(() => {
     (async () => {
@@ -128,6 +171,15 @@ function CadastroPublicoPage() {
   }
 
   async function enviarFinal() {
+    const faltando = perguntasModelo.filter((p) => {
+      if (!p.obrigatoria) return false;
+      const v = dados.personalizado?.[p.id];
+      return v == null || (typeof v === "string" && !v.trim()) || (Array.isArray(v) && v.length === 0);
+    });
+    if (faltando.length > 0) {
+      toast.error(`Responda as perguntas obrigatórias: ${faltando.map((p) => p.label).join(", ")}`);
+      return;
+    }
     if (!dados.lgpd) {
       setShowLgpdError(true);
       lgpdRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
@@ -197,6 +249,8 @@ function CadastroPublicoPage() {
               lgpdRef={lgpdRef}
               showLgpdError={showLgpdError}
               nomeClinica={nomeClinica}
+              perguntasModelo={perguntasModelo}
+              modeloNome={modeloResolvido?.nome ?? null}
             />
           )}
 
@@ -1086,7 +1140,7 @@ function EtapaDesenvolvimento({ dados, onChange }: any) {
 
 /* ============== ETAPA 6 — SAÚDE + REVISÃO ============== */
 
-function EtapaSaudeRevisao({ dados, onChange, onGoto, lgpdRef, showLgpdError, nomeClinica }: any) {
+function EtapaSaudeRevisao({ dados, onChange, onGoto, lgpdRef, showLgpdError, nomeClinica, perguntasModelo = [], modeloNome }: any) {
   const s = dados.saude ?? {};
   const t = dados.tratamentos ?? {};
   const setS = (k: string, v: any) => onChange({ saude: { ...s, [k]: v } });
@@ -1159,6 +1213,28 @@ function EtapaSaudeRevisao({ dados, onChange, onGoto, lgpdRef, showLgpdError, no
         )}
       </Field>
 
+      {/* Perguntas extras do modelo (por faixa de idade) */}
+      {perguntasModelo.length > 0 && (
+        <div className="pt-4 border-t">
+          <h3 className="font-semibold flex items-center gap-2 mb-1">
+            <ListChecks className="h-4 w-4 text-brand" /> Informações complementares
+          </h3>
+          {modeloNome && <p className="text-xs text-muted-foreground mb-3">{modeloNome}</p>}
+          <div className="space-y-5">
+            {perguntasModelo.map((p: PerguntaModelo) => (
+              <PerguntaModeloCampo
+                key={p.id}
+                pergunta={p}
+                value={dados.personalizado?.[p.id]}
+                onChange={(v: any) =>
+                  onChange({ personalizado: { ...(dados.personalizado ?? {}), [p.id]: v } })
+                }
+              />
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Revisão */}
       <div className="pt-4 border-t">
         <h3 className="font-semibold flex items-center gap-2 mb-3">
@@ -1202,6 +1278,60 @@ function EtapaSaudeRevisao({ dados, onChange, onGoto, lgpdRef, showLgpdError, no
       </div>
     </div>
   );
+}
+
+/* ============== CAMPO DE PERGUNTA DO MODELO ============== */
+
+function PerguntaModeloCampo({
+  pergunta, value, onChange,
+}: { pergunta: PerguntaModelo; value: any; onChange: (v: any) => void }) {
+  const label = `${pergunta.label}${pergunta.obrigatoria ? " *" : ""}`;
+  const opcoes = pergunta.opcoes ?? [];
+
+  switch (pergunta.tipo) {
+    case "textarea":
+      return (
+        <Field label={label} hint={pergunta.ajuda}>
+          <Textarea rows={3} value={value ?? ""} onChange={(e) => onChange(e.target.value)} />
+        </Field>
+      );
+    case "numero":
+      return (
+        <Field label={label} hint={pergunta.ajuda}>
+          <Input type="number" value={value ?? ""} onChange={(e) => onChange(e.target.value)} />
+        </Field>
+      );
+    case "data":
+      return (
+        <Field label={label} hint={pergunta.ajuda}>
+          <Input type="date" value={value ?? ""} onChange={(e) => onChange(e.target.value)} />
+        </Field>
+      );
+    case "sim_nao":
+      return (
+        <Field label={label} hint={pergunta.ajuda}>
+          <Chips value={value ?? ""} options={["Sim", "Não"]} onChange={onChange} />
+        </Field>
+      );
+    case "select":
+      return (
+        <Field label={label} hint={pergunta.ajuda}>
+          <Chips value={value ?? ""} options={opcoes} onChange={onChange} />
+        </Field>
+      );
+    case "multi":
+      return (
+        <Field label={label} hint={pergunta.ajuda}>
+          <Chips value={Array.isArray(value) ? value : []} multi options={opcoes} onChange={onChange} />
+        </Field>
+      );
+    default:
+      return (
+        <Field label={label} hint={pergunta.ajuda}>
+          <Input value={value ?? ""} onChange={(e) => onChange(e.target.value)} />
+        </Field>
+      );
+  }
 }
 
 /* ============== RESUMO (revisão) ============== */

@@ -508,6 +508,59 @@ export type Database = {
           },
         ]
       }
+      cadastro_modelos: {
+        Row: {
+          ativo: boolean
+          created_at: string
+          faixa: string | null
+          id: string
+          idade_max: number | null
+          idade_min: number | null
+          nome: string
+          ordem: number
+          org_id: string | null
+          padrao: boolean
+          perguntas: Json
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean
+          created_at?: string
+          faixa?: string | null
+          id?: string
+          idade_max?: number | null
+          idade_min?: number | null
+          nome: string
+          ordem?: number
+          org_id?: string | null
+          padrao?: boolean
+          perguntas?: Json
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean
+          created_at?: string
+          faixa?: string | null
+          id?: string
+          idade_max?: number | null
+          idade_min?: number | null
+          nome?: string
+          ordem?: number
+          org_id?: string | null
+          padrao?: boolean
+          perguntas?: Json
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cadastro_modelos_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizacoes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       cadastro_publico: {
         Row: {
           convertido_em: string | null
@@ -519,6 +572,7 @@ export type Database = {
           etapa_atual: number
           expires_at: string
           id: string
+          modelo_id: string | null
           observacoes_admin: string | null
           org_id: string | null
           paciente_id_criado: string | null
@@ -537,6 +591,7 @@ export type Database = {
           etapa_atual?: number
           expires_at?: string
           id?: string
+          modelo_id?: string | null
           observacoes_admin?: string | null
           org_id?: string | null
           paciente_id_criado?: string | null
@@ -555,6 +610,7 @@ export type Database = {
           etapa_atual?: number
           expires_at?: string
           id?: string
+          modelo_id?: string | null
           observacoes_admin?: string | null
           org_id?: string | null
           paciente_id_criado?: string | null
@@ -564,6 +620,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "cadastro_publico_modelo_id_fkey"
+            columns: ["modelo_id"]
+            isOneToOne: false
+            referencedRelation: "cadastro_modelos"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "cadastro_publico_org_id_fkey"
             columns: ["org_id"]
@@ -6289,6 +6352,15 @@ export type Database = {
           _token: string
         }
         Returns: string
+      }
+      cadastro_modelo_resolver: {
+        Args: { _idade?: number; _token: string }
+        Returns: {
+          faixa: string
+          id: string
+          nome: string
+          perguntas: Json
+        }[]
       }
       cadastro_publico_get: {
         Args: { _token: string }
