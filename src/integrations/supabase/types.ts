@@ -1244,6 +1244,7 @@ export type Database = {
           criado_em: string
           criado_por: string | null
           email: string | null
+          especialidade_id: string | null
           expira_em: string
           id: string
           nome: string
@@ -1259,6 +1260,7 @@ export type Database = {
           criado_em?: string
           criado_por?: string | null
           email?: string | null
+          especialidade_id?: string | null
           expira_em?: string
           id?: string
           nome: string
@@ -1274,6 +1276,7 @@ export type Database = {
           criado_em?: string
           criado_por?: string | null
           email?: string | null
+          especialidade_id?: string | null
           expira_em?: string
           id?: string
           nome?: string
@@ -1286,6 +1289,13 @@ export type Database = {
           usado_por?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "convites_equipe_especialidade_id_fkey"
+            columns: ["especialidade_id"]
+            isOneToOne: false
+            referencedRelation: "especialidades"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "convites_equipe_org_id_fkey"
             columns: ["org_id"]
