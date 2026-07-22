@@ -10,13 +10,32 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Plus, CheckCircle2, Lightbulb, Trash2 } from "lucide-react";
+import { Progress } from "@/components/ui/progress";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Plus, CheckCircle2, Lightbulb, Trash2, PiggyBank, Target } from "lucide-react";
 import { toast } from "sonner";
-import { format, parseISO, startOfMonth, subMonths } from "date-fns";
+import { format, parseISO, startOfMonth, subMonths, addMonths } from "date-fns";
 import { invalidarFinanceiro } from "@/lib/financeiro-cache";
 
 function currency(n: number) {
   return Number(n || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+}
+
+// Projeção de atingimento da meta pelo aporte mensal e prazo.
+function projecaoMeta(meta: number, acumulado: number, aporteMensal: number, prazo: string | null) {
+  const restante = Math.max(0, meta - acumulado);
+  if (meta > 0 && restante <= 0) return { restante: 0, texto: "Meta atingida 🎉", tone: "ok" as const };
+  if (!aporteMensal || aporteMensal <= 0) return { restante, texto: "Defina o aporte mensal", tone: "muted" as const };
+  const meses = Math.ceil(restante / aporteMensal);
+  const dataProj = addMonths(new Date(), meses);
+  let tone: "ok" | "late" | "brand" = "brand";
+  let suffix = "";
+  if (prazo) {
+    const prazoD = parseISO(prazo);
+    if (dataProj > prazoD) { tone = "late"; suffix = " · após o prazo"; }
+    else { tone = "ok"; suffix = " · dentro do prazo"; }
+  }
+  return { restante, meses, dataProj, texto: `~${meses} ${meses === 1 ? "mês" : "meses"} · ${format(dataProj, "MM/yyyy")}${suffix}`, tone };
 }
 
 const CATEGORIAS = ["curso", "equipamento", "software", "reforma", "manutencao", "marketing", "outro"];
@@ -62,6 +81,27 @@ export function Investimentos() {
       return { saldo, burn, sobra };
     },
   });
+
+  const [aporteInv, setAporteInv] = useState<any>(null);
+
+  // Aportes de cada investimento (o quanto já foi guardado rumo à meta).
+  const ids = (rows ?? []).map((r) => r.id);
+  const { data: aportes } = useQuery({
+    queryKey: ["invest-aportes", ids.join(",")],
+    enabled: ids.length > 0,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("investimento_aportes")
+        .select("investimento_id, valor")
+        .in("investimento_id", ids);
+      return data ?? [];
+    },
+  });
+  const acumuladoPorInv = useMemo(() => {
+    const m: Record<string, number> = {};
+    for (const a of aportes ?? []) m[a.investimento_id] = (m[a.investimento_id] ?? 0) + Number(a.valor);
+    return m;
+  }, [aportes]);
 
   const del = useMutation({
     mutationFn: async (id: string) => {
@@ -144,51 +184,45 @@ export function Investimentos() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Nome</TableHead>
-                <TableHead>Categoria</TableHead>
-                <TableHead>Prioridade</TableHead>
-                <TableHead>Prazo</TableHead>
-                <TableHead className="text-right">Valor</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Simulação</TableHead>
-                <TableHead className="w-44 text-right">Ações</TableHead>
+                <TableHead>Meta</TableHead>
+                <TableHead className="text-right">Valor-meta</TableHead>
+                <TableHead className="w-56">Alcance</TableHead>
+                <TableHead className="text-right">Aporte mensal</TableHead>
+                <TableHead>Projeção</TableHead>
+                <TableHead className="w-56 text-right">Ações</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {(rows ?? []).map((r) => {
-                const meses = financialContext?.sobra
-                  ? Math.ceil(Number(r.valor) / financialContext.sobra)
-                  : null;
-                const cabe = financialContext?.saldo != null && Number(r.valor) <= financialContext.saldo;
+                const meta = Number(r.valor || 0);
+                const acumulado = acumuladoPorInv[r.id] ?? 0;
+                const pct = meta > 0 ? Math.min(100, Math.round((acumulado / meta) * 100)) : 0;
+                const proj = projecaoMeta(meta, acumulado, Number(r.reserva_mensal || 0), r.prazo);
+                const projTone =
+                  proj.tone === "ok" ? "text-emerald-600" : proj.tone === "late" ? "text-destructive" : proj.tone === "brand" ? "text-brand" : "text-muted-foreground";
                 return (
                   <TableRow key={r.id}>
-                    <TableCell className="font-medium">{r.nome}</TableCell>
-                    <TableCell><Badge variant="outline">{r.categoria}</Badge></TableCell>
                     <TableCell>
-                      <Badge variant={r.prioridade === "alta" ? "destructive" : r.prioridade === "baixa" ? "secondary" : "default"}>
-                        {r.prioridade}
-                      </Badge>
+                      <div className="font-medium">{r.nome}</div>
+                      <div className="flex items-center gap-1.5 mt-0.5">
+                        <Badge variant="outline" className="text-[10px]">{r.categoria}</Badge>
+                        {r.prazo && <span className="text-[11px] text-muted-foreground">prazo {format(parseISO(r.prazo), "MM/yyyy")}</span>}
+                      </div>
                     </TableCell>
-                    <TableCell className="whitespace-nowrap text-xs">
-                      {r.prazo ? format(parseISO(r.prazo), "dd/MM/yyyy") : "—"}
+                    <TableCell className="text-right font-medium whitespace-nowrap">{currency(meta)}</TableCell>
+                    <TableCell>
+                      <Progress value={pct} className="h-2" />
+                      <div className="mt-1 flex justify-between text-[11px] text-muted-foreground">
+                        <span>{currency(acumulado)}</span>
+                        <span>{pct}%</span>
+                      </div>
                     </TableCell>
-                    <TableCell className="text-right font-medium">{currency(Number(r.valor))}</TableCell>
-                    <TableCell><Badge variant="outline">{r.status}</Badge></TableCell>
-                    <TableCell className="text-xs">
-                      {cabe ? (
-                        <span className="text-emerald-600">Cabe no caixa</span>
-                      ) : meses ? (
-                        <span>Em ~{meses} meses</span>
-                      ) : (
-                        <span className="text-muted-foreground">—</span>
-                      )}
-                    </TableCell>
-                    <TableCell className="text-right space-x-1">
-                      {r.status === "ideia" && (
-                        <Button size="sm" variant="outline" onClick={() => aprovar.mutate(r)}>
-                          <CheckCircle2 className="w-3 h-3 mr-1" />Aprovar
-                        </Button>
-                      )}
+                    <TableCell className="text-right whitespace-nowrap">{currency(Number(r.reserva_mensal || 0))}</TableCell>
+                    <TableCell className={`text-xs ${projTone}`}>{proj.texto}</TableCell>
+                    <TableCell className="text-right space-x-1 whitespace-nowrap">
+                      <Button size="sm" variant="outline" onClick={() => setAporteInv(r)}>
+                        <PiggyBank className="w-3 h-3 mr-1" />Aporte
+                      </Button>
                       <Button size="sm" variant="ghost" onClick={() => { setEditing(r); setOpen(true); }}>Editar</Button>
                       <Button size="sm" variant="ghost" onClick={() => { if (confirm("Remover?")) del.mutate(r.id); }}>
                         <Trash2 className="w-3 h-3" />
@@ -198,8 +232,8 @@ export function Investimentos() {
                 );
               })}
               {(!rows || rows.length === 0) && (
-                <TableRow><TableCell colSpan={8} className="text-center text-sm text-muted-foreground py-8">
-                  <Lightbulb className="w-4 h-4 inline mr-1" />Nenhuma intenção. Adicione cursos, equipamentos, reformas e manutenções planejadas.
+                <TableRow><TableCell colSpan={6} className="text-center text-sm text-muted-foreground py-8">
+                  <Lightbulb className="w-4 h-4 inline mr-1" />Nenhuma meta de investimento. Adicione cursos, equipamentos, reformas e manutenções que você quer conquistar.
                 </TableCell></TableRow>
               )}
             </TableBody>
@@ -208,6 +242,7 @@ export function Investimentos() {
       </Card>
 
       <InvestDialog open={open} onOpenChange={setOpen} editing={editing} onSaved={() => qc.invalidateQueries({ queryKey: ["investimentos"] })} />
+      <AporteDialog investimento={aporteInv} onClose={() => setAporteInv(null)} onSaved={() => { qc.invalidateQueries({ queryKey: ["invest-aportes"] }); invalidarFinanceiro(qc); }} />
     </div>
   );
 }
@@ -305,6 +340,79 @@ function InvestDialog({ open, onOpenChange, editing, onSaved }: any) {
         <DialogFooter>
           <Button variant="ghost" onClick={() => onOpenChange(false)}>Cancelar</Button>
           <Button onClick={salvar} disabled={saving} className="gradient-brand text-white">Salvar</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+// Registrar um aporte (valor guardado) rumo à meta de um investimento.
+function AporteDialog({ investimento, onClose, onSaved }: { investimento: any; onClose: () => void; onSaved: () => void }) {
+  const [valor, setValor] = useState("");
+  const [data, setData] = useState(() => new Date().toISOString().slice(0, 10));
+  const [obs, setObs] = useState("");
+  const [lancar, setLancar] = useState(false);
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    if (investimento) { setValor(""); setData(new Date().toISOString().slice(0, 10)); setObs(""); setLancar(false); }
+  }, [investimento?.id]);
+
+  if (!investimento) return null;
+
+  async function salvar() {
+    const v = Number(valor);
+    if (!v || v <= 0) { toast.error("Informe um valor"); return; }
+    setSaving(true);
+    try {
+      let lancamento_id: string | null = null;
+      if (lancar) {
+        const { data: lanc, error: lErr } = await supabase.from("lancamentos_financeiros").insert({
+          tipo: "despesa", status: "confirmado",
+          descricao: `Aporte • ${investimento.nome}`,
+          valor: v, competencia: data, vencimento: data, pago_em: data,
+        }).select("id").single();
+        if (lErr) throw lErr;
+        lancamento_id = lanc.id;
+      }
+      const { error } = await supabase.from("investimento_aportes").insert({
+        investimento_id: investimento.id, valor: v, data, observacoes: obs || null, lancamento_id,
+      });
+      if (error) throw error;
+      toast.success("Aporte registrado");
+      onSaved(); onClose();
+    } catch (e: any) {
+      toast.error(e?.message ?? "Erro");
+    } finally { setSaving(false); }
+  }
+
+  return (
+    <Dialog open={!!investimento} onOpenChange={(o) => !o && onClose()}>
+      <DialogContent>
+        <DialogHeader><DialogTitle>Registrar aporte — {investimento.nome}</DialogTitle></DialogHeader>
+        <div className="space-y-3">
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <Label>Valor (R$)</Label>
+              <Input type="number" step="0.01" value={valor} onChange={(e) => setValor(e.target.value)} placeholder="0,00" />
+            </div>
+            <div>
+              <Label>Data</Label>
+              <Input type="date" value={data} onChange={(e) => setData(e.target.value)} />
+            </div>
+          </div>
+          <div>
+            <Label>Observações (opcional)</Label>
+            <Textarea rows={2} value={obs} onChange={(e) => setObs(e.target.value)} />
+          </div>
+          <label className="flex items-center gap-2 text-sm cursor-pointer">
+            <Checkbox checked={lancar} onCheckedChange={(v) => setLancar(!!v)} />
+            Também lançar como despesa paga no fluxo de caixa
+          </label>
+        </div>
+        <DialogFooter>
+          <Button variant="ghost" onClick={onClose}>Cancelar</Button>
+          <Button onClick={salvar} disabled={saving} className="gradient-brand text-white">Registrar</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

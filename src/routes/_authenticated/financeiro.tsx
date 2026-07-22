@@ -23,15 +23,13 @@ import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGri
 import { PageHero } from "@/components/shared/PageHero";
 import { Wallet as WalletIcon } from "lucide-react";
 import { useServerFn } from "@tanstack/react-start";
-import {
-  gerarLinkCobranca,
-  sincronizarPagamentosInfinitepay,
-} from "@/lib/infinitepay.functions";
+import { gerarLinkCobranca } from "@/lib/infinitepay.functions";
 import { FluxoCaixa } from "@/components/financeiro/FluxoCaixa";
+import { ColarPlanilha } from "@/components/financeiro/ColarPlanilha";
 import { DRE } from "@/components/financeiro/DRE";
 import { Folha } from "@/components/financeiro/Folha";
 import { Investimentos } from "@/components/financeiro/Investimentos";
-import { ImportacaoRapida } from "@/components/financeiro/ImportacaoRapida";
+import { LancamentoEmMassa } from "@/components/financeiro/ImportacaoRapida";
 import { ExtratoBancario } from "@/components/financeiro/extrato/ExtratoBancario";
 import { Mensalidades } from "@/components/financeiro/Mensalidades";
 import { PorCategoria } from "@/components/financeiro/PorCategoria";
@@ -73,8 +71,9 @@ const GRUPOS_FINANCEIRO: GrupoFinanceiro[] = [
   {
     key: "importar", label: "Importar", icon: Upload,
     abas: [
+      { key: "fluxo", label: "Fluxo de caixa (planilha)", render: () => <ImportarFluxoCaixa /> },
       { key: "extrato", label: "Extrato bancário", render: () => <ExtratoBancario /> },
-      { key: "rapida", label: "Importação rápida", render: () => <ImportacaoRapida /> },
+      { key: "massa", label: "Lançamento em massa", render: () => <LancamentoEmMassa /> },
     ],
   },
   {
@@ -91,7 +90,6 @@ const GRUPOS_FINANCEIRO: GrupoFinanceiro[] = [
     abas: [
       { key: "folha", label: "Folha", render: () => <Folha /> },
       { key: "investimentos", label: "Investimentos", render: () => <Investimentos /> },
-      { key: "conciliacao", label: "InfinitePay", render: () => <Conciliacao /> },
     ],
   },
 ];
@@ -103,7 +101,7 @@ function FinanceiroPage() {
         icon={WalletIcon}
         eyebrow="Gestão financeira"
         title="Financeiro"
-        description="Fluxo de caixa, mensalidades, contas a pagar e a receber, e conciliação com a InfinitePay."
+        description="Fluxo de caixa, mensalidades, contas a pagar e a receber, folha e investimentos."
         variant="dark"
       />
 
@@ -652,94 +650,22 @@ function APagar() {
 }
 
 /* ============================== CONCILIAÇÃO INFINITEPAY ============================== */
-function Conciliacao() {
-  const qc = useQueryClient();
-  const sincronizar = useServerFn(sincronizarPagamentosInfinitepay);
-  const [sincronizando, setSincronizando] = useState(false);
-
-  const { data: eventos } = useQuery({
-    queryKey: ["ipay-eventos"],
-    queryFn: async () => {
-      const { data } = await supabase
-        .from("infinitepay_eventos")
-        .select("id, event_id, tipo, status_processamento, erro, recebido_em, pagamento_id")
-        .order("recebido_em", { ascending: false })
-        .limit(50);
-      return data ?? [];
-    },
-  });
-
-  const { data: cfg } = useQuery({
-    queryKey: ["ipay-cfg-status"],
-    queryFn: async () => (await supabase.from("infinitepay_config").select("handle, ativo, ultima_sincronizacao").eq("ativo", true).maybeSingle()).data,
-  });
-
-  async function rodar() {
-    setSincronizando(true);
-    try {
-      const r = await sincronizar();
-      toast.success(`${r.atualizados} atualizado(s) de ${r.total} transações`);
-      qc.invalidateQueries({ queryKey: ["ipay-eventos"] });
-      invalidarFinanceiro(qc);
-    } catch (e: any) {
-      toast.error(e?.message ?? "Erro ao sincronizar");
-    } finally { setSincronizando(false); }
-  }
-
+/* ============================== IMPORTAR FLUXO DE CAIXA ============================== */
+// Importa o fluxo de caixa de outro sistema a partir de uma planilha (CSV/Excel).
+function ImportarFluxoCaixa() {
   return (
     <div className="space-y-3">
       <Card className="glass">
-        <CardContent className="flex items-center justify-between gap-3 py-4">
-          <div>
-            <p className="text-sm font-medium">
-              {cfg ? <>Loja conectada: <span className="font-mono">{cfg.handle}</span></> : "InfinitePay não configurada"}
-            </p>
-            <p className="text-xs text-muted-foreground">
-              {cfg?.ultima_sincronizacao ? `Última sincronização: ${format(parseISO(cfg.ultima_sincronizacao), "dd/MM/yyyy HH:mm")}` : "Sem sincronizações ainda"}
-            </p>
-          </div>
-          <Button onClick={rodar} disabled={sincronizando || !cfg}>
-            <RefreshCw className={`w-4 h-4 mr-2 ${sincronizando ? "animate-spin" : ""}`} />
-            Puxar pagamentos agora
-          </Button>
+        <CardContent className="py-4 text-sm space-y-1">
+          <p className="font-medium">Já tem os lançamentos em outro sistema?</p>
+          <p className="text-muted-foreground">
+            Exporte o fluxo de caixa como planilha (CSV ou Excel) e suba aqui, ou cole os dados.
+            O sistema identifica as colunas <strong>data, descrição, valor, tipo e categoria</strong>,
+            mostra uma prévia para você conferir e importa como lançamentos confirmados.
+          </p>
         </CardContent>
       </Card>
-
-      <Card className="glass">
-        <CardHeader><CardTitle className="text-base">Últimos webhooks recebidos</CardTitle></CardHeader>
-        <CardContent className="p-0 overflow-x-auto">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Recebido</TableHead>
-                <TableHead>Evento</TableHead>
-                <TableHead>Pagamento</TableHead>
-                <TableHead>Status</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {(eventos ?? []).map(e => (
-                <TableRow key={e.id}>
-                  <TableCell className="whitespace-nowrap text-sm">{format(parseISO(e.recebido_em), "dd/MM HH:mm")}</TableCell>
-                  <TableCell className="font-mono text-xs">{e.tipo}</TableCell>
-                  <TableCell className="font-mono text-xs">{e.pagamento_id ? e.pagamento_id.slice(0, 8) : "—"}</TableCell>
-                  <TableCell>
-                    <Badge variant={e.status_processamento === "erro" ? "destructive" : "outline"}>
-                      {e.status_processamento}
-                    </Badge>
-                    {e.erro && <span className="text-xs text-destructive ml-2">{e.erro}</span>}
-                  </TableCell>
-                </TableRow>
-              ))}
-              {(!eventos || eventos.length === 0) && (
-                <TableRow><TableCell colSpan={4} className="text-center text-sm text-muted-foreground py-8">
-                  Nenhum webhook recebido ainda. Configure a URL <span className="font-mono">/api/public/webhooks/infinitepay</span> no painel da InfinitePay.
-                </TableCell></TableRow>
-              )}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
+      <ColarPlanilha />
     </div>
   );
 }

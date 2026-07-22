@@ -11,7 +11,7 @@ import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { format, startOfMonth, endOfMonth, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { Calculator, Settings2, Lock, Printer, AlertTriangle } from "lucide-react";
+import { Calculator, Settings2, Lock, Printer, AlertTriangle, CheckCircle2 } from "lucide-react";
 import { toast } from "sonner";
 import { invalidarFinanceiro } from "@/lib/financeiro-cache";
 
@@ -67,27 +67,79 @@ export function Folha() {
         .lte("inicio", fim);
       const sessoesContadas = (atend ?? []).filter((a: any) => a.status_frequencia?.conta_presenca !== false).length;
 
-      const salario = Number(cfg.salario_base || 0);
       const beneficios = Number(cfg.beneficios || 0);
-      // comissão: prioriza valor/sessão se > 0; senão usa % sobre receita do mês desse profissional
-      let comissoes = 0;
-      if (Number(cfg.valor_por_sessao) > 0) {
-        comissoes = sessoesContadas * Number(cfg.valor_por_sessao);
-      } else if (Number(cfg.comissao_percentual) > 0) {
+      // Forma de repasse explícita escolhida pela clínica. "auto" mantém o
+      // comportamento antigo (valor/sessão se > 0; senão % sobre receita).
+      const forma = (cfg.forma_repasse ?? "auto") as string;
+
+      // Receita do mês atribuída ao profissional (para o modo percentual).
+      async function receitaDoProfissional(): Promise<number> {
         const { data: pacientesIds } = await supabase
           .from("paciente_profissionais").select("paciente_id").eq("profissional_id", profId);
         const ids = (pacientesIds ?? []).map((x) => x.paciente_id);
-        if (ids.length) {
-          const { data: pags } = await supabase
-            .from("pagamentos").select("valor")
-            .in("paciente_id", ids)
-            .eq("status", "pago")
-            .gte("pago_em", ini.slice(0, 10))
-            .lte("pago_em", fim.slice(0, 10));
-          const receita = (pags ?? []).reduce((s, p) => s + Number(p.valor), 0);
-          comissoes = receita * (Number(cfg.comissao_percentual) / 100);
+        if (!ids.length) return 0;
+        const { data: pags } = await supabase
+          .from("pagamentos").select("valor")
+          .in("paciente_id", ids)
+          .eq("status", "pago")
+          .gte("pago_em", ini.slice(0, 10))
+          .lte("pago_em", fim.slice(0, 10));
+        return (pags ?? []).reduce((s, p) => s + Number(p.valor), 0);
+      }
+
+      // Sessões contadas por paciente (para o modo "por paciente").
+      async function sessoesPorPaciente(): Promise<Record<string, number>> {
+        const { data } = await supabase
+          .from("atendimentos")
+          .select("paciente_id, status_frequencia:status_frequencia(conta_presenca)")
+          .eq("profissional_id", profId)
+          .gte("inicio", ini)
+          .lte("inicio", fim);
+        const out: Record<string, number> = {};
+        for (const a of (data ?? []) as any[]) {
+          if (a.status_frequencia?.conta_presenca === false) continue;
+          if (!a.paciente_id) continue;
+          out[a.paciente_id] = (out[a.paciente_id] ?? 0) + 1;
+        }
+        return out;
+      }
+
+      // Salário fixo só entra no bruto nos modos "fixo mensal" e "auto";
+      // nos demais o repasse vem inteiro das comissões (salário fica 0).
+      let salario = Number(cfg.salario_base || 0);
+      let comissoes = 0;
+      let regra = forma;
+
+      if (forma === "fixo_mensal") {
+        comissoes = 0; // valor fixo mensal = salário base
+      } else if (forma === "por_sessao") {
+        salario = 0;
+        comissoes = sessoesContadas * Number(cfg.valor_por_sessao || 0);
+      } else if (forma === "percentual") {
+        salario = 0;
+        comissoes = (await receitaDoProfissional()) * (Number(cfg.comissao_percentual || 0) / 100);
+      } else if (forma === "por_paciente") {
+        salario = 0;
+        const [{ data: valores }, counts] = await Promise.all([
+          supabase.from("colaborador_paciente_valor").select("*").eq("profissional_id", profId),
+          sessoesPorPaciente(),
+        ]);
+        comissoes = (valores ?? []).reduce((s, v: any) => {
+          const n = counts[v.paciente_id] ?? 0;
+          if (v.modo === "fixo_mensal") return s + (n > 0 ? Number(v.valor || 0) : 0);
+          return s + Number(v.valor || 0) * n; // por_sessao
+        }, 0);
+      } else {
+        // auto (legado)
+        if (Number(cfg.valor_por_sessao) > 0) {
+          comissoes = sessoesContadas * Number(cfg.valor_por_sessao);
+          regra = "valor_por_sessao";
+        } else if (Number(cfg.comissao_percentual) > 0) {
+          comissoes = (await receitaDoProfissional()) * (Number(cfg.comissao_percentual) / 100);
+          regra = "percentual_receita";
         }
       }
+
       const vinculo = (cfg.vinculo ?? "autonomo") as keyof typeof ENCARGOS;
       const provBruto = salario + comissoes + beneficios;
       const encargos = provBruto * (ENCARGOS[vinculo] ?? 0);
@@ -105,7 +157,7 @@ export function Folha() {
         descontos,
         liquido,
         qtd_sessoes: sessoesContadas,
-        detalhes: { vinculo, encargos_pct: ENCARGOS[vinculo], regra: Number(cfg.valor_por_sessao) > 0 ? "valor_por_sessao" : "percentual_receita" },
+        detalhes: { vinculo, encargos_pct: ENCARGOS[vinculo], forma_repasse: forma, regra },
         status: "aberta",
       };
       const existente = folhaByProf(profId);
@@ -144,8 +196,25 @@ export function Folha() {
     onError: (e: any) => toast.error(e?.message ?? "Erro"),
   });
 
+  // Controle de status do pagamento (realizado ou não).
+  const marcarPago = useMutation({
+    mutationFn: async (folha: any) => {
+      const pago = folha.status === "paga";
+      const { error } = await supabase.from("folha_pagamento")
+        .update({
+          status: pago ? (folha.lancamento_id ? "fechada" : "aberta") : "paga",
+          paga_em: pago ? null : new Date().toISOString().slice(0, 10),
+        })
+        .eq("id", folha.id);
+      if (error) throw error;
+    },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["folha-mes"] }); toast.success("Status de pagamento atualizado"); },
+    onError: (e: any) => toast.error(e?.message ?? "Erro"),
+  });
+
   const totalLiquido = (folhas ?? []).reduce((s, f) => s + Number(f.liquido || 0), 0);
   const totalEncargos = (folhas ?? []).reduce((s, f) => s + Number(f.encargos || 0), 0);
+  const totalPago = (folhas ?? []).filter((f) => f.status === "paga").reduce((s, f) => s + Number(f.liquido || 0), 0);
 
   return (
     <div className="space-y-4">
@@ -169,6 +238,7 @@ export function Folha() {
         <div className="flex-1" />
         <Badge variant="outline">Líquido total: {currency(totalLiquido)}</Badge>
         <Badge variant="outline">Encargos: {currency(totalEncargos)}</Badge>
+        <Badge className="bg-emerald-100 text-emerald-700">Pago: {currency(totalPago)}</Badge>
       </div>
 
       <Card className="glass">
@@ -197,7 +267,13 @@ export function Folha() {
                     <TableCell className="text-right">{f ? currency(Number(f.comissoes)) : "—"}</TableCell>
                     <TableCell className="text-right font-semibold">{f ? currency(Number(f.liquido)) : "—"}</TableCell>
                     <TableCell>
-                      {f ? <Badge variant={f.status === "fechada" ? "default" : "secondary"}>{f.status}</Badge> : <span className="text-xs text-muted-foreground">não gerada</span>}
+                      {f ? (
+                        f.status === "paga" ? (
+                          <Badge className="bg-emerald-100 text-emerald-700">paga{f.paga_em ? ` · ${format(parseISO(f.paga_em), "dd/MM")}` : ""}</Badge>
+                        ) : (
+                          <Badge variant={f.status === "fechada" ? "default" : "secondary"}>{f.status}</Badge>
+                        )
+                      ) : <span className="text-xs text-muted-foreground">não gerada</span>}
                     </TableCell>
                     <TableCell className="text-right space-x-1">
                       <Button size="sm" variant="ghost" onClick={() => { setConfigProf(p); setConfigOpen(true); }}>
@@ -206,10 +282,21 @@ export function Folha() {
                       <Button size="sm" variant="outline" onClick={() => gerar.mutate(p.id)} disabled={!cfg}>
                         <Calculator className="w-3 h-3 mr-1" />Calcular
                       </Button>
-                      {f && f.status !== "fechada" && (
+                      {f && f.status !== "fechada" && f.status !== "paga" && (
                         <Button size="sm" onClick={() => fechar.mutate(f)}>
                           <Lock className="w-3 h-3 mr-1" />Fechar
                         </Button>
+                      )}
+                      {f && (
+                        f.status === "paga" ? (
+                          <Button size="sm" variant="outline" onClick={() => marcarPago.mutate(f)}>
+                            <AlertTriangle className="w-3 h-3 mr-1" />Marcar não pago
+                          </Button>
+                        ) : (
+                          <Button size="sm" className="bg-emerald-600 hover:bg-emerald-700 text-white" onClick={() => marcarPago.mutate(f)}>
+                            <CheckCircle2 className="w-3 h-3 mr-1" />Marcar pago
+                          </Button>
+                        )
                       )}
                       {f && (
                         <Button size="sm" variant="ghost" onClick={() => setHolerite({ ...f, profissional: p })}>
@@ -241,15 +328,25 @@ export function Folha() {
   );
 }
 
+const FORMAS_REPASSE: { value: string; label: string; ajuda: string }[] = [
+  { value: "fixo_mensal", label: "Valor fixo mensal", ajuda: "Recebe o mesmo valor todo mês, independente de sessões." },
+  { value: "por_sessao", label: "Por sessão", ajuda: "Valor único por sessão × nº de sessões contadas no mês." },
+  { value: "por_paciente", label: "Por paciente", ajuda: "Cada paciente tem um valor próprio (por sessão ou fixo no mês)." },
+  { value: "percentual", label: "Percentual sobre receita", ajuda: "% sobre o que os pacientes desse profissional pagaram no mês." },
+  { value: "auto", label: "Automático (legado)", ajuda: "Usa valor por sessão se preenchido; senão, a comissão %." },
+];
+
 function ColaboradorConfigDialog({ open, onOpenChange, profissional, config, onSaved }: any) {
-  const defaults = { vinculo: "autonomo", salario_base: 0, comissao_percentual: 0, valor_por_sessao: 0, beneficios: 0, descontos_fixos: 0, dependentes: 0 };
+  const defaults = { forma_repasse: "por_sessao", vinculo: "autonomo", salario_base: 0, comissao_percentual: 0, valor_por_sessao: 0, beneficios: 0, descontos_fixos: 0, dependentes: 0 };
   const [form, setForm] = useState<any>(defaults);
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    if (open) setForm(config ?? defaults);
+    if (open) setForm(config ? { ...defaults, ...config } : defaults);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, profissional?.id, config?.id]);
+
+  const forma = form.forma_repasse ?? "por_sessao";
 
   async function salvar() {
     if (!profissional) return;
@@ -257,6 +354,7 @@ function ColaboradorConfigDialog({ open, onOpenChange, profissional, config, onS
     try {
       const payload = {
         profissional_id: profissional.id,
+        forma_repasse: forma,
         vinculo: form.vinculo ?? "autonomo",
         salario_base: Number(form.salario_base || 0),
         comissao_percentual: Number(form.comissao_percentual || 0),
@@ -282,9 +380,45 @@ function ColaboradorConfigDialog({ open, onOpenChange, profissional, config, onS
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader><DialogTitle>Configurar {profissional?.nome}</DialogTitle></DialogHeader>
-        <div className="grid gap-3 sm:grid-cols-2">
+
+        <div>
+          <Label>Forma de repasse</Label>
+          <Select value={forma} onValueChange={(v) => setForm({ ...form, forma_repasse: v })}>
+            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectContent>
+              {FORMAS_REPASSE.map((f) => <SelectItem key={f.value} value={f.value}>{f.label}</SelectItem>)}
+            </SelectContent>
+          </Select>
+          <p className="text-xs text-muted-foreground mt-1">{FORMAS_REPASSE.find((f) => f.value === forma)?.ajuda}</p>
+        </div>
+
+        {/* Campos específicos da forma escolhida */}
+        {forma === "fixo_mensal" && (
+          <div>
+            <Label>Valor fixo mensal (R$)</Label>
+            <Input type="number" step="0.01" value={form.salario_base ?? 0} onChange={(e) => setForm({ ...form, salario_base: Number(e.target.value) })} />
+          </div>
+        )}
+        {(forma === "por_sessao" || forma === "auto") && (
+          <div>
+            <Label>Valor por sessão (R$)</Label>
+            <Input type="number" step="0.01" value={form.valor_por_sessao ?? 0} onChange={(e) => setForm({ ...form, valor_por_sessao: Number(e.target.value) })} />
+          </div>
+        )}
+        {(forma === "percentual" || forma === "auto") && (
+          <div>
+            <Label>% Comissão sobre receita</Label>
+            <Input type="number" step="0.01" value={form.comissao_percentual ?? 0} onChange={(e) => setForm({ ...form, comissao_percentual: Number(e.target.value) })} />
+          </div>
+        )}
+        {forma === "por_paciente" && profissional && (
+          <ValoresPorPacienteEditor profissionalId={profissional.id} />
+        )}
+
+        {/* Campos comuns */}
+        <div className="grid gap-3 sm:grid-cols-2 pt-2 border-t">
           <div>
             <Label>Vínculo</Label>
             <Select value={form.vinculo} onValueChange={(v) => setForm({ ...form, vinculo: v })}>
@@ -301,35 +435,115 @@ function ColaboradorConfigDialog({ open, onOpenChange, profissional, config, onS
             <Input type="number" value={form.dependentes ?? 0} onChange={(e) => setForm({ ...form, dependentes: Number(e.target.value) })} />
           </div>
           <div>
-            <Label>Salário base (R$)</Label>
-            <Input type="number" step="0.01" value={form.salario_base ?? 0} onChange={(e) => setForm({ ...form, salario_base: Number(e.target.value) })} />
-          </div>
-          <div>
             <Label>Benefícios (R$)</Label>
             <Input type="number" step="0.01" value={form.beneficios ?? 0} onChange={(e) => setForm({ ...form, beneficios: Number(e.target.value) })} />
-          </div>
-          <div>
-            <Label>% Comissão sobre receita</Label>
-            <Input type="number" step="0.01" value={form.comissao_percentual ?? 0} onChange={(e) => setForm({ ...form, comissao_percentual: Number(e.target.value) })} />
-          </div>
-          <div>
-            <Label>Valor por sessão (R$)</Label>
-            <Input type="number" step="0.01" value={form.valor_por_sessao ?? 0} onChange={(e) => setForm({ ...form, valor_por_sessao: Number(e.target.value) })} />
           </div>
           <div>
             <Label>Descontos fixos (R$)</Label>
             <Input type="number" step="0.01" value={form.descontos_fixos ?? 0} onChange={(e) => setForm({ ...form, descontos_fixos: Number(e.target.value) })} />
           </div>
         </div>
-        <p className="text-xs text-muted-foreground">
-          Se "Valor por sessão" &gt; 0, ele é usado e a comissão % é ignorada.
-        </p>
+
         <DialogFooter>
           <Button variant="ghost" onClick={() => onOpenChange(false)}>Cancelar</Button>
           <Button onClick={salvar} disabled={saving}>Salvar</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
+  );
+}
+
+// Editor dos valores por paciente (modo "por paciente"). Os valores ficam
+// numa tabela própria e são salvos aqui mesmo (independem do "Salvar" do topo).
+function ValoresPorPacienteEditor({ profissionalId }: { profissionalId: string }) {
+  const qc = useQueryClient();
+  const { data } = useQuery({
+    queryKey: ["colab-pac-valores", profissionalId],
+    enabled: !!profissionalId,
+    queryFn: async () => {
+      const { data: pp } = await supabase
+        .from("paciente_profissionais")
+        .select("paciente_id, paciente:pacientes(nome)")
+        .eq("profissional_id", profissionalId);
+      const { data: vals } = await supabase
+        .from("colaborador_paciente_valor")
+        .select("*")
+        .eq("profissional_id", profissionalId);
+      return { pacientes: pp ?? [], valores: vals ?? [] };
+    },
+  });
+
+  const [rows, setRows] = useState<Record<string, { modo: string; valor: string }>>({});
+  useEffect(() => {
+    if (!data) return;
+    const map: Record<string, { modo: string; valor: string }> = {};
+    for (const v of data.valores as any[]) map[v.paciente_id] = { modo: v.modo, valor: String(v.valor ?? "") };
+    setRows(map);
+  }, [data]);
+
+  const salvar = useMutation({
+    mutationFn: async () => {
+      const payload = (data?.pacientes ?? [])
+        .filter((p: any) => rows[p.paciente_id] && Number(rows[p.paciente_id].valor) > 0)
+        .map((p: any) => ({
+          profissional_id: profissionalId,
+          paciente_id: p.paciente_id,
+          modo: rows[p.paciente_id].modo || "por_sessao",
+          valor: Number(rows[p.paciente_id].valor || 0),
+        }));
+      if (!payload.length) { toast.error("Preencha ao menos um valor"); return; }
+      const { error } = await supabase
+        .from("colaborador_paciente_valor")
+        .upsert(payload, { onConflict: "profissional_id,paciente_id" });
+      if (error) throw error;
+      toast.success("Valores por paciente salvos");
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["colab-pac-valores", profissionalId] }),
+    onError: (e: any) => toast.error(e?.message ?? "Erro"),
+  });
+
+  const pacientes = data?.pacientes ?? [];
+
+  return (
+    <div className="rounded-lg border p-3 space-y-2">
+      <div className="flex items-center justify-between">
+        <Label className="text-sm">Valores por paciente</Label>
+        <Button size="sm" variant="outline" onClick={() => salvar.mutate()} disabled={salvar.isPending}>Salvar valores</Button>
+      </div>
+      {pacientes.length === 0 ? (
+        <p className="text-xs text-muted-foreground">
+          Nenhum paciente vinculado a este profissional ainda. Vincule pacientes na ficha do paciente.
+        </p>
+      ) : (
+        <div className="max-h-64 overflow-y-auto space-y-2">
+          {pacientes.map((p: any) => {
+            const r = rows[p.paciente_id] ?? { modo: "por_sessao", valor: "" };
+            const set = (patch: Partial<{ modo: string; valor: string }>) =>
+              setRows((prev) => ({ ...prev, [p.paciente_id]: { ...r, ...patch } }));
+            return (
+              <div key={p.paciente_id} className="grid grid-cols-[1fr_130px_110px] items-center gap-2">
+                <span className="text-sm truncate">{p.paciente?.nome ?? "—"}</span>
+                <Select value={r.modo} onValueChange={(v) => set({ modo: v })}>
+                  <SelectTrigger className="h-8"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="por_sessao">Por sessão</SelectItem>
+                    <SelectItem value="fixo_mensal">Fixo no mês</SelectItem>
+                  </SelectContent>
+                </Select>
+                <Input
+                  type="number" step="0.01" placeholder="R$" className="h-8"
+                  value={r.valor}
+                  onChange={(e) => set({ valor: e.target.value })}
+                />
+              </div>
+            );
+          })}
+        </div>
+      )}
+      <p className="text-[11px] text-muted-foreground">
+        "Por sessão" multiplica pelo nº de sessões do paciente no mês; "Fixo no mês" soma o valor se houve ao menos uma sessão.
+      </p>
+    </div>
   );
 }
 

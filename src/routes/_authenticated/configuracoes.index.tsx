@@ -21,7 +21,7 @@ export const Route = createFileRoute("/_authenticated/configuracoes/")({
 });
 
 import { PageHero } from "@/components/shared/PageHero";
-import { Settings as SettingsIcon, Building2, Users as UsersIcon, BookOpen, School, Wallet, Plug, ListChecks, ArrowRight, Library } from "lucide-react";
+import { Settings as SettingsIcon, Building2, Users as UsersIcon, BookOpen, School, Wallet, ListChecks, ArrowRight, Library } from "lucide-react";
 import { Link } from "@tanstack/react-router";
 
 type TabDef = { key: string; label: string; fields: readonly string[] };
@@ -73,7 +73,6 @@ const GROUPS: { key: string; label: string; icon: React.ComponentType<{ classNam
       { key: "fornecedores", label: "Fornecedores", fields: ["nome", "documento", "email", "telefone"] },
     ],
   },
-  { key: "integracoes", label: "Integrações", icon: Plug, tabs: [] },
 ];
 
 function ConfigPage() {
@@ -83,7 +82,7 @@ function ConfigPage() {
         icon={SettingsIcon}
         eyebrow="Sistema"
         title="Configurações"
-        description="Gerencie todos os dados base do sistema — cadastros, financeiro e integrações."
+        description="Gerencie todos os dados base do sistema — cadastros, equipe, catálogo clínico e financeiro."
         variant="dark"
       />
 
@@ -99,9 +98,7 @@ function ConfigPage() {
 
         {GROUPS.map((g) => (
           <TabsContent key={g.key} value={g.key} className="mt-4">
-            {g.key === "integracoes" ? (
-              <InfinitepayConfig />
-            ) : (
+            {(
               <Tabs defaultValue={g.tabs[0]?.key}>
                 <div className="grid gap-4 md:grid-cols-[200px_minmax(0,1fr)]">
                   <TabsList className="glass flex h-auto w-full flex-row flex-wrap justify-start gap-1 md:flex-col md:items-stretch">
@@ -456,86 +453,6 @@ function PlanoContaForm({
         <Button type="submit" disabled={submitting} className="gradient-brand text-brand-foreground">Salvar</Button>
       </DialogFooter>
     </form>
-  );
-}
-
-function InfinitepayConfig() {
-  const qc = useQueryClient();
-  const [handle, setHandle] = useState("");
-  const [gerarAuto, setGerarAuto] = useState(false);
-
-  const { data: cfg } = useQuery({
-    queryKey: ["ipay-cfg"],
-    queryFn: async () => {
-      const { data } = await supabase.from("infinitepay_config").select("*").order("created_at", { ascending: false }).limit(1).maybeSingle();
-      return data;
-    },
-  });
-
-  useEffect(() => {
-    if (cfg) { setHandle(cfg.handle ?? ""); setGerarAuto(cfg.gerar_link_automatico ?? false); }
-  }, [cfg]);
-
-  const salvar = useMutation({
-    mutationFn: async () => {
-      if (cfg?.id) {
-        const { error } = await supabase.from("infinitepay_config").update({
-          handle, gerar_link_automatico: gerarAuto, ativo: true,
-        }).eq("id", cfg.id);
-        if (error) throw error;
-      } else {
-        const { error } = await supabase.from("infinitepay_config").insert({
-          handle, gerar_link_automatico: gerarAuto, ativo: true,
-        });
-        if (error) throw error;
-      }
-    },
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ["ipay-cfg"] }); toast.success("Configuração salva"); },
-    onError: (e: Error) => toast.error(e.message),
-  });
-
-  const webhookUrl = typeof window !== "undefined"
-    ? `${window.location.origin}/api/public/webhooks/infinitepay`
-    : "/api/public/webhooks/infinitepay";
-
-  return (
-    <Card className="glass p-6 space-y-4 max-w-2xl">
-      <div>
-        <h3 className="font-medium text-lg">InfinitePay</h3>
-        <p className="text-sm text-muted-foreground">
-          Conciliação automática de pagamentos. Quando ativada, o sistema gera links de cobrança e marca as parcelas como pagas assim que a InfinitePay confirma o recebimento.
-        </p>
-      </div>
-
-      <div className="space-y-2">
-        <Label>Handle da loja</Label>
-        <Input value={handle || cfg?.handle || ""} onChange={(e) => setHandle(e.target.value)} placeholder="ex: minhaclinica" />
-        <p className="text-xs text-muted-foreground">Aparece na URL pública da sua loja InfinitePay.</p>
-      </div>
-
-      <div className="flex items-center gap-2">
-        <input id="ger-auto" type="checkbox" checked={gerarAuto || cfg?.gerar_link_automatico || false} onChange={(e) => setGerarAuto(e.target.checked)} />
-        <Label htmlFor="ger-auto" className="cursor-pointer">Gerar links automaticamente para novas parcelas</Label>
-      </div>
-
-      <Button onClick={() => salvar.mutate()} disabled={salvar.isPending} className="gradient-brand text-brand-foreground">
-        Salvar
-      </Button>
-
-      <div className="border-t pt-4 space-y-2">
-        <p className="text-sm font-medium">Webhook</p>
-        <p className="text-xs text-muted-foreground">
-          Configure esta URL no painel da InfinitePay para receber confirmações de pagamento:
-        </p>
-        <div className="flex items-center gap-2">
-          <Input readOnly value={webhookUrl} className="font-mono text-xs" />
-          <Button size="sm" variant="outline" onClick={() => { navigator.clipboard?.writeText(webhookUrl); toast.success("Copiado"); }}>Copiar</Button>
-        </div>
-        <p className="text-xs text-muted-foreground">
-          As chaves <span className="font-mono">INFINITEPAY_API_TOKEN</span> e <span className="font-mono">INFINITEPAY_WEBHOOK_SECRET</span> devem ser configuradas como secrets no servidor (peça ao Lovable quando tiver os valores em mãos).
-        </p>
-      </div>
-    </Card>
   );
 }
 

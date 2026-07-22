@@ -869,6 +869,7 @@ export type Database = {
           created_at: string
           dependentes: number
           descontos_fixos: number
+          forma_repasse: string
           id: string
           observacoes: string | null
           org_id: string | null
@@ -885,6 +886,7 @@ export type Database = {
           created_at?: string
           dependentes?: number
           descontos_fixos?: number
+          forma_repasse?: string
           id?: string
           observacoes?: string | null
           org_id?: string | null
@@ -901,6 +903,7 @@ export type Database = {
           created_at?: string
           dependentes?: number
           descontos_fixos?: number
+          forma_repasse?: string
           id?: string
           observacoes?: string | null
           org_id?: string | null
@@ -913,6 +916,47 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "colaborador_config_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizacoes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      colaborador_paciente_valor: {
+        Row: {
+          created_at: string
+          id: string
+          modo: string
+          org_id: string | null
+          paciente_id: string
+          profissional_id: string
+          updated_at: string
+          valor: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          modo?: string
+          org_id?: string | null
+          paciente_id: string
+          profissional_id: string
+          updated_at?: string
+          valor?: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          modo?: string
+          org_id?: string | null
+          paciente_id?: string
+          profissional_id?: string
+          updated_at?: string
+          valor?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "colaborador_paciente_valor_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
             referencedRelation: "organizacoes"
@@ -2086,6 +2130,54 @@ export type Database = {
           },
           {
             foreignKeyName: "infinitepay_eventos_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizacoes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      investimento_aportes: {
+        Row: {
+          created_at: string
+          data: string
+          id: string
+          investimento_id: string
+          lancamento_id: string | null
+          observacoes: string | null
+          org_id: string | null
+          valor: number
+        }
+        Insert: {
+          created_at?: string
+          data?: string
+          id?: string
+          investimento_id: string
+          lancamento_id?: string | null
+          observacoes?: string | null
+          org_id?: string | null
+          valor?: number
+        }
+        Update: {
+          created_at?: string
+          data?: string
+          id?: string
+          investimento_id?: string
+          lancamento_id?: string | null
+          observacoes?: string | null
+          org_id?: string | null
+          valor?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "investimento_aportes_investimento_id_fkey"
+            columns: ["investimento_id"]
+            isOneToOne: false
+            referencedRelation: "investimentos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "investimento_aportes_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
             referencedRelation: "organizacoes"
