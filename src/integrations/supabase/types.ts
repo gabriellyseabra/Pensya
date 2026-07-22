@@ -6566,6 +6566,20 @@ export type Database = {
       }
       is_equipe: { Args: { _user_id: string }; Returns: boolean }
       is_pensya_admin: { Args: never; Returns: boolean }
+      meu_financeiro_mensal: {
+        Args: { _competencia: string }
+        Returns: {
+          beneficios: number
+          comissoes: number
+          descontos: number
+          folha_paga_em: string
+          folha_status: string
+          forma: string
+          qtd_sessoes: number
+          salario_base: number
+          total: number
+        }[]
+      }
       my_org_id: { Args: never; Returns: string }
       organizacao_branding_publica: {
         Args: {

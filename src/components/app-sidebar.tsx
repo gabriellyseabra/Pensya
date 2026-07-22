@@ -27,15 +27,22 @@ import { Button } from "@/components/ui/button";
 
 type Item = { title: string; url: string; icon: React.ComponentType<{ className?: string }> };
 
-// Terapeuta com acesso restrito só enxerga estas seções (inclui a home/dashboard
-// e as tarefas — filtradas às atribuídas a ela; sem financeiro nem gestão).
-const TERAPEUTA_URLS = new Set(["/dashboard", "/agenda", "/pacientes", "/tarefas"]);
+// Terapeuta com acesso restrito só enxerga estas seções (home/dashboard,
+// agenda, pacientes, tarefas atribuídas a ela e o próprio financeiro — sem o
+// financeiro da clínica nem a gestão).
+const TERAPEUTA_URLS = new Set(["/dashboard", "/agenda", "/pacientes", "/tarefas", "/meu-financeiro"]);
+// Itens que só o terapeuta vê (admin/secretaria não veem "Meu financeiro").
+const SO_TERAPEUTA_URLS = new Set(["/meu-financeiro"]);
 
 function useVisibleGroups() {
   const { isTerapeutaRestrito } = useRoles();
-  if (!isTerapeutaRestrito) return groups;
+  if (isTerapeutaRestrito) {
+    return groups
+      .map((g) => ({ ...g, items: g.items.filter((i) => TERAPEUTA_URLS.has(i.url)) }))
+      .filter((g) => g.items.length > 0);
+  }
   return groups
-    .map((g) => ({ ...g, items: g.items.filter((i) => TERAPEUTA_URLS.has(i.url)) }))
+    .map((g) => ({ ...g, items: g.items.filter((i) => !SO_TERAPEUTA_URLS.has(i.url)) }))
     .filter((g) => g.items.length > 0);
 }
 
@@ -48,6 +55,7 @@ const groups: { label: string; items: Item[] }[] = [
       { title: "Agenda", url: "/agenda", icon: Calendar },
       { title: "Sublocação", url: "/sublocacao", icon: DoorOpen },
       { title: "Tarefas", url: "/tarefas", icon: CheckSquare },
+      { title: "Meu financeiro", url: "/meu-financeiro", icon: DollarSign },
       { title: "Alertas", url: "/alertas", icon: Bell },
     ],
   },

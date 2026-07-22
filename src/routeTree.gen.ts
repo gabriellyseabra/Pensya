@@ -29,6 +29,7 @@ import { Route as AssinarTokenRouteImport } from './routes/assinar.$token'
 import { Route as AuthenticatedTarefasRouteImport } from './routes/_authenticated/tarefas'
 import { Route as AuthenticatedSublocacaoRouteImport } from './routes/_authenticated/sublocacao'
 import { Route as AuthenticatedProdutosRouteImport } from './routes/_authenticated/produtos'
+import { Route as AuthenticatedMeuFinanceiroRouteImport } from './routes/_authenticated/meu-financeiro'
 import { Route as AuthenticatedMarketingRouteImport } from './routes/_authenticated/marketing'
 import { Route as AuthenticatedIndicadoresRouteImport } from './routes/_authenticated/indicadores'
 import { Route as AuthenticatedFinanceiroRouteImport } from './routes/_authenticated/financeiro'
@@ -154,6 +155,12 @@ const AuthenticatedProdutosRoute = AuthenticatedProdutosRouteImport.update({
   path: '/produtos',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedMeuFinanceiroRoute =
+  AuthenticatedMeuFinanceiroRouteImport.update({
+    id: '/meu-financeiro',
+    path: '/meu-financeiro',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedMarketingRoute = AuthenticatedMarketingRouteImport.update({
   id: '/marketing',
   path: '/marketing',
@@ -313,6 +320,7 @@ export interface FileRoutesByFullPath {
   '/financeiro': typeof AuthenticatedFinanceiroRoute
   '/indicadores': typeof AuthenticatedIndicadoresRoute
   '/marketing': typeof AuthenticatedMarketingRoute
+  '/meu-financeiro': typeof AuthenticatedMeuFinanceiroRoute
   '/produtos': typeof AuthenticatedProdutosRoute
   '/sublocacao': typeof AuthenticatedSublocacaoRoute
   '/tarefas': typeof AuthenticatedTarefasRoute
@@ -357,6 +365,7 @@ export interface FileRoutesByTo {
   '/financeiro': typeof AuthenticatedFinanceiroRoute
   '/indicadores': typeof AuthenticatedIndicadoresRoute
   '/marketing': typeof AuthenticatedMarketingRoute
+  '/meu-financeiro': typeof AuthenticatedMeuFinanceiroRoute
   '/produtos': typeof AuthenticatedProdutosRoute
   '/sublocacao': typeof AuthenticatedSublocacaoRoute
   '/tarefas': typeof AuthenticatedTarefasRoute
@@ -405,6 +414,7 @@ export interface FileRoutesById {
   '/_authenticated/financeiro': typeof AuthenticatedFinanceiroRoute
   '/_authenticated/indicadores': typeof AuthenticatedIndicadoresRoute
   '/_authenticated/marketing': typeof AuthenticatedMarketingRoute
+  '/_authenticated/meu-financeiro': typeof AuthenticatedMeuFinanceiroRoute
   '/_authenticated/produtos': typeof AuthenticatedProdutosRoute
   '/_authenticated/sublocacao': typeof AuthenticatedSublocacaoRoute
   '/_authenticated/tarefas': typeof AuthenticatedTarefasRoute
@@ -453,6 +463,7 @@ export interface FileRouteTypes {
     | '/financeiro'
     | '/indicadores'
     | '/marketing'
+    | '/meu-financeiro'
     | '/produtos'
     | '/sublocacao'
     | '/tarefas'
@@ -497,6 +508,7 @@ export interface FileRouteTypes {
     | '/financeiro'
     | '/indicadores'
     | '/marketing'
+    | '/meu-financeiro'
     | '/produtos'
     | '/sublocacao'
     | '/tarefas'
@@ -544,6 +556,7 @@ export interface FileRouteTypes {
     | '/_authenticated/financeiro'
     | '/_authenticated/indicadores'
     | '/_authenticated/marketing'
+    | '/_authenticated/meu-financeiro'
     | '/_authenticated/produtos'
     | '/_authenticated/sublocacao'
     | '/_authenticated/tarefas'
@@ -730,6 +743,13 @@ declare module '@tanstack/react-router' {
       path: '/produtos'
       fullPath: '/produtos'
       preLoaderRoute: typeof AuthenticatedProdutosRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/meu-financeiro': {
+      id: '/_authenticated/meu-financeiro'
+      path: '/meu-financeiro'
+      fullPath: '/meu-financeiro'
+      preLoaderRoute: typeof AuthenticatedMeuFinanceiroRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/marketing': {
@@ -952,6 +972,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedFinanceiroRoute: typeof AuthenticatedFinanceiroRoute
   AuthenticatedIndicadoresRoute: typeof AuthenticatedIndicadoresRoute
   AuthenticatedMarketingRoute: typeof AuthenticatedMarketingRoute
+  AuthenticatedMeuFinanceiroRoute: typeof AuthenticatedMeuFinanceiroRoute
   AuthenticatedProdutosRoute: typeof AuthenticatedProdutosRoute
   AuthenticatedSublocacaoRoute: typeof AuthenticatedSublocacaoRoute
   AuthenticatedTarefasRoute: typeof AuthenticatedTarefasRoute
@@ -973,6 +994,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedFinanceiroRoute: AuthenticatedFinanceiroRoute,
   AuthenticatedIndicadoresRoute: AuthenticatedIndicadoresRoute,
   AuthenticatedMarketingRoute: AuthenticatedMarketingRoute,
+  AuthenticatedMeuFinanceiroRoute: AuthenticatedMeuFinanceiroRoute,
   AuthenticatedProdutosRoute: AuthenticatedProdutosRoute,
   AuthenticatedSublocacaoRoute: AuthenticatedSublocacaoRoute,
   AuthenticatedTarefasRoute: AuthenticatedTarefasRoute,

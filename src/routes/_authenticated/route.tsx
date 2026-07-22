@@ -20,7 +20,7 @@ export const Route = createFileRoute("/_authenticated")({
       // agenda, pacientes e tarefas. Bloqueia o resto (financeiro, gestão,
       // configurações, equipe) mesmo por URL direta.
       if (membro.papel === "profissional") {
-        const permitidos = ["/dashboard", "/agenda", "/pacientes", "/tarefas"];
+        const permitidos = ["/dashboard", "/agenda", "/pacientes", "/tarefas", "/meu-financeiro"];
         const liberado = permitidos.some(
           (p) => location.pathname === p || location.pathname.startsWith(p + "/"),
         );
