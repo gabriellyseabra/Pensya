@@ -3085,6 +3085,7 @@ export type Database = {
           cor_tema: string
           created_at: string
           email: string | null
+          emite_nf: boolean
           endereco: string | null
           id: string
           logo_path: string | null
@@ -3106,6 +3107,7 @@ export type Database = {
           cor_tema?: string
           created_at?: string
           email?: string | null
+          emite_nf?: boolean
           endereco?: string | null
           id?: string
           logo_path?: string | null
@@ -3127,6 +3129,7 @@ export type Database = {
           cor_tema?: string
           created_at?: string
           email?: string | null
+          emite_nf?: boolean
           endereco?: string | null
           id?: string
           logo_path?: string | null
@@ -6459,6 +6462,7 @@ export type Database = {
           _paciente_id?: string
         }
         Returns: {
+          emite_nf: boolean
           logo_path: string
           nome: string
         }[]

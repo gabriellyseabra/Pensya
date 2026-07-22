@@ -22,6 +22,7 @@ export type Organizacao = {
   plano: string;
   status: string;
   cor_tema: string;
+  emite_nf: boolean;
 };
 
 export type CorTema = "roxo" | "azul" | "preto";
@@ -71,7 +72,7 @@ export async function getOrganizacaoBrandingPublica(params: {
   cadastroToken?: string;
   conviteToken?: string;
   pacienteId?: string;
-}): Promise<{ nome: string; logo_path: string | null } | null> {
+}): Promise<{ nome: string; logo_path: string | null; emite_nf: boolean } | null> {
   const { data } = await supabase.rpc("organizacao_branding_publica", {
     _cadastro_token: params.cadastroToken ?? undefined,
     _convite_token: params.conviteToken ?? undefined,

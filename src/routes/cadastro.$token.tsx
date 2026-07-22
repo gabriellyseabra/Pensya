@@ -112,6 +112,8 @@ function CadastroPublicoPage() {
     queryFn: () => getOrganizacaoBrandingPublica({ cadastroToken: token }),
   });
   const nomeClinica = clinicaCfg?.nome?.trim() || "nossa clínica";
+  // A pergunta de nota fiscal só aparece quando a clínica declara que emite.
+  const emiteNf = clinicaCfg?.emite_nf === true;
 
   // Modelo de perguntas extras resolvido pela faixa etária do paciente
   // (ou fixado no link). Reavalia quando a idade informada muda.
@@ -238,7 +240,7 @@ function CadastroPublicoPage() {
         <Card className="glass-strong p-6 md:p-8">
           {step === 1 && <EtapaPaciente dados={dados} onChange={update} cadId={cadId} nomeClinica={nomeClinica} />}
           {step === 2 && <EtapaQueixa dados={dados} onChange={update} cadId={cadId} nomeClinica={nomeClinica} />}
-          {step === 3 && <EtapaResponsaveis dados={dados} onChange={update} />}
+          {step === 3 && <EtapaResponsaveis dados={dados} onChange={update} emiteNf={emiteNf} />}
           {step === 4 && <EtapaFamilia dados={dados} onChange={update} />}
           {step === 5 && <EtapaDesenvolvimento dados={dados} onChange={update} />}
           {step === 6 && (
@@ -771,7 +773,7 @@ function EtapaQueixa({ dados, onChange, cadId, nomeClinica }: any) {
 
 /* ============== ETAPA 3 — RESPONSÁVEIS + FINANCEIRO ============== */
 
-function EtapaResponsaveis({ dados, onChange }: any) {
+function EtapaResponsaveis({ dados, onChange, emiteNf = false }: any) {
   const r = dados.responsaveis ?? {};
   const f = dados.financeiro ?? {};
   const setR = (k: string, v: any) => onChange({ responsaveis: { ...r, [k]: v } });
@@ -862,6 +864,7 @@ function EtapaResponsaveis({ dados, onChange }: any) {
           </Field>
         </div>
 
+        {emiteNf && (
         <div className="mt-4">
           <Field label="Deseja Nota Fiscal?">
             <Chips
@@ -871,7 +874,8 @@ function EtapaResponsaveis({ dados, onChange }: any) {
             />
           </Field>
         </div>
-        {f.deseja_nf && (
+        )}
+        {emiteNf && f.deseja_nf && (
           <div className="mt-3 space-y-3">
             <Field label="Em nome de qual responsável emitir a NF?">
               {nfOptions.length === 0 ? (

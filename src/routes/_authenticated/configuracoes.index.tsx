@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
 import { Plus, Trash2, Edit2, Image as ImageIcon, Loader2, Check } from "lucide-react";
 import { toast } from "sonner";
 import { CLINICA_LOGO_BUCKET, clinicaLogoUrl, getMinhaOrganizacao, CORES_TEMA, aplicarCorTema } from "@/lib/clinica-config";
@@ -548,6 +549,7 @@ function ClinicaIdentidadeConfig() {
     cidade: "", telefone: "", email: "", responsavel_nome: "",
   });
   const [corTema, setCorTema] = useState<string>("roxo");
+  const [emiteNf, setEmiteNf] = useState(false);
 
   const { data: cfg } = useQuery({
     queryKey: ["minha-organizacao"],
@@ -567,6 +569,7 @@ function ClinicaIdentidadeConfig() {
       responsavel_nome: cfg.responsavel_nome ?? "",
     });
     setCorTema(cfg.cor_tema ?? "roxo");
+    setEmiteNf(cfg.emite_nf ?? false);
   }, [cfg]);
 
   const logoAtual = preview ?? clinicaLogoUrl(cfg?.logo_path);
@@ -591,7 +594,7 @@ function ClinicaIdentidadeConfig() {
       const { nome_clinica, ...resto } = form;
       const { error } = await supabase
         .from("organizacoes")
-        .update({ nome: nome_clinica, ...resto, logo_path, cor_tema: corTema })
+        .update({ nome: nome_clinica, ...resto, logo_path, cor_tema: corTema, emite_nf: emiteNf })
         .eq("id", cfg.id);
       if (error) throw error;
     },
@@ -705,6 +708,19 @@ function ClinicaIdentidadeConfig() {
               {corTema === c.valor && <Check className="h-3.5 w-3.5 text-brand" />}
             </button>
           ))}
+        </div>
+      </div>
+
+      <div className="rounded-xl border border-border bg-muted/20 p-4">
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <Label className="text-sm font-medium">Emitir nota fiscal aos pacientes</Label>
+            <p className="mt-1 text-xs text-muted-foreground">
+              Quando ativado, o cadastro público pergunta à família se deseja nota fiscal e em nome de
+              quem emitir. Deixe desligado se você não emite NF — a pergunta some do formulário.
+            </p>
+          </div>
+          <Switch checked={emiteNf} onCheckedChange={setEmiteNf} />
         </div>
       </div>
 
