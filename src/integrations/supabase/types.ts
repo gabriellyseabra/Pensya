@@ -4934,6 +4934,7 @@ export type Database = {
           cor: string | null
           created_at: string
           email: string | null
+          especialidade_id: string | null
           id: string
           nome: string
           org_id: string | null
@@ -4946,6 +4947,7 @@ export type Database = {
           cor?: string | null
           created_at?: string
           email?: string | null
+          especialidade_id?: string | null
           id?: string
           nome: string
           org_id?: string | null
@@ -4958,6 +4960,7 @@ export type Database = {
           cor?: string | null
           created_at?: string
           email?: string | null
+          especialidade_id?: string | null
           id?: string
           nome?: string
           org_id?: string | null
@@ -4966,6 +4969,13 @@ export type Database = {
           user_id?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "profissionais_consultorio_especialidade_id_fkey"
+            columns: ["especialidade_id"]
+            isOneToOne: false
+            referencedRelation: "especialidades"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "profissionais_consultorio_org_id_fkey"
             columns: ["org_id"]

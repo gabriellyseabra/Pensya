@@ -23,8 +23,9 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
-import { UserPlus, Copy, Link2, Ban, Loader2, ShieldCheck, Users, Pencil, Trash2, Stethoscope, KeyRound } from "lucide-react";
+import { UserPlus, Copy, Link2, Ban, Loader2, ShieldCheck, Users, Pencil, Trash2, Stethoscope, KeyRound, Plus, Mail, Phone, Briefcase, Wallet, LayoutGrid } from "lucide-react";
 import { useIsAdmin } from "@/hooks/use-role";
 import { PageHero } from "@/components/shared/PageHero";
 import { cn } from "@/lib/utils";
@@ -217,6 +218,15 @@ function EquipePage() {
         }
       />
 
+      <Tabs defaultValue="membros">
+        <TabsList className="glass h-auto flex-wrap">
+          <TabsTrigger value="membros" className="gap-1.5"><Users className="h-3.5 w-3.5" />Membros</TabsTrigger>
+          <TabsTrigger value="dashboard" className="gap-1.5"><LayoutGrid className="h-3.5 w-3.5" />Por especialidade</TabsTrigger>
+          <TabsTrigger value="especialidades" className="gap-1.5"><Stethoscope className="h-3.5 w-3.5" />Especialidades</TabsTrigger>
+          <TabsTrigger value="externos" className="gap-1.5"><Briefcase className="h-3.5 w-3.5" />Profissionais externos</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="membros" className="mt-4">
       <TwoColumn
         side={
           <>
@@ -364,6 +374,20 @@ function EquipePage() {
         ))}
       </div>
       </TwoColumn>
+        </TabsContent>
+
+        <TabsContent value="dashboard" className="mt-4">
+          <DashboardEspecialidades especialidades={especialidades ?? []} />
+        </TabsContent>
+
+        <TabsContent value="especialidades" className="mt-4">
+          <EspecialidadesCrud isAdmin={isAdmin} />
+        </TabsContent>
+
+        <TabsContent value="externos" className="mt-4">
+          <ProfissionaisExternos isAdmin={isAdmin} />
+        </TabsContent>
+      </Tabs>
 
       <EditarMembroDialog
         membro={editing}
@@ -474,6 +498,7 @@ function EditarMembroDialog({
               </div>
             </div>
           )}
+          {membro?.prof_id && <RemuneracaoConfig profId={membro.prof_id} />}
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={onClose}>
@@ -669,6 +694,383 @@ function NovoMembroDialog({ onCreated }: { onCreated: () => void }) {
             </DialogFooter>
           </div>
         )}
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+/* ============== REMUNERAÇÃO (conecta à Folha) ============== */
+const FORMAS_REPASSE_EQUIPE = [
+  { value: "fixo_mensal", label: "Valor fixo mensal" },
+  { value: "por_sessao", label: "Por sessão" },
+  { value: "por_paciente", label: "Por paciente" },
+  { value: "percentual", label: "Percentual sobre receita" },
+];
+
+function RemuneracaoConfig({ profId }: { profId: string }) {
+  const [cfg, setCfg] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    let active = true;
+    setLoading(true);
+    supabase
+      .from("colaborador_config")
+      .select("*")
+      .eq("profissional_id", profId)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (!active) return;
+        setCfg(data ?? { forma_repasse: "por_sessao", vinculo: "autonomo", salario_base: 0, valor_por_sessao: 0, comissao_percentual: 0 });
+        setLoading(false);
+      });
+    return () => { active = false; };
+  }, [profId]);
+
+  if (loading || !cfg) {
+    return <div className="rounded-lg border p-3 text-xs text-muted-foreground">Carregando remuneração…</div>;
+  }
+
+  const forma = cfg.forma_repasse ?? "por_sessao";
+  const set = (patch: any) => setCfg({ ...cfg, ...patch });
+
+  async function salvar() {
+    setSaving(true);
+    try {
+      const payload = {
+        profissional_id: profId,
+        forma_repasse: forma,
+        vinculo: cfg.vinculo ?? "autonomo",
+        salario_base: Number(cfg.salario_base || 0),
+        valor_por_sessao: Number(cfg.valor_por_sessao || 0),
+        comissao_percentual: Number(cfg.comissao_percentual || 0),
+      };
+      const { error } = await supabase.from("colaborador_config").upsert(payload, { onConflict: "profissional_id" });
+      if (error) throw error;
+      toast.success("Remuneração salva — já vale na Folha");
+    } catch (e: any) {
+      toast.error(e?.message ?? "Erro");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <div className="rounded-lg border p-3 space-y-3">
+      <div className="flex items-center gap-2">
+        <Wallet className="h-4 w-4 text-brand" />
+        <Label className="text-sm">Forma de remuneração (folha de pagamento)</Label>
+      </div>
+
+      <div>
+        <Label className="text-xs text-muted-foreground">Forma de repasse</Label>
+        <Select value={forma} onValueChange={(v) => set({ forma_repasse: v })}>
+          <SelectTrigger><SelectValue /></SelectTrigger>
+          <SelectContent>
+            {FORMAS_REPASSE_EQUIPE.map((f) => <SelectItem key={f.value} value={f.value}>{f.label}</SelectItem>)}
+          </SelectContent>
+        </Select>
+      </div>
+
+      {forma === "fixo_mensal" && (
+        <div>
+          <Label className="text-xs text-muted-foreground">Valor fixo mensal (R$)</Label>
+          <Input type="number" step="0.01" value={cfg.salario_base ?? 0} onChange={(e) => set({ salario_base: Number(e.target.value) })} />
+        </div>
+      )}
+      {forma === "por_sessao" && (
+        <div>
+          <Label className="text-xs text-muted-foreground">Valor por sessão (R$)</Label>
+          <Input type="number" step="0.01" value={cfg.valor_por_sessao ?? 0} onChange={(e) => set({ valor_por_sessao: Number(e.target.value) })} />
+        </div>
+      )}
+      {forma === "percentual" && (
+        <div>
+          <Label className="text-xs text-muted-foreground">% sobre a receita</Label>
+          <Input type="number" step="0.01" value={cfg.comissao_percentual ?? 0} onChange={(e) => set({ comissao_percentual: Number(e.target.value) })} />
+        </div>
+      )}
+      {forma === "por_paciente" && (
+        <p className="text-[11px] text-muted-foreground">
+          Os valores por paciente são definidos em <strong>Financeiro › Folha › Configurar</strong>, onde cada paciente recebe um valor por sessão ou fixo no mês.
+        </p>
+      )}
+
+      <div>
+        <Label className="text-xs text-muted-foreground">Vínculo</Label>
+        <Select value={cfg.vinculo ?? "autonomo"} onValueChange={(v) => set({ vinculo: v })}>
+          <SelectTrigger><SelectValue /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="clt">CLT</SelectItem>
+            <SelectItem value="pj">PJ</SelectItem>
+            <SelectItem value="autonomo">Autônomo</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+
+      <Button size="sm" variant="outline" onClick={salvar} disabled={saving}>
+        {saving && <Loader2 className="mr-2 h-3 w-3 animate-spin" />}Salvar remuneração
+      </Button>
+    </div>
+  );
+}
+
+/* ============== DASHBOARD POR ESPECIALIDADE ============== */
+function DashboardEspecialidades({ especialidades }: { especialidades: { id: string; nome: string }[] }) {
+  const { data: profs } = useQuery({
+    queryKey: ["equipe-por-especialidade"],
+    queryFn: async () => {
+      const { data: pc } = await supabase
+        .from("profissionais_consultorio")
+        .select("id, nome, user_id, especialidade_id, cor, email, ativo")
+        .eq("ativo", true)
+        .order("nome");
+      const ids = (pc ?? []).map((p) => p.user_id).filter(Boolean) as string[];
+      const { data: profiles } = ids.length
+        ? await supabase.from("profiles").select("id, nome, avatar_url").in("id", ids)
+        : { data: [] as any[] };
+      return (pc ?? []).map((p) => ({
+        ...p,
+        avatar_url: (profiles ?? []).find((x: any) => x.id === p.user_id)?.avatar_url ?? null,
+      }));
+    },
+  });
+
+  const lista = profs ?? [];
+  const grupos = [
+    ...especialidades.map((e) => ({ id: e.id, nome: e.nome, membros: lista.filter((p) => p.especialidade_id === e.id) })),
+    { id: "__sem__", nome: "Sem especialidade", membros: lista.filter((p) => !p.especialidade_id) },
+  ].filter((g) => g.membros.length > 0);
+
+  if (lista.length === 0) {
+    return <Card className="glass p-8 text-center text-muted-foreground">Nenhum profissional cadastrado ainda.</Card>;
+  }
+
+  return (
+    <div className="space-y-6">
+      {grupos.map((g) => (
+        <div key={g.id}>
+          <div className="mb-2 flex items-center gap-2">
+            <Stethoscope className="h-4 w-4 text-brand" />
+            <h3 className="font-semibold">{g.nome}</h3>
+            <Badge variant="outline">{g.membros.length}</Badge>
+          </div>
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {g.membros.map((p: any) => (
+              <Card key={p.id} className="glass card-lift flex items-center gap-3 p-4">
+                <Avatar className="h-12 w-12" style={p.cor ? { boxShadow: `0 0 0 2px ${p.cor}` } : undefined}>
+                  {p.avatar_url && <AvatarImage src={p.avatar_url} />}
+                  <AvatarFallback className="gradient-brand text-brand-foreground">
+                    {(p.nome ?? "?").split(" ").map((s: string) => s[0]).slice(0, 2).join("")}
+                  </AvatarFallback>
+                </Avatar>
+                <div className="min-w-0">
+                  <p className="font-medium truncate">{p.nome}</p>
+                  {p.email && (
+                    <p className="flex items-center gap-1 text-xs text-muted-foreground truncate">
+                      <Mail className="h-3 w-3" />{p.email}
+                    </p>
+                  )}
+                </div>
+              </Card>
+            ))}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/* ============== ESPECIALIDADES (CRUD) ============== */
+function EspecialidadesCrud({ isAdmin }: { isAdmin: boolean }) {
+  const qc = useQueryClient();
+  const [novo, setNovo] = useState("");
+  const { data: rows } = useQuery({
+    queryKey: ["config", "especialidades"],
+    queryFn: async () => (await supabase.from("especialidades").select("*").order("nome")).data ?? [],
+  });
+  const add = useMutation({
+    mutationFn: async (nome: string) => {
+      const { error } = await supabase.from("especialidades").insert({ nome: nome.trim() });
+      if (error) throw error;
+    },
+    onSuccess: () => { setNovo(""); qc.invalidateQueries({ queryKey: ["config", "especialidades"] }); qc.invalidateQueries({ queryKey: ["especialidades-equipe"] }); toast.success("Especialidade adicionada"); },
+    onError: (e: any) => toast.error(e?.message ?? "Erro"),
+  });
+  const del = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from("especialidades").delete().eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["config", "especialidades"] }); qc.invalidateQueries({ queryKey: ["especialidades-equipe"] }); toast.success("Removida"); },
+    onError: (e: any) => toast.error(e?.message ?? "Erro"),
+  });
+
+  return (
+    <Card className="glass p-5 space-y-4 max-w-xl">
+      <div>
+        <h3 className="font-medium">Especialidades</h3>
+        <p className="text-sm text-muted-foreground">Áreas de atuação usadas para classificar os profissionais e colorir a agenda.</p>
+      </div>
+      {isAdmin && (
+        <div className="flex gap-2">
+          <Input placeholder="Ex.: Psicopedagogia, Fonoaudiologia…" value={novo} onChange={(e) => setNovo(e.target.value)}
+            onKeyDown={(e) => { if (e.key === "Enter" && novo.trim()) add.mutate(novo); }} />
+          <Button onClick={() => novo.trim() && add.mutate(novo)} disabled={add.isPending} className="gradient-brand text-white">
+            <Plus className="h-4 w-4 mr-1" />Adicionar
+          </Button>
+        </div>
+      )}
+      <div className="space-y-2">
+        {(rows ?? []).length === 0 && <p className="text-sm text-muted-foreground">Nenhuma especialidade cadastrada.</p>}
+        {(rows ?? []).map((e: any) => (
+          <div key={e.id} className="flex items-center justify-between rounded-lg border px-3 py-2">
+            <span className="text-sm">{e.nome}</span>
+            {isAdmin && (
+              <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-destructive"
+                onClick={() => { if (confirm(`Remover "${e.nome}"?`)) del.mutate(e.id); }}>
+                <Trash2 className="h-4 w-4" />
+              </Button>
+            )}
+          </div>
+        ))}
+      </div>
+    </Card>
+  );
+}
+
+/* ============== PROFISSIONAIS EXTERNOS (CRUD) ============== */
+function ProfissionaisExternos({ isAdmin }: { isAdmin: boolean }) {
+  const qc = useQueryClient();
+  const [editing, setEditing] = useState<any>(null);
+  const [open, setOpen] = useState(false);
+  const { data: rows } = useQuery({
+    queryKey: ["config", "profissionais_externos"],
+    queryFn: async () => (await supabase.from("profissionais_externos").select("*").order("nome")).data ?? [],
+  });
+  const del = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from("profissionais_externos").delete().eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["config", "profissionais_externos"] }); toast.success("Removido"); },
+    onError: (e: any) => toast.error(e?.message ?? "Erro"),
+  });
+
+  return (
+    <div className="space-y-4">
+      <Card className="glass p-4 text-sm">
+        <p className="font-medium">O que são profissionais externos?</p>
+        <p className="text-muted-foreground">
+          Prestadores que apoiam o negócio mas não atendem pacientes — por exemplo <strong>Marketing, Comercial,
+          Social media, Contabilidade, TI, Design</strong>. Ficam registrados aqui com contato e área de atuação,
+          separados da equipe clínica.
+        </p>
+      </Card>
+
+      {isAdmin && (
+        <div className="flex justify-end">
+          <Button className="gradient-brand text-white" onClick={() => { setEditing(null); setOpen(true); }}>
+            <Plus className="h-4 w-4 mr-1" />Novo profissional externo
+          </Button>
+        </div>
+      )}
+
+      <div className="grid gap-3 sm:grid-cols-2">
+        {(rows ?? []).length === 0 && <p className="text-sm text-muted-foreground">Nenhum profissional externo cadastrado.</p>}
+        {(rows ?? []).map((p: any) => (
+          <Card key={p.id} className="glass p-4">
+            <div className="flex items-start justify-between gap-2">
+              <div className="min-w-0">
+                <p className="font-medium truncate">{p.nome}</p>
+                {p.observacoes && <Badge variant="outline" className="mt-1 gap-1"><Briefcase className="h-3 w-3" />{p.observacoes}</Badge>}
+                <div className="mt-2 space-y-0.5">
+                  {p.telefone && <p className="flex items-center gap-1 text-xs text-muted-foreground"><Phone className="h-3 w-3" />{p.telefone}</p>}
+                  {p.email && <p className="flex items-center gap-1 text-xs text-muted-foreground"><Mail className="h-3 w-3" />{p.email}</p>}
+                </div>
+              </div>
+              {isAdmin && (
+                <div className="flex shrink-0 gap-1">
+                  <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => { setEditing(p); setOpen(true); }}>
+                    <Pencil className="h-4 w-4" />
+                  </Button>
+                  <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-destructive"
+                    onClick={() => { if (confirm(`Remover "${p.nome}"?`)) del.mutate(p.id); }}>
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
+              )}
+            </div>
+          </Card>
+        ))}
+      </div>
+
+      <ExternoDialog open={open} onOpenChange={setOpen} editing={editing}
+        onSaved={() => qc.invalidateQueries({ queryKey: ["config", "profissionais_externos"] })} />
+    </div>
+  );
+}
+
+function ExternoDialog({ open, onOpenChange, editing, onSaved }: any) {
+  const [form, setForm] = useState<any>({ nome: "", observacoes: "", telefone: "", email: "" });
+  const [saving, setSaving] = useState(false);
+  useEffect(() => {
+    if (open) setForm(editing ?? { nome: "", observacoes: "", telefone: "", email: "" });
+  }, [open, editing]);
+
+  async function salvar() {
+    if (!form.nome?.trim()) return toast.error("Informe o nome");
+    setSaving(true);
+    try {
+      const payload = {
+        nome: form.nome.trim(),
+        observacoes: form.observacoes?.trim() || null,
+        telefone: form.telefone?.trim() || null,
+        email: form.email?.trim() || null,
+      };
+      if (editing?.id) {
+        const { error } = await supabase.from("profissionais_externos").update(payload).eq("id", editing.id);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase.from("profissionais_externos").insert(payload);
+        if (error) throw error;
+      }
+      toast.success("Salvo");
+      onSaved(); onOpenChange(false);
+    } catch (e: any) {
+      toast.error(e?.message ?? "Erro");
+    } finally { setSaving(false); }
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent>
+        <DialogHeader><DialogTitle>{editing ? "Editar" : "Novo"} profissional externo</DialogTitle></DialogHeader>
+        <div className="space-y-3">
+          <div>
+            <Label>Nome</Label>
+            <Input value={form.nome} onChange={(e) => setForm({ ...form, nome: e.target.value })} />
+          </div>
+          <div>
+            <Label>Área / função</Label>
+            <Input placeholder="Ex.: Marketing, Comercial, Social media…" value={form.observacoes ?? ""} onChange={(e) => setForm({ ...form, observacoes: e.target.value })} />
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <Label>Telefone</Label>
+              <Input value={form.telefone ?? ""} onChange={(e) => setForm({ ...form, telefone: e.target.value })} />
+            </div>
+            <div>
+              <Label>E-mail</Label>
+              <Input type="email" value={form.email ?? ""} onChange={(e) => setForm({ ...form, email: e.target.value })} />
+            </div>
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
+          <Button onClick={salvar} disabled={saving} className="gradient-brand text-white">Salvar</Button>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   );

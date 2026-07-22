@@ -37,16 +37,6 @@ const GROUPS: { key: string; label: string; icon: React.ComponentType<{ classNam
     ],
   },
   {
-    key: "equipe", label: "Equipe", icon: UsersIcon,
-    tabs: [
-      // Profissionais internos agora são gerenciados na página "Equipe"
-      // (nome, especialidade e cor da agenda). Aqui ficam apenas os
-      // catálogos de apoio e os profissionais externos.
-      { key: "profissionais_externos", label: "Profissionais externos", fields: ["nome", "telefone", "email"] },
-      { key: "especialidades", label: "Especialidades", fields: ["nome"] },
-    ],
-  },
-  {
     key: "clinico", label: "Catálogo clínico", icon: BookOpen,
     tabs: [
       { key: "diagnosticos", label: "Diagnósticos", fields: ["codigo", "nome", "descricao"] },
