@@ -117,9 +117,14 @@ export const CATEGORIAS_AJUDA: CategoriaAjuda[] = [
             ],
           },
           {
+            t: "p",
+            texto:
+              "No Dashboard você encontra o tutorial guiado “Conheça o Pensya”: um passo a passo que usa a Sofia para apresentar cada área do sistema, marcando seu progresso conforme você avança. Se você dispensou o tutorial, é possível retomá-lo pelo botão “Retomar tutorial” aqui na Central de Ajuda.",
+          },
+          {
             t: "dica",
             texto:
-              "Ocultar o modelo vale para toda a clínica e é reversível a qualquer momento — nada é apagado.",
+              "Ocultar o modelo vale para toda a clínica e é reversível a qualquer momento — nada é apagado. O progresso do tutorial é individual: cada pessoa da equipe faz o próprio tour.",
           },
         ],
       },
