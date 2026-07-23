@@ -10,7 +10,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Mockup } from "@/components/shared/AjudaMockups";
 import { useTutorialGuiado, type PassoTutorial } from "@/lib/tutorial-guiado";
-import { GraduationCap, ArrowRight, ListChecks, X } from "lucide-react";
+import { GraduationCap, ArrowRight, ListChecks, X, RotateCcw } from "lucide-react";
 import { toast } from "sonner";
 
 /**
@@ -96,6 +96,17 @@ export function TourProvider({ children }: { children: ReactNode }) {
               <p className="truncate text-sm font-medium">{passo.titulo}</p>
             </div>
             <div className="flex shrink-0 items-center gap-1.5 pl-1">
+              {index > 0 && (
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  className="h-8 w-8 text-white/70 hover:bg-white/10 hover:text-white"
+                  title="Voltar ao passo 1"
+                  onClick={() => abrirEm(0)}
+                >
+                  <RotateCcw className="h-4 w-4" />
+                </Button>
+              )}
               <Button
                 size="sm"
                 variant="ghost"
@@ -132,9 +143,19 @@ export function TourProvider({ children }: { children: ReactNode }) {
           {passo && (
             <>
               <DialogHeader>
-                <p className="text-[11px] font-medium uppercase tracking-wider text-brand">
-                  Passo {index + 1} de {total}
-                </p>
+                <div className="flex items-center gap-2.5">
+                  <p className="text-[11px] font-medium uppercase tracking-wider text-brand">
+                    Passo {index + 1} de {total}
+                  </p>
+                  {index > 0 && (
+                    <button
+                      onClick={() => abrirEm(0)}
+                      className="flex items-center gap-1 text-[11px] text-muted-foreground transition-colors hover:text-brand"
+                    >
+                      <RotateCcw className="h-3 w-3" /> Voltar ao passo 1
+                    </button>
+                  )}
+                </div>
                 <DialogTitle className="flex items-start gap-2.5 text-left">
                   <span className="grid h-7 w-7 shrink-0 place-items-center rounded-full gradient-brand text-brand-foreground">
                     <GraduationCap className="h-4 w-4" />
