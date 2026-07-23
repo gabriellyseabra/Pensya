@@ -50,6 +50,7 @@ import {
 } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { SmartCard } from "@/components/shared/SmartCard";
+import { SetupChecklistCard } from "@/components/shared/SetupChecklistCard";
 import { cn } from "@/lib/utils";
 import { listarMetasEstagnadas } from "@/lib/insights.functions";
 import { clinicaLogoUrl, getMinhaOrganizacao } from "@/lib/clinica-config";
@@ -670,6 +671,9 @@ function DashboardPage() {
             </div>
           </div>
         </div>
+
+        {/* Primeiros passos — some quando a clínica já está configurada */}
+        <SetupChecklistCard />
 
         {/* Três cartões: pacientes de hoje · recebido · presença */}
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
