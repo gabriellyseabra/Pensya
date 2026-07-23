@@ -5,9 +5,21 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
-  Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger,
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
 } from "@/components/ui/dialog";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { Upload, Loader2, FileSpreadsheet, ChevronDown, ChevronRight, X } from "lucide-react";
@@ -32,6 +44,15 @@ type Row = {
   responsavel_email?: string | null;
   responsavel_documento?: string | null;
   responsavel_parentesco?: string | null;
+  responsavel2_nome?: string | null;
+  profissional_responsavel?: string | null;
+  especialidade?: string | null;
+  diagnostico?: string | null;
+  modalidade?: string | null;
+  local_atendimento?: string | null;
+  status?: string | null;
+  data_ultima_avaliacao?: string | null;
+  data_alta?: string | null;
   convenio?: string | null;
   queixa_principal?: string | null;
   expectativas?: string | null;
@@ -54,6 +75,15 @@ const EXTRA_FIELDS: { key: keyof Row; label: string; type?: string }[] = [
   { key: "endereco", label: "Endereço" },
   { key: "escolaridade", label: "Escolaridade" },
   { key: "contato_escola", label: "Contato da escola" },
+  { key: "diagnostico", label: "Diagnóstico" },
+  { key: "modalidade", label: "Modalidade" },
+  { key: "status", label: "Status" },
+  { key: "profissional_responsavel", label: "Profissional responsável" },
+  { key: "especialidade", label: "Especialidade" },
+  { key: "local_atendimento", label: "Local de atendimento" },
+  { key: "data_ultima_avaliacao", label: "Última avaliação", type: "date" },
+  { key: "data_alta", label: "Data da alta", type: "date" },
+  { key: "responsavel2_nome", label: "Responsável 2" },
   { key: "responsavel_email", label: "Email do responsável" },
   { key: "responsavel_documento", label: "Documento do responsável" },
   { key: "responsavel_parentesco", label: "Parentesco do responsável" },
@@ -86,7 +116,11 @@ export function ImportarPacientesDialog({ onDone }: { onDone?: () => void }) {
     setFileName(file.name);
     setRows([]);
     try {
-      const lista: Row[] = (await parsearPlanilhaPacientes(file)).map((p) => ({ ...p, _check: true, _expanded: false }));
+      const lista: Row[] = (await parsearPlanilhaPacientes(file)).map((p) => ({
+        ...p,
+        _check: true,
+        _expanded: false,
+      }));
       if (lista.length === 0) toast.warning("Nenhum paciente identificado no arquivo.");
       setRows(lista);
     } catch (e: any) {
@@ -103,7 +137,20 @@ export function ImportarPacientesDialog({ onDone }: { onDone?: () => void }) {
       return criar({ data: { pacientes: selecionados.map(({ _check, _expanded, ...r }) => r) } });
     },
     onSuccess: (res: any) => {
-      toast.success(`${res.criados} pacientes criados${res.escolasCriadas ? ` · ${res.escolasCriadas} escolas` : ""}`);
+      toast.success(
+        `${res.criados} pacientes criados${res.escolasCriadas ? ` · ${res.escolasCriadas} escolas` : ""}`,
+      );
+      if (res.avisos?.length) {
+        toast.warning(
+          `${res.avisos.length} aviso(s): confira modalidade/profissional não reconhecidos`,
+          {
+            description: res.avisos
+              .slice(0, 4)
+              .map((a: any) => `${a.nome}: ${a.aviso}`)
+              .join(" · "),
+          },
+        );
+      }
       if (res.erros?.length) toast.warning(`${res.erros.length} com erro`);
       setOpen(false);
       setRows([]);
@@ -155,7 +202,11 @@ export function ImportarPacientesDialog({ onDone }: { onDone?: () => void }) {
                 />
               </Label>
               <p className="text-xs text-muted-foreground mt-1">
-                Formatos suportados: .xlsx, .xls, .csv. Os dados são extraídos automaticamente a partir dos cabeçalhos das colunas e exibidos em um preview editável — sem uso de IA.
+                Formatos suportados: .xlsx, .xls, .csv. Os dados são reconhecidos automaticamente
+                pelos cabeçalhos das colunas — inclusive a exportação direta do SisClin (a linha de
+                cabeçalho é detectada sozinha) — e exibidos em um preview editável, sem uso de IA.
+                Modalidade, profissional responsável e diagnóstico são casados com os cadastros da
+                sua clínica.
               </p>
             </div>
             {parsing && (
@@ -172,7 +223,9 @@ export function ImportarPacientesDialog({ onDone }: { onDone?: () => void }) {
                   <TableHead className="w-10">
                     <Checkbox
                       checked={rows.every((r) => r._check)}
-                      onCheckedChange={(v) => setRows((rr) => rr.map((r) => ({ ...r, _check: !!v })))}
+                      onCheckedChange={(v) =>
+                        setRows((rr) => rr.map((r) => ({ ...r, _check: !!v })))
+                      }
                     />
                   </TableHead>
                   <TableHead className="w-8" />
@@ -191,7 +244,12 @@ export function ImportarPacientesDialog({ onDone }: { onDone?: () => void }) {
                   return (
                     <Fragment key={i}>
                       <TableRow>
-                        <TableCell><Checkbox checked={r._check} onCheckedChange={(v) => updateRow(i, { _check: !!v })} /></TableCell>
+                        <TableCell>
+                          <Checkbox
+                            checked={r._check}
+                            onCheckedChange={(v) => updateRow(i, { _check: !!v })}
+                          />
+                        </TableCell>
                         <TableCell>
                           {extra > 0 && (
                             <button
@@ -199,16 +257,57 @@ export function ImportarPacientesDialog({ onDone }: { onDone?: () => void }) {
                               onClick={() => updateRow(i, { _expanded: !r._expanded })}
                               className="text-muted-foreground hover:text-foreground"
                             >
-                              {r._expanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+                              {r._expanded ? (
+                                <ChevronDown className="h-4 w-4" />
+                              ) : (
+                                <ChevronRight className="h-4 w-4" />
+                              )}
                             </button>
                           )}
                         </TableCell>
-                        <TableCell><Input className="h-8" value={r.nome ?? ""} onChange={(e) => updateRow(i, { nome: e.target.value })} /></TableCell>
-                        <TableCell><Input className="h-8 w-32" type="date" value={r.data_nascimento ?? ""} onChange={(e) => updateRow(i, { data_nascimento: e.target.value })} /></TableCell>
-                        <TableCell><Input className="h-8" value={r.responsavel_nome ?? ""} onChange={(e) => updateRow(i, { responsavel_nome: e.target.value })} /></TableCell>
-                        <TableCell><Input className="h-8" value={r.responsavel_telefone ?? ""} onChange={(e) => updateRow(i, { responsavel_telefone: e.target.value })} /></TableCell>
-                        <TableCell><Input className="h-8" value={r.escola ?? ""} onChange={(e) => updateRow(i, { escola: e.target.value })} /></TableCell>
-                        <TableCell><Input className="h-8 w-24" value={r.serie_curso ?? ""} onChange={(e) => updateRow(i, { serie_curso: e.target.value })} /></TableCell>
+                        <TableCell>
+                          <Input
+                            className="h-8"
+                            value={r.nome ?? ""}
+                            onChange={(e) => updateRow(i, { nome: e.target.value })}
+                          />
+                        </TableCell>
+                        <TableCell>
+                          <Input
+                            className="h-8 w-32"
+                            type="date"
+                            value={r.data_nascimento ?? ""}
+                            onChange={(e) => updateRow(i, { data_nascimento: e.target.value })}
+                          />
+                        </TableCell>
+                        <TableCell>
+                          <Input
+                            className="h-8"
+                            value={r.responsavel_nome ?? ""}
+                            onChange={(e) => updateRow(i, { responsavel_nome: e.target.value })}
+                          />
+                        </TableCell>
+                        <TableCell>
+                          <Input
+                            className="h-8"
+                            value={r.responsavel_telefone ?? ""}
+                            onChange={(e) => updateRow(i, { responsavel_telefone: e.target.value })}
+                          />
+                        </TableCell>
+                        <TableCell>
+                          <Input
+                            className="h-8"
+                            value={r.escola ?? ""}
+                            onChange={(e) => updateRow(i, { escola: e.target.value })}
+                          />
+                        </TableCell>
+                        <TableCell>
+                          <Input
+                            className="h-8 w-24"
+                            value={r.serie_curso ?? ""}
+                            onChange={(e) => updateRow(i, { serie_curso: e.target.value })}
+                          />
+                        </TableCell>
                         <TableCell>
                           {extra > 0 ? (
                             <Badge
@@ -232,13 +331,17 @@ export function ImportarPacientesDialog({ onDone }: { onDone?: () => void }) {
                                 if (!value && value !== 0) return null;
                                 return (
                                   <div key={String(f.key)} className="space-y-1">
-                                    <Label className="text-xs text-muted-foreground">{f.label}</Label>
+                                    <Label className="text-xs text-muted-foreground">
+                                      {f.label}
+                                    </Label>
                                     <div className="flex items-center gap-1">
                                       <Input
                                         className="h-8"
                                         type={f.type ?? "text"}
                                         value={value ?? ""}
-                                        onChange={(e) => updateRow(i, { [f.key]: e.target.value } as Partial<Row>)}
+                                        onChange={(e) =>
+                                          updateRow(i, { [f.key]: e.target.value } as Partial<Row>)
+                                        }
                                       />
                                       <Button
                                         type="button"
@@ -268,9 +371,19 @@ export function ImportarPacientesDialog({ onDone }: { onDone?: () => void }) {
 
         <DialogFooter>
           {rows.length > 0 && (
-            <Button variant="ghost" onClick={() => { setRows([]); setFileName(""); }}>Recomeçar</Button>
+            <Button
+              variant="ghost"
+              onClick={() => {
+                setRows([]);
+                setFileName("");
+              }}
+            >
+              Recomeçar
+            </Button>
           )}
-          <Button variant="outline" onClick={() => setOpen(false)}>Fechar</Button>
+          <Button variant="outline" onClick={() => setOpen(false)}>
+            Fechar
+          </Button>
           {rows.length > 0 && (
             <Button
               onClick={() => criarMut.mutate()}

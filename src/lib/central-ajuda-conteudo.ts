@@ -627,12 +627,26 @@ export const CATEGORIAS_AJUDA: CategoriaAjuda[] = [
       },
       {
         id: "importar-dados",
-        titulo: "Importar dados de planilhas",
+        titulo: "Importar pacientes de planilhas (Excel, CSV ou SisClin)",
         corpo: [
           {
             t: "p",
             texto:
-              "Se a clínica vem de planilhas ou de outro sistema, a página Importar centraliza a carga de dados. Prepare os arquivos conforme o modelo indicado na própria página e confira os dados após a importação.",
+              "Em Pacientes, use “Importar arquivo” para trazer sua base de uma planilha Excel/CSV ou da exportação direta do SisClin. Você não precisa deixar a planilha em um formato específico: o sistema reconhece as colunas pelos nomes dos cabeçalhos e, no caso do SisClin, detecta sozinho a linha de cabeçalho (ignorando as linhas de título e de grupos no topo do arquivo).",
+          },
+          {
+            t: "passos",
+            itens: [
+              "Abra Pacientes e clique em “Importar arquivo”.",
+              "Selecione o .xlsx, .xls ou .csv — inclusive o export do SisClin, sem edição.",
+              "Confira o preview: cada linha vira um paciente, com os campos já preenchidos e editáveis. Abra “Mais dados” para ver diagnóstico, modalidade, status, profissional responsável e datas.",
+              "Desmarque quem não quer importar e clique em “Confirmar e criar”.",
+            ],
+          },
+          {
+            t: "dica",
+            texto:
+              "Modalidade, profissional responsável e diagnóstico são casados com os cadastros da sua clínica — por isso vale cadastrar a equipe e as modalidades antes de importar, para que o vínculo do paciente com a profissional já venha pronto. Diagnósticos novos e “em investigação” são tratados automaticamente. Se algo não for reconhecido, um aviso aparece ao final e você ajusta na ficha.",
           },
         ],
       },
