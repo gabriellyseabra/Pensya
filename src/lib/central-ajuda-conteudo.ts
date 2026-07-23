@@ -99,6 +99,31 @@ export const CATEGORIAS_AJUDA: CategoriaAjuda[] = [
         ],
       },
       {
+        id: "paciente-modelo",
+        titulo: "Paciente modelo: um tutorial vivo dentro do sistema",
+        corpo: [
+          {
+            t: "p",
+            texto:
+              "Toda clínica no Pensya começa com a Sofia, uma paciente fictícia com a ficha completa preenchida: cadastro, responsáveis, anamnese, diagnóstico, plano terapêutico com metas e escala GAS, sessões registradas no prontuário e frequência na agenda. Ela existe para você explorar cada funcionalidade vendo dados de verdade — sem medo de mexer em paciente real.",
+          },
+          {
+            t: "passos",
+            itens: [
+              "Abra Pacientes e clique em “Sofia (Paciente Modelo)” — ela tem o selo “modelo”.",
+              "Percorra as abas da ficha: cadastro, anamnese, prontuário com as evoluções, plano terapêutico com as metas e GAS.",
+              "Edite, registre uma sessão de teste, gere um documento — tudo é fictício e pode ser alterado à vontade.",
+              "Quando não precisar mais, clique em “Ocultar paciente modelo” na lista de pacientes. Para trazê-la de volta, use “Mostrar paciente modelo” no mesmo lugar.",
+            ],
+          },
+          {
+            t: "dica",
+            texto:
+              "Ocultar o modelo vale para toda a clínica e é reversível a qualquer momento — nada é apagado.",
+          },
+        ],
+      },
+      {
         id: "acessar-conta",
         titulo: "Acesso à conta e redefinição de senha",
         corpo: [

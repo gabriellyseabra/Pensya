@@ -23,6 +23,7 @@ export type Organizacao = {
   status: string;
   cor_tema: string;
   emite_nf: boolean;
+  mostrar_paciente_modelo: boolean;
 };
 
 export type CorTema = "roxo" | "azul" | "preto";
