@@ -632,13 +632,14 @@ export const CATEGORIAS_AJUDA: CategoriaAjuda[] = [
           {
             t: "p",
             texto:
-              "Em Pacientes, use “Importar arquivo” para trazer sua base de uma planilha Excel/CSV ou da exportação direta do SisClin. Você não precisa deixar a planilha em um formato específico: o sistema reconhece as colunas pelos nomes dos cabeçalhos e, no caso do SisClin, detecta sozinho a linha de cabeçalho (ignorando as linhas de título e de grupos no topo do arquivo).",
+              "Em Pacientes, use “Importar arquivo” para trazer sua base de duas maneiras: enviando uma planilha (Excel/CSV ou a exportação direta do SisClin) ou colando os dados direto da sua planilha. Você não precisa deixar a planilha em um formato específico: o sistema reconhece as colunas pelos nomes dos cabeçalhos e, no caso do SisClin, detecta sozinho a linha de cabeçalho (ignorando as linhas de título e de grupos no topo do arquivo).",
           },
           {
             t: "passos",
             itens: [
               "Abra Pacientes e clique em “Importar arquivo”.",
-              "Selecione o .xlsx, .xls ou .csv — inclusive o export do SisClin, sem edição.",
+              "Aba “Enviar arquivo”: selecione o .xlsx, .xls ou .csv — inclusive o export do SisClin, sem edição.",
+              "Ou aba “Colar da planilha”: no Excel/Google Sheets, selecione as linhas incluindo a linha de títulos das colunas, copie (Ctrl+C) e cole (Ctrl+V).",
               "Confira o preview: cada linha vira um paciente, com os campos já preenchidos e editáveis. Abra “Mais dados” para ver diagnóstico, modalidade, status, profissional responsável e datas.",
               "Desmarque quem não quer importar e clique em “Confirmar e criar”.",
             ],

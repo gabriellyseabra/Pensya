@@ -22,10 +22,20 @@ import {
 } from "@/components/ui/table";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
-import { Upload, Loader2, FileSpreadsheet, ChevronDown, ChevronRight, X } from "lucide-react";
+import { Textarea } from "@/components/ui/textarea";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  Upload,
+  Loader2,
+  FileSpreadsheet,
+  ChevronDown,
+  ChevronRight,
+  X,
+  ClipboardPaste,
+} from "lucide-react";
 import { toast } from "sonner";
 import { criarPacientesEmLote } from "@/lib/importar-pacientes.functions";
-import { parsearPlanilhaPacientes } from "@/lib/importar-pacientes-parser";
+import { parsearPlanilhaPacientes, parsearTextoColado } from "@/lib/importar-pacientes-parser";
 
 type Row = {
   nome: string;
@@ -107,27 +117,39 @@ export function ImportarPacientesDialog({ onDone }: { onDone?: () => void }) {
   const [parsing, setParsing] = useState(false);
   const [rows, setRows] = useState<Row[]>([]);
   const [fileName, setFileName] = useState<string>("");
+  const [pasteText, setPasteText] = useState("");
   const qc = useQueryClient();
 
   const criar = useServerFn(criarPacientesEmLote);
 
-  async function handleUpload(file: File) {
+  async function carregar(fonte: () => Promise<Row[]>, vazioMsg: string) {
     setParsing(true);
-    setFileName(file.name);
     setRows([]);
     try {
-      const lista: Row[] = (await parsearPlanilhaPacientes(file)).map((p) => ({
-        ...p,
-        _check: true,
-        _expanded: false,
-      }));
-      if (lista.length === 0) toast.warning("Nenhum paciente identificado no arquivo.");
+      const lista = (await fonte()).map((p) => ({ ...p, _check: true, _expanded: false }));
+      if (lista.length === 0) toast.warning(vazioMsg);
       setRows(lista);
     } catch (e: any) {
-      toast.error(e?.message ?? "Falha ao processar arquivo");
+      toast.error(e?.message ?? "Falha ao processar os dados");
     } finally {
       setParsing(false);
     }
+  }
+
+  function handleUpload(file: File) {
+    setFileName(file.name);
+    carregar(() => parsearPlanilhaPacientes(file), "Nenhum paciente identificado no arquivo.");
+  }
+
+  function handlePaste() {
+    if (!pasteText.trim()) {
+      toast.warning("Cole os dados da planilha primeiro.");
+      return;
+    }
+    carregar(
+      () => parsearTextoColado(pasteText),
+      "Nenhum paciente identificado. Verifique se você incluiu a linha de títulos das colunas.",
+    );
   }
 
   const criarMut = useMutation({
@@ -155,6 +177,7 @@ export function ImportarPacientesDialog({ onDone }: { onDone?: () => void }) {
       setOpen(false);
       setRows([]);
       setFileName("");
+      setPasteText("");
       qc.invalidateQueries({ queryKey: ["pacientes"] });
       onDone?.();
     },
@@ -179,42 +202,90 @@ export function ImportarPacientesDialog({ onDone }: { onDone?: () => void }) {
       <DialogContent className="glass-strong max-w-6xl max-h-[90vh] flex flex-col">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <FileSpreadsheet className="h-4 w-4 text-brand" /> Importar pacientes (Excel, CSV)
+            <FileSpreadsheet className="h-4 w-4 text-brand" /> Importar pacientes (arquivo ou colar)
           </DialogTitle>
         </DialogHeader>
 
         {rows.length === 0 ? (
-          <div className="border-2 border-dashed rounded-lg p-10 text-center space-y-3">
-            <Upload className="h-10 w-10 mx-auto text-muted-foreground" />
-            <div>
-              <Label htmlFor="upload-file" className="cursor-pointer">
-                <span className="text-brand underline">Selecionar arquivo</span>
-                <Input
-                  id="upload-file"
-                  type="file"
-                  accept=".xlsx,.xls,.csv"
-                  className="hidden"
-                  disabled={parsing}
-                  onChange={(e) => {
-                    const f = e.target.files?.[0];
-                    if (f) handleUpload(f);
-                  }}
-                />
-              </Label>
-              <p className="text-xs text-muted-foreground mt-1">
-                Formatos suportados: .xlsx, .xls, .csv. Os dados são reconhecidos automaticamente
-                pelos cabeçalhos das colunas — inclusive a exportação direta do SisClin (a linha de
-                cabeçalho é detectada sozinha) — e exibidos em um preview editável, sem uso de IA.
-                Modalidade, profissional responsável e diagnóstico são casados com os cadastros da
-                sua clínica.
-              </p>
-            </div>
-            {parsing && (
-              <div className="flex items-center justify-center gap-2 text-sm">
-                <Loader2 className="h-4 w-4 animate-spin" /> Analisando {fileName}...
+          <Tabs defaultValue="arquivo" className="w-full">
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="arquivo" className="gap-1.5">
+                <Upload className="h-3.5 w-3.5" /> Enviar arquivo
+              </TabsTrigger>
+              <TabsTrigger value="colar" className="gap-1.5">
+                <ClipboardPaste className="h-3.5 w-3.5" /> Colar da planilha
+              </TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="arquivo">
+              <div className="border-2 border-dashed rounded-lg p-10 text-center space-y-3">
+                <Upload className="h-10 w-10 mx-auto text-muted-foreground" />
+                <div>
+                  <Label htmlFor="upload-file" className="cursor-pointer">
+                    <span className="text-brand underline">Selecionar arquivo</span>
+                    <Input
+                      id="upload-file"
+                      type="file"
+                      accept=".xlsx,.xls,.csv"
+                      className="hidden"
+                      disabled={parsing}
+                      onChange={(e) => {
+                        const f = e.target.files?.[0];
+                        if (f) handleUpload(f);
+                      }}
+                    />
+                  </Label>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Formatos suportados: .xlsx, .xls, .csv. Os dados são reconhecidos
+                    automaticamente pelos cabeçalhos das colunas — inclusive a exportação direta do
+                    SisClin (a linha de cabeçalho é detectada sozinha) — e exibidos em um preview
+                    editável, sem uso de IA. Modalidade, profissional responsável e diagnóstico são
+                    casados com os cadastros da sua clínica.
+                  </p>
+                </div>
+                {parsing && (
+                  <div className="flex items-center justify-center gap-2 text-sm">
+                    <Loader2 className="h-4 w-4 animate-spin" /> Analisando {fileName}...
+                  </div>
+                )}
               </div>
-            )}
-          </div>
+            </TabsContent>
+
+            <TabsContent value="colar" className="space-y-3">
+              <p className="text-xs text-muted-foreground">
+                Na sua planilha (Excel ou Google Sheets), selecione as linhas{" "}
+                <strong>incluindo a linha de títulos das colunas</strong> (Nome, Nascimento,
+                Responsável…), copie (Ctrl+C) e cole aqui (Ctrl+V). As colunas são reconhecidas
+                automaticamente, do mesmo jeito que no arquivo.
+              </p>
+              <Textarea
+                value={pasteText}
+                onChange={(e) => setPasteText(e.target.value)}
+                disabled={parsing}
+                rows={10}
+                placeholder={
+                  "Nome\tNascimento\tResponsável\tTelefone\tEscola\n" +
+                  "Maria Silva\t10/03/2017\tJoana Silva\t(11) 90000-0000\tColégio Aurora\n" +
+                  "João Souza\t22/08/2016\tPedro Souza\t(11) 91111-1111\tEscola Nova"
+                }
+                className="font-mono text-xs"
+              />
+              <div className="flex justify-end">
+                <Button
+                  onClick={handlePaste}
+                  disabled={parsing || !pasteText.trim()}
+                  className="gradient-brand text-brand-foreground"
+                >
+                  {parsing ? (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  ) : (
+                    <ClipboardPaste className="mr-2 h-4 w-4" />
+                  )}
+                  Processar dados colados
+                </Button>
+              </div>
+            </TabsContent>
+          </Tabs>
         ) : (
           <div className="flex-1 overflow-auto border rounded-lg">
             <Table>
@@ -376,6 +447,7 @@ export function ImportarPacientesDialog({ onDone }: { onDone?: () => void }) {
               onClick={() => {
                 setRows([]);
                 setFileName("");
+                setPasteText("");
               }}
             >
               Recomeçar

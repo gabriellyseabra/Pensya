@@ -214,6 +214,65 @@ function acharLinhaCabecalho(matriz: unknown[][]): number {
   return melhor;
 }
 
+/** Converte uma matriz (linhas × colunas) em pacientes, detectando o cabeçalho. */
+function linhasDaMatriz(matriz: unknown[][]): PacienteImportRow[] {
+  const linhas: PacienteImportRow[] = [];
+  if (matriz.length === 0) return linhas;
+
+  const idxCabecalho = acharLinhaCabecalho(matriz);
+  if (idxCabecalho < 0) return linhas;
+
+  const cabecalhos = (matriz[idxCabecalho] ?? []).map((c) => String(c ?? ""));
+  const fieldByCol = new Map<number, keyof PacienteImportRow>();
+  cabecalhos.forEach((h, col) => {
+    const field = mapHeader(h);
+    // Não sobrescreve uma coluna já mapeada para o mesmo campo (mantém a 1ª).
+    if (field && ![...fieldByCol.values()].includes(field)) fieldByCol.set(col, field);
+  });
+
+  for (let i = idxCabecalho + 1; i < matriz.length; i++) {
+    const celulas = matriz[i] ?? [];
+    const row: PacienteImportRow = { nome: "" };
+    for (const [col, field] of fieldByCol.entries()) {
+      const value = celulas[col];
+      if (value === "" || value == null) continue;
+
+      if (DATE_FIELDS.has(field)) {
+        (row as any)[field] = parseDateValue(value);
+      } else if (NUMBER_FIELDS.has(field)) {
+        (row as any)[field] = parseNumberValue(value);
+      } else if (field === "genero") {
+        row.genero = normalizeGenero(value);
+      } else if (field === "modelo_pagamento") {
+        row.modelo_pagamento = normalizeModeloPagamento(value);
+      } else {
+        (row as any)[field] = String(value).trim();
+      }
+    }
+    if (row.nome?.trim()) linhas.push(row);
+  }
+
+  return linhas;
+}
+
+async function linhasDoWorkbook(
+  XLSX: typeof import("xlsx"),
+  workbook: ReturnType<typeof import("xlsx").read>,
+): Promise<PacienteImportRow[]> {
+  const linhas: PacienteImportRow[] = [];
+  for (const sheetName of workbook.SheetNames) {
+    const sheet = workbook.Sheets[sheetName];
+    // Lê como matriz (array de arrays), sem assumir onde está o cabeçalho.
+    const matriz: unknown[][] = XLSX.utils.sheet_to_json(sheet, {
+      header: 1,
+      defval: "",
+      blankrows: false,
+    });
+    linhas.push(...linhasDaMatriz(matriz));
+  }
+  return linhas;
+}
+
 export async function parsearPlanilhaPacientes(file: File): Promise<PacienteImportRow[]> {
   const XLSX = await import("xlsx");
   const nome = file.name.toLowerCase();
@@ -225,52 +284,18 @@ export async function parsearPlanilhaPacientes(file: File): Promise<PacienteImpo
     const buf = await file.arrayBuffer();
     workbook = XLSX.read(buf, { type: "array", cellDates: true });
   }
+  return linhasDoWorkbook(XLSX, workbook);
+}
 
-  const linhas: PacienteImportRow[] = [];
-
-  for (const sheetName of workbook.SheetNames) {
-    const sheet = workbook.Sheets[sheetName];
-    // Lê como matriz (array de arrays), sem assumir onde está o cabeçalho.
-    const matriz: unknown[][] = XLSX.utils.sheet_to_json(sheet, {
-      header: 1,
-      defval: "",
-      blankrows: false,
-    });
-    if (matriz.length === 0) continue;
-
-    const idxCabecalho = acharLinhaCabecalho(matriz);
-    if (idxCabecalho < 0) continue;
-
-    const cabecalhos = (matriz[idxCabecalho] ?? []).map((c) => String(c ?? ""));
-    const fieldByCol = new Map<number, keyof PacienteImportRow>();
-    cabecalhos.forEach((h, col) => {
-      const field = mapHeader(h);
-      // Não sobrescreve uma coluna já mapeada para o mesmo campo (mantém a 1ª).
-      if (field && ![...fieldByCol.values()].includes(field)) fieldByCol.set(col, field);
-    });
-
-    for (let i = idxCabecalho + 1; i < matriz.length; i++) {
-      const celulas = matriz[i] ?? [];
-      const row: PacienteImportRow = { nome: "" };
-      for (const [col, field] of fieldByCol.entries()) {
-        const value = celulas[col];
-        if (value === "" || value == null) continue;
-
-        if (DATE_FIELDS.has(field)) {
-          (row as any)[field] = parseDateValue(value);
-        } else if (NUMBER_FIELDS.has(field)) {
-          (row as any)[field] = parseNumberValue(value);
-        } else if (field === "genero") {
-          row.genero = normalizeGenero(value);
-        } else if (field === "modelo_pagamento") {
-          row.modelo_pagamento = normalizeModeloPagamento(value);
-        } else {
-          (row as any)[field] = String(value).trim();
-        }
-      }
-      if (row.nome?.trim()) linhas.push(row);
-    }
-  }
-
-  return linhas;
+/**
+ * Processa dados colados direto de uma planilha (Ctrl+C nas células do Excel
+ * ou Google Sheets → Ctrl+V). O conteúdo vem separado por tabulação (ou por
+ * vírgula/;); o SheetJS detecta o separador automaticamente. Mesma detecção
+ * de cabeçalho e mapeamento de colunas da importação por arquivo.
+ */
+export async function parsearTextoColado(texto: string): Promise<PacienteImportRow[]> {
+  if (!texto?.trim()) return [];
+  const XLSX = await import("xlsx");
+  const workbook = XLSX.read(texto, { type: "string", cellDates: true });
+  return linhasDoWorkbook(XLSX, workbook);
 }
