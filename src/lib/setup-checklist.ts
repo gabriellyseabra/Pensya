@@ -76,6 +76,16 @@ export function useSetupChecklist() {
 
   const itens: SetupItem[] = data
     ? [
+        // O 1º passo é SEMPRE a identidade da clínica — logo, dados e cor
+        // aparecem em tudo que a clínica gera.
+        {
+          key: "identidade",
+          label: "Configure a identidade da clínica",
+          descricao:
+            "Logo, dados e cor do sistema — aparecem nos documentos e no cadastro público.",
+          done: data.identidade > 0,
+          href: "/configuracoes",
+        },
         {
           key: "equipe",
           label: "Cadastre os profissionais da clínica",
@@ -91,16 +101,9 @@ export function useSetupChecklist() {
           href: "/configuracoes",
         },
         {
-          key: "identidade",
-          label: "Personalize a identidade da clínica",
-          descricao: "Logo e cor aparecem nos documentos e no cadastro público.",
-          done: data.identidade > 0,
-          href: "/configuracoes",
-        },
-        {
           key: "paciente",
           label: "Cadastre o primeiro paciente",
-          descricao: "Só o nome basta para começar — o resto se completa depois.",
+          descricao: "Só o nome basta para começar — ou importe sua base de uma planilha.",
           done: data.pacientes > 0,
           href: "/pacientes",
         },

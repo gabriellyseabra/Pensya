@@ -50,8 +50,7 @@ import {
 } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { SmartCard } from "@/components/shared/SmartCard";
-import { SetupChecklistCard } from "@/components/shared/SetupChecklistCard";
-import { TutorialGuiadoCard } from "@/components/shared/TutorialGuiadoCard";
+import { PrimeirosPassosCard } from "@/components/shared/PrimeirosPassosCard";
 import { cn } from "@/lib/utils";
 import { listarMetasEstagnadas } from "@/lib/insights.functions";
 import { clinicaLogoUrl, getMinhaOrganizacao } from "@/lib/clinica-config";
@@ -207,11 +206,16 @@ function DashboardPage() {
       // Terapeuta: contadores de tarefas contam só as atribuídas a ela.
       let uidT: string | null = null;
       if (ehTerapeuta) {
-        const { data: { user } } = await supabase.auth.getUser();
+        const {
+          data: { user },
+        } = await supabase.auth.getUser();
         uidT = user?.id ?? null;
       }
       const tarefasBase = () => {
-        let q = supabase.from("tarefas").select("*", { count: "exact", head: true }).neq("status", "concluida");
+        let q = supabase
+          .from("tarefas")
+          .select("*", { count: "exact", head: true })
+          .neq("status", "concluida");
         if (ehTerapeuta && uidT) q = q.or(`responsavel_id.eq.${uidT},criador_id.eq.${uidT}`);
         return q;
       };
@@ -445,7 +449,9 @@ function DashboardPage() {
         .limit(5);
       // Terapeuta só vê as tarefas atribuídas a ela (ou criadas por ela).
       if (ehTerapeuta) {
-        const { data: { user } } = await supabase.auth.getUser();
+        const {
+          data: { user },
+        } = await supabase.auth.getUser();
         if (user) q = q.or(`responsavel_id.eq.${user.id},criador_id.eq.${user.id}`);
       }
       const { data } = await q;
@@ -530,7 +536,9 @@ function DashboardPage() {
   const { data: meuPerfil } = useQuery({
     queryKey: ["meu-perfil"],
     queryFn: async () => {
-      const { data: { user } } = await supabase.auth.getUser();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
       if (!user) return null;
       const { data } = await supabase
         .from("profiles")
@@ -575,7 +583,7 @@ function DashboardPage() {
   const insights = buildInsights({
     // Terapeuta não recebe alertas financeiros (inadimplência, receita, caixa).
     fin: ehTerapeuta ? undefined : fin,
-    capitalGiro: ehTerapeuta ? 0 : capitalGiro ?? 0,
+    capitalGiro: ehTerapeuta ? 0 : (capitalGiro ?? 0),
     stats,
     presenca,
     ocultarValores,
@@ -621,7 +629,11 @@ function DashboardPage() {
               title="Identidade da clínica"
               className="absolute bottom-4 right-4 z-10 hidden items-center justify-center rounded-2xl bg-white/85 px-4 py-3 shadow-sm backdrop-blur transition hover:bg-white sm:flex"
             >
-              <img src={clinicaLogo} alt="Logo da clínica" className="h-16 w-auto max-w-[11rem] object-contain" />
+              <img
+                src={clinicaLogo}
+                alt="Logo da clínica"
+                className="h-16 w-auto max-w-[11rem] object-contain"
+              />
             </Link>
           )}
           <div className="relative max-w-lg">
@@ -673,11 +685,8 @@ function DashboardPage() {
           </div>
         </div>
 
-        {/* Tour guiado pelo sistema usando a paciente modelo */}
-        <TutorialGuiadoCard />
-
-        {/* Primeiros passos — some quando a clínica já está configurada */}
-        <SetupChecklistCard />
+        {/* Primeiros passos + tour guiado — some quando a clínica já está configurada */}
+        <PrimeirosPassosCard />
 
         {/* Três cartões: pacientes de hoje · recebido · presença */}
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -724,68 +733,79 @@ function DashboardPage() {
           </Card>
 
           {!ehTerapeuta && (
-          <Card className="animate-fade-up card-lift" style={{ animationDelay: "120ms" }}>
-            <CardContent className="space-y-2 p-5">
-              <div className="flex items-center justify-between gap-2">
-                <span className="text-sm font-medium">Recebido no mês</span>
-                <div className="flex items-center gap-1.5">
-                  <div className="flex rounded-full bg-muted/60 p-0.5 text-[10px] font-medium">
-                    <button
-                      type="button"
-                      onClick={() => setModoReceita("tudo")}
-                      className={cn(
-                        "rounded-full px-2 py-0.5 transition-colors",
-                        modoReceita === "tudo" ? "bg-background shadow-sm" : "text-muted-foreground",
-                      )}
-                    >
-                      Tudo
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setModoReceita("mensalidades")}
-                      className={cn(
-                        "rounded-full px-2 py-0.5 transition-colors",
-                        modoReceita === "mensalidades"
-                          ? "bg-background shadow-sm"
-                          : "text-muted-foreground",
-                      )}
-                    >
-                      Mensalidades
-                    </button>
-                  </div>
-                  <DollarSign className="h-4 w-4 text-lilac" />
-                </div>
-              </div>
-              <p className="text-3xl font-semibold">
-                {money((modoReceita === "tudo" ? fin?.pagoTotal : fin?.pago) ?? 0)}
-              </p>
-              <div className="flex h-12 items-end gap-1.5">
-                {(fin?.serie ?? []).map((s) => {
-                  const v = modoReceita === "tudo" ? s.valorTotal : s.valor;
-                  return (
-                    <div key={s.mes} className="flex flex-1 flex-col items-center gap-1">
-                      <div
-                        className={cn("w-full rounded-t-md", s.atual ? "bg-lilac" : "bg-lilac-soft")}
-                        style={{ height: `${Math.max(6, (v / maxReceita) * 40)}px` }}
-                      />
-                      <span className="text-[9px] capitalize text-muted-foreground">{s.label}</span>
+            <Card className="animate-fade-up card-lift" style={{ animationDelay: "120ms" }}>
+              <CardContent className="space-y-2 p-5">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-sm font-medium">Recebido no mês</span>
+                  <div className="flex items-center gap-1.5">
+                    <div className="flex rounded-full bg-muted/60 p-0.5 text-[10px] font-medium">
+                      <button
+                        type="button"
+                        onClick={() => setModoReceita("tudo")}
+                        className={cn(
+                          "rounded-full px-2 py-0.5 transition-colors",
+                          modoReceita === "tudo"
+                            ? "bg-background shadow-sm"
+                            : "text-muted-foreground",
+                        )}
+                      >
+                        Tudo
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setModoReceita("mensalidades")}
+                        className={cn(
+                          "rounded-full px-2 py-0.5 transition-colors",
+                          modoReceita === "mensalidades"
+                            ? "bg-background shadow-sm"
+                            : "text-muted-foreground",
+                        )}
+                      >
+                        Mensalidades
+                      </button>
                     </div>
-                  );
-                })}
-              </div>
-              {(modoReceita === "tudo" ? fin?.deltaReceitaTotal : fin?.deltaReceita) != null && (
-                <DeltaText
-                  value={(modoReceita === "tudo" ? fin?.deltaReceitaTotal : fin?.deltaReceita) as number}
-                  label="vs mês anterior"
-                />
-              )}
-              {modoReceita === "tudo" && (fin?.receitaManual ?? 0) > 0 && (
-                <p className="text-[11px] text-muted-foreground">
-                  Inclui {money(fin?.receitaManual ?? 0)} em receitas avulsas (lançamentos)
+                    <DollarSign className="h-4 w-4 text-lilac" />
+                  </div>
+                </div>
+                <p className="text-3xl font-semibold">
+                  {money((modoReceita === "tudo" ? fin?.pagoTotal : fin?.pago) ?? 0)}
                 </p>
-              )}
-            </CardContent>
-          </Card>
+                <div className="flex h-12 items-end gap-1.5">
+                  {(fin?.serie ?? []).map((s) => {
+                    const v = modoReceita === "tudo" ? s.valorTotal : s.valor;
+                    return (
+                      <div key={s.mes} className="flex flex-1 flex-col items-center gap-1">
+                        <div
+                          className={cn(
+                            "w-full rounded-t-md",
+                            s.atual ? "bg-lilac" : "bg-lilac-soft",
+                          )}
+                          style={{ height: `${Math.max(6, (v / maxReceita) * 40)}px` }}
+                        />
+                        <span className="text-[9px] capitalize text-muted-foreground">
+                          {s.label}
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+                {(modoReceita === "tudo" ? fin?.deltaReceitaTotal : fin?.deltaReceita) != null && (
+                  <DeltaText
+                    value={
+                      (modoReceita === "tudo"
+                        ? fin?.deltaReceitaTotal
+                        : fin?.deltaReceita) as number
+                    }
+                    label="vs mês anterior"
+                  />
+                )}
+                {modoReceita === "tudo" && (fin?.receitaManual ?? 0) > 0 && (
+                  <p className="text-[11px] text-muted-foreground">
+                    Inclui {money(fin?.receitaManual ?? 0)} em receitas avulsas (lançamentos)
+                  </p>
+                )}
+              </CardContent>
+            </Card>
           )}
 
           <Card className="animate-fade-up card-lift" style={{ animationDelay: "180ms" }}>
@@ -1145,7 +1165,8 @@ function DashboardPage() {
                         {r.paciente?.nome ?? "—"}
                       </p>
                       <p className="truncate text-[11px] text-muted-foreground">
-                        {meta.label} · {format(parseISO(r.data_reuniao), "dd/MM 'às' HH:mm", { locale: ptBR })}
+                        {meta.label} ·{" "}
+                        {format(parseISO(r.data_reuniao), "dd/MM 'às' HH:mm", { locale: ptBR })}
                       </p>
                     </div>
                   </Link>
