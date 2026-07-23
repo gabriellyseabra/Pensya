@@ -14,7 +14,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSepara
 import { format, startOfMonth, endOfMonth, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
-import { Calculator, Settings2, Lock, Printer, AlertTriangle, CheckCircle2, Eye, ChevronLeft, ChevronRight, CalendarRange, LayoutList, Wallet, Clock, Landmark, MoreHorizontal } from "lucide-react";
+import { Calculator, Settings2, Lock, Unlock, Printer, AlertTriangle, CheckCircle2, Eye, ChevronLeft, ChevronRight, CalendarRange, LayoutList, Wallet, Clock, Landmark, MoreHorizontal } from "lucide-react";
 import { toast } from "sonner";
 import { invalidarFinanceiro } from "@/lib/financeiro-cache";
 
@@ -201,6 +201,22 @@ export function Folha() {
     onError: (e: any) => toast.error(e?.message ?? "Erro"),
   });
 
+  // Reabre uma folha fechada/paga para edição: remove a despesa lançada e
+  // volta para "aberta" (permitindo reconfigurar, recalcular e fechar de novo).
+  const reabrir = useMutation({
+    mutationFn: async (folha: any) => {
+      if (folha.lancamento_id) {
+        await supabase.from("lancamentos_financeiros").delete().eq("id", folha.lancamento_id);
+      }
+      const { error } = await supabase.from("folha_pagamento")
+        .update({ status: "aberta", fechada_em: null, lancamento_id: null, paga_em: null })
+        .eq("id", folha.id);
+      if (error) throw error;
+    },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["folha-mes"] }); invalidarFinanceiro(qc); toast.success("Folha reaberta para edição"); },
+    onError: (e: any) => toast.error(e?.message ?? "Erro"),
+  });
+
   // Controle de status do pagamento (realizado ou não).
   const marcarPago = useMutation({
     mutationFn: async (folha: any) => {
@@ -281,6 +297,7 @@ export function Folha() {
               onConfigurar={() => { setConfigProf(p); setConfigOpen(true); }}
               onCalcular={() => gerar.mutate(p.id)}
               onFechar={(folha: any) => fechar.mutate(folha)}
+              onReabrir={(folha: any) => reabrir.mutate(folha)}
               onMarcarPago={(folha: any) => marcarPago.mutate(folha)}
               onHolerite={(folha: any) => setHolerite({ ...folha, profissional: p })}
               onDetalhes={(cfg: any) => setDetalhe({ prof: p, cfg })}
@@ -831,7 +848,7 @@ function StatusPill({ f }: { f: any }) {
 }
 
 // Card de um colaborador na folha (substitui a linha da tabela).
-function ColaboradorCard({ p, cfg, f, onConfigurar, onCalcular, onFechar, onMarcarPago, onHolerite, onDetalhes }: any) {
+function ColaboradorCard({ p, cfg, f, onConfigurar, onCalcular, onFechar, onReabrir, onMarcarPago, onHolerite, onDetalhes }: any) {
   const iniciais = String(p.nome ?? "").split(" ").map((s: string) => s[0]).slice(0, 2).join("").toUpperCase();
   const formaLabel = FORMAS_REPASSE.find((x) => x.value === cfg?.forma_repasse)?.label ?? "Não configurado";
 
@@ -892,6 +909,9 @@ function ColaboradorCard({ p, cfg, f, onConfigurar, onCalcular, onFechar, onMarc
             <DropdownMenuItem onClick={() => onDetalhes(cfg)}><Eye className="mr-2 h-4 w-4" />Detalhe por paciente</DropdownMenuItem>
             {f && f.status !== "fechada" && f.status !== "paga" && (
               <DropdownMenuItem onClick={() => onFechar(f)}><Lock className="mr-2 h-4 w-4" />Fechar folha</DropdownMenuItem>
+            )}
+            {f && (f.status === "fechada" || f.status === "paga") && (
+              <DropdownMenuItem onClick={() => onReabrir(f)}><Unlock className="mr-2 h-4 w-4" />Reabrir para editar</DropdownMenuItem>
             )}
             {f && (
               <DropdownMenuItem onClick={() => onMarcarPago(f)}>
