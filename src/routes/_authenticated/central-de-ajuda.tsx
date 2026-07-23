@@ -4,11 +4,22 @@ import {
   LifeBuoy,
   Search,
   ArrowLeft,
+  ArrowRight,
   ChevronRight,
   Mail,
   Lightbulb,
   ShieldCheck,
   GraduationCap,
+  BookOpen,
+  ListChecks,
+  ThumbsUp,
+  ThumbsDown,
+  Upload,
+  FileSpreadsheet,
+  ClipboardPaste,
+  Download,
+  Sparkles,
+  CheckCircle2,
 } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -32,8 +43,9 @@ import {
 } from "@/lib/central-ajuda-conteudo";
 
 export const Route = createFileRoute("/_authenticated/central-de-ajuda")({
-  validateSearch: (s: Record<string, unknown>): { categoria?: string } => ({
+  validateSearch: (s: Record<string, unknown>): { categoria?: string; artigo?: string } => ({
     categoria: typeof s.categoria === "string" ? s.categoria : undefined,
+    artigo: typeof s.artigo === "string" ? s.artigo : undefined,
   }),
   component: CentralAjudaPage,
 });
@@ -44,11 +56,18 @@ function normalizar(s: string) {
 }
 
 function textoDoArtigo(a: ArtigoAjuda) {
-  return a.corpo.map((b) => (b.t === "passos" ? b.itens.join(" ") : b.texto)).join(" ");
+  const corpo = a.corpo.map((b) => (b.t === "passos" ? b.itens.join(" ") : b.texto)).join(" ");
+  const tut = a.tutorial
+    ? [
+        ...(a.tutorial.antesDeComecar ?? []),
+        ...a.tutorial.passos.flatMap((p) => [p.titulo, p.descricao ?? ""]),
+      ].join(" ")
+    : "";
+  return corpo + " " + tut;
 }
 
 function CentralAjudaPage() {
-  const { categoria } = Route.useSearch();
+  const { categoria, artigo } = Route.useSearch();
   const navigate = useNavigate();
   const { isTerapeutaRestrito } = useRoles();
   const [busca, setBusca] = useState("");
@@ -58,14 +77,23 @@ function CentralAjudaPage() {
   const categorias = useMemo(() => {
     if (!isTerapeutaRestrito) return CATEGORIAS_AJUDA;
     return CATEGORIAS_AJUDA.filter((c) => !c.gestao)
-      .map((c) => ({
-        ...c,
-        artigos: c.artigos.filter((a) => !a.gestao),
-      }))
+      .map((c) => ({ ...c, artigos: c.artigos.filter((a) => !a.gestao) }))
       .filter((c) => c.artigos.length > 0);
   }, [isTerapeutaRestrito]);
 
   const categoriaAtiva = categoria ? categorias.find((c) => c.id === categoria) : undefined;
+
+  // Artigo aberto (tutorial de página inteira) — procura na categoria ativa e,
+  // se não achar, em todas (o mesmo tutorial vive em mais de uma categoria).
+  const artigoAtivo = useMemo(() => {
+    if (!artigo) return undefined;
+    const ordem = categoriaAtiva ? [categoriaAtiva, ...categorias] : categorias;
+    for (const c of ordem) {
+      const a = c.artigos.find((x) => x.id === artigo);
+      if (a) return { categoria: c, artigo: a };
+    }
+    return undefined;
+  }, [artigo, categoriaAtiva, categorias]);
 
   const q = normalizar(busca.trim());
   const resultados = useMemo(() => {
@@ -77,11 +105,14 @@ function CentralAjudaPage() {
     );
   }, [q, categorias]);
 
-  const abrirCategoria = (id?: string) => {
+  const irPara = (search: { categoria?: string; artigo?: string }) => {
     setBusca("");
-    navigate({ to: "/central-de-ajuda", search: id ? { categoria: id } : {} });
+    navigate({ to: "/central-de-ajuda", search });
   };
+  const abrirCategoria = (id?: string) => irPara(id ? { categoria: id } : {});
+  const abrirArtigo = (catId: string, artId: string) => irPara({ categoria: catId, artigo: artId });
 
+  const mostrandoTutorial = !q && !!artigoAtivo?.artigo.tutorial;
   const totalArtigos = categorias.reduce((n, c) => n + c.artigos.length, 0);
 
   return (
@@ -94,31 +125,47 @@ function CentralAjudaPage() {
         variant="dark"
       />
 
-      {/* Busca */}
-      <div className="relative mx-auto w-full max-w-2xl">
-        <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-        <Input
-          value={busca}
-          onChange={(e) => setBusca(e.target.value)}
-          placeholder={`Buscar entre ${totalArtigos} artigos — ex.: “agenda”, “convite”, “contrato”...`}
-          className="glass h-12 rounded-2xl border-border/60 pl-11 text-base shadow-soft"
-        />
-      </div>
+      {!mostrandoTutorial && (
+        <div className="relative mx-auto w-full max-w-2xl">
+          <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            value={busca}
+            onChange={(e) => setBusca(e.target.value)}
+            placeholder={`Buscar entre ${totalArtigos} artigos — ex.: “agenda”, “importar”, “contrato”...`}
+            className="glass h-12 rounded-2xl border-border/60 pl-11 text-base shadow-soft"
+          />
+        </div>
+      )}
 
       {q ? (
-        <ResultadosBusca resultados={resultados} onAbrirCategoria={abrirCategoria} />
+        <ResultadosBusca
+          resultados={resultados}
+          onAbrirCategoria={abrirCategoria}
+          onAbrirArtigo={abrirArtigo}
+        />
+      ) : mostrandoTutorial && artigoAtivo ? (
+        <TutorialDetalhe
+          categoria={artigoAtivo.categoria}
+          artigo={artigoAtivo.artigo}
+          onVoltar={() => abrirCategoria(artigoAtivo.categoria.id)}
+        />
       ) : categoriaAtiva ? (
         <CategoriaDetalhe
           categorias={categorias}
           ativa={categoriaAtiva}
           onAbrirCategoria={abrirCategoria}
+          onAbrirArtigo={abrirArtigo}
         />
       ) : (
         <GradeCategorias categorias={categorias} onAbrirCategoria={abrirCategoria} />
       )}
 
-      <CardTutorial />
-      <CardContato restrito={isTerapeutaRestrito} />
+      {!mostrandoTutorial && !q && (
+        <>
+          <CardTutorial />
+          <CardContato restrito={isTerapeutaRestrito} />
+        </>
+      )}
     </div>
   );
 }
@@ -169,11 +216,16 @@ function CategoriaDetalhe({
   categorias,
   ativa,
   onAbrirCategoria,
+  onAbrirArtigo,
 }: {
   categorias: CategoriaAjuda[];
   ativa: CategoriaAjuda;
   onAbrirCategoria: (id?: string) => void;
+  onAbrirArtigo: (catId: string, artId: string) => void;
 }) {
+  const tutoriais = ativa.artigos.filter((a) => a.tutorial);
+  const simples = ativa.artigos.filter((a) => !a.tutorial);
+
   return (
     <div className="space-y-4">
       <Button variant="ghost" size="sm" onClick={() => onAbrirCategoria(undefined)}>
@@ -181,7 +233,6 @@ function CategoriaDetalhe({
       </Button>
 
       <div className="grid gap-4 md:grid-cols-[240px_minmax(0,1fr)]">
-        {/* Navegação lateral entre categorias */}
         <nav className="hidden md:block">
           <Card className="glass p-2">
             {categorias.map((c) => (
@@ -213,42 +264,506 @@ function CategoriaDetalhe({
             </div>
           </div>
 
-          <Card className="glass px-5 py-1">
-            <Accordion type="single" collapsible>
-              {ativa.artigos.map((a) => (
-                <AccordionItem key={a.id} value={a.id} className="border-border/50">
-                  <AccordionTrigger className="text-left text-sm font-medium hover:no-underline">
-                    <span className="flex items-center gap-2">
-                      {a.titulo}
-                      {a.gestao && !ativa.gestao && (
-                        <Badge
-                          variant="outline"
-                          className="gap-1 text-[10px] font-normal text-muted-foreground"
-                        >
-                          <ShieldCheck className="h-3 w-3" /> Gestão
-                        </Badge>
-                      )}
-                    </span>
-                  </AccordionTrigger>
-                  <AccordionContent>
-                    <CorpoArtigo corpo={a.corpo} />
-                  </AccordionContent>
-                </AccordionItem>
-              ))}
-            </Accordion>
-          </Card>
+          {/* Tutoriais detalhados — cards que abrem a página inteira */}
+          {tutoriais.map((a) => (
+            <button
+              key={a.id}
+              onClick={() => onAbrirArtigo(ativa.id, a.id)}
+              className="group block w-full text-left"
+            >
+              <Card className="glass flex items-center gap-4 p-4 transition-all group-hover:-translate-y-0.5 group-hover:shadow-elegant">
+                <div className="grid h-11 w-11 shrink-0 place-items-center rounded-xl gradient-brand text-brand-foreground shadow-soft">
+                  <BookOpen className="h-5 w-5" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-2">
+                    <Badge className="bg-brand/15 text-[10px] text-brand hover:bg-brand/15">
+                      Tutorial
+                    </Badge>
+                    {a.gestao && !ativa.gestao && (
+                      <Badge
+                        variant="outline"
+                        className="gap-1 text-[10px] font-normal text-muted-foreground"
+                      >
+                        <ShieldCheck className="h-3 w-3" /> Gestão
+                      </Badge>
+                    )}
+                  </div>
+                  <p className="mt-1 truncate font-medium">{a.titulo}</p>
+                  <p className="truncate text-xs text-muted-foreground">
+                    {a.tutorial?.passos.length} passos · guia detalhado com ilustrações
+                  </p>
+                </div>
+                <ArrowRight className="h-4 w-4 shrink-0 text-brand transition-transform group-hover:translate-x-0.5" />
+              </Card>
+            </button>
+          ))}
+
+          {simples.length > 0 && (
+            <Card className="glass px-5 py-1">
+              <Accordion type="single" collapsible>
+                {simples.map((a) => (
+                  <AccordionItem key={a.id} value={a.id} className="border-border/50">
+                    <AccordionTrigger className="text-left text-sm font-medium hover:no-underline">
+                      <span className="flex items-center gap-2">
+                        {a.titulo}
+                        {a.gestao && !ativa.gestao && (
+                          <Badge
+                            variant="outline"
+                            className="gap-1 text-[10px] font-normal text-muted-foreground"
+                          >
+                            <ShieldCheck className="h-3 w-3" /> Gestão
+                          </Badge>
+                        )}
+                      </span>
+                    </AccordionTrigger>
+                    <AccordionContent>
+                      <CorpoArtigo corpo={a.corpo} />
+                    </AccordionContent>
+                  </AccordionItem>
+                ))}
+              </Accordion>
+            </Card>
+          )}
         </div>
       </div>
     </div>
   );
 }
 
+/* ============ Tutorial detalhado (página inteira, estilo guia) ============ */
+
+function TutorialDetalhe({
+  categoria,
+  artigo,
+  onVoltar,
+}: {
+  categoria: CategoriaAjuda;
+  artigo: ArtigoAjuda;
+  onVoltar: () => void;
+}) {
+  const t = artigo.tutorial!;
+  const resumo = artigo.corpo.find((b) => b.t === "p") as { texto: string } | undefined;
+
+  const irParaPasso = (i: number) => {
+    document.getElementById(`passo-${i}`)?.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
+
+  return (
+    <div className="space-y-4">
+      {/* Breadcrumb */}
+      <div className="flex flex-wrap items-center gap-1.5 text-sm text-muted-foreground">
+        <button onClick={onVoltar} className="hover:text-foreground">
+          {categoria.titulo}
+        </button>
+        <ChevronRight className="h-3.5 w-3.5" />
+        <span className="text-foreground">{artigo.titulo}</span>
+      </div>
+
+      <div className="grid gap-6 lg:grid-cols-[240px_minmax(0,1fr)]">
+        {/* "Neste tutorial" — navegação por passos (sticky) */}
+        <nav className="hidden lg:block">
+          <div className="sticky top-4 space-y-3">
+            <Card className="glass p-3">
+              <p className="mb-2 px-1 text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
+                Neste tutorial
+              </p>
+              {t.antesDeComecar && t.antesDeComecar.length > 0 && (
+                <button
+                  onClick={() =>
+                    document
+                      .getElementById("antes")
+                      ?.scrollIntoView({ behavior: "smooth", block: "start" })
+                  }
+                  className="block w-full truncate rounded-lg px-2 py-1.5 text-left text-xs text-muted-foreground hover:bg-muted hover:text-foreground"
+                >
+                  Antes de começar
+                </button>
+              )}
+              {t.passos.map((p, i) => (
+                <button
+                  key={i}
+                  onClick={() => irParaPasso(i)}
+                  className="flex w-full items-start gap-2 rounded-lg px-2 py-1.5 text-left text-xs text-muted-foreground hover:bg-muted hover:text-foreground"
+                >
+                  <span className="mt-px font-semibold text-brand">{i + 1}.</span>
+                  <span className="truncate">{p.titulo}</span>
+                </button>
+              ))}
+            </Card>
+            <TutorialPromoCard />
+          </div>
+        </nav>
+
+        <article className="min-w-0 space-y-6">
+          <header>
+            <div className="flex flex-wrap items-center gap-2">
+              <Badge className="bg-brand/15 text-[10px] uppercase tracking-wider text-brand hover:bg-brand/15">
+                {categoria.titulo}
+              </Badge>
+              <Badge variant="outline" className="gap-1 text-[10px] text-muted-foreground">
+                <ListChecks className="h-3 w-3" /> {t.passos.length} passos
+              </Badge>
+            </div>
+            <h1 className="mt-2 text-2xl font-display leading-tight sm:text-3xl">
+              {artigo.titulo}
+            </h1>
+            {resumo && (
+              <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{resumo.texto}</p>
+            )}
+          </header>
+
+          {/* Antes de começar */}
+          {t.antesDeComecar && t.antesDeComecar.length > 0 && (
+            <Card id="antes" className="glass scroll-mt-4 p-5">
+              <h2 className="font-medium">Antes de começar</h2>
+              <ul className="mt-3 space-y-2">
+                {t.antesDeComecar.map((item, i) => (
+                  <li
+                    key={i}
+                    className="flex gap-2.5 text-sm leading-relaxed text-muted-foreground"
+                  >
+                    <Sparkles className="mt-0.5 h-4 w-4 shrink-0 text-brand" />
+                    <span>{item}</span>
+                  </li>
+                ))}
+              </ul>
+            </Card>
+          )}
+
+          {/* Passos */}
+          {t.passos.map((p, i) => (
+            <section key={i} id={`passo-${i}`} className="scroll-mt-4 space-y-3">
+              <div className="flex items-start gap-3">
+                <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full gradient-brand text-sm font-semibold text-brand-foreground shadow-soft">
+                  {i + 1}
+                </span>
+                <div className="min-w-0 pt-0.5">
+                  <h2 className="text-lg font-display leading-tight">{p.titulo}</h2>
+                </div>
+              </div>
+
+              <div className="space-y-3 sm:pl-11">
+                {p.descricao && (
+                  <p className="text-sm leading-relaxed text-muted-foreground">{p.descricao}</p>
+                )}
+
+                {p.campos && p.campos.length > 0 && (
+                  <div className="overflow-hidden rounded-xl border border-border/60">
+                    <p className="border-b border-border/50 bg-muted/40 px-4 py-2 text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
+                      Campos desta seção
+                    </p>
+                    <div className="divide-y divide-border/40">
+                      {p.campos.map((c, j) => (
+                        <div
+                          key={j}
+                          className="grid grid-cols-1 gap-0.5 px-4 py-2.5 sm:grid-cols-[160px_1fr] sm:gap-3"
+                        >
+                          <span className="text-sm font-medium">{c.campo}</span>
+                          <span className="text-sm text-muted-foreground">{c.descricao}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {p.mockup && <Mockup id={p.mockup} />}
+
+                {p.dica && (
+                  <div className="flex gap-2.5 rounded-xl border border-amber-300/40 bg-amber-50/60 p-3 dark:border-amber-400/20 dark:bg-amber-400/10">
+                    <Lightbulb className="mt-0.5 h-4 w-4 shrink-0 text-amber-500" />
+                    <p className="text-sm leading-relaxed text-muted-foreground">{p.dica}</p>
+                  </div>
+                )}
+              </div>
+            </section>
+          ))}
+
+          {/* O que fazer depois */}
+          {t.oQueFazerDepois && t.oQueFazerDepois.length > 0 && (
+            <div className="space-y-3">
+              <h2 className="text-lg font-display">O que fazer depois</h2>
+              <div className="grid gap-3 sm:grid-cols-3">
+                {t.oQueFazerDepois.map((p, i) => (
+                  <Card key={i} className="glass p-4">
+                    <CheckCircle2 className="h-4 w-4 text-emerald-500" />
+                    <p className="mt-2 text-sm font-medium">{p.titulo}</p>
+                    <p className="mt-0.5 text-xs text-muted-foreground">{p.descricao}</p>
+                  </Card>
+                ))}
+              </div>
+            </div>
+          )}
+
+          <FeedbackTutorial artigoId={artigo.id} />
+
+          <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border/60 bg-muted/20 p-4">
+            <p className="text-sm text-muted-foreground">
+              Ainda com dúvida sobre este passo a passo?
+            </p>
+            <Button asChild variant="outline" size="sm">
+              <a href="mailto:contato@pensya.com.br">
+                <Mail className="mr-2 h-4 w-4" /> Falar com o suporte
+              </a>
+            </Button>
+          </div>
+        </article>
+      </div>
+    </div>
+  );
+}
+
+function TutorialPromoCard() {
+  const navigate = useNavigate();
+  const { reabrir } = useTutorialGuiado();
+  return (
+    <Card className="relative overflow-hidden bg-rail p-4 text-rail-foreground">
+      <div className="pointer-events-none absolute -right-6 -top-8 h-24 w-24 rounded-full bg-white/10 blur-2xl" />
+      <div className="flex items-center gap-2">
+        <GraduationCap className="h-4 w-4 text-rail-active" />
+        <p className="text-sm font-semibold">Tour guiado</p>
+      </div>
+      <p className="mt-1.5 text-xs text-white/70">
+        Conheça o Pensya passo a passo pela Sofia, a paciente modelo com a ficha completa.
+      </p>
+      <Button
+        size="sm"
+        className="mt-3 w-full bg-white/15 text-white hover:bg-white/25"
+        onClick={() => {
+          reabrir();
+          navigate({ to: "/dashboard" });
+        }}
+      >
+        Abrir tour
+      </Button>
+    </Card>
+  );
+}
+
+function FeedbackTutorial({ artigoId }: { artigoId: string }) {
+  const key = `ajuda-feedback-${artigoId}`;
+  const [voto, setVoto] = useState<"sim" | "nao" | null>(() => {
+    if (typeof window === "undefined") return null;
+    const v = window.localStorage.getItem(key);
+    return v === "sim" || v === "nao" ? v : null;
+  });
+
+  const votar = (v: "sim" | "nao") => {
+    setVoto(v);
+    try {
+      window.localStorage.setItem(key, v);
+    } catch {
+      /* ignore */
+    }
+  };
+
+  return (
+    <div className="flex flex-wrap items-center justify-center gap-3 py-2 text-center">
+      {voto ? (
+        <p className="text-sm text-muted-foreground">
+          Obrigado pelo retorno!{" "}
+          {voto === "sim" ? "Que bom que ajudou. 💜" : "Vamos melhorar este guia."}
+        </p>
+      ) : (
+        <>
+          <span className="text-sm text-muted-foreground">Este tutorial foi útil?</span>
+          <div className="flex gap-2">
+            <Button variant="outline" size="sm" onClick={() => votar("sim")}>
+              <ThumbsUp className="mr-1.5 h-3.5 w-3.5" /> Sim
+            </Button>
+            <Button variant="outline" size="sm" onClick={() => votar("nao")}>
+              <ThumbsDown className="mr-1.5 h-3.5 w-3.5" /> Não
+            </Button>
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
+/* ============ Ilustrações (mockups) dos passos ============ */
+
+function MockupFrame({ children, legenda }: { children: React.ReactNode; legenda?: string }) {
+  return (
+    <figure className="overflow-hidden rounded-xl border border-border/60 bg-card shadow-soft">
+      <div className="flex items-center gap-1.5 border-b border-border/50 bg-muted/40 px-3 py-2">
+        <span className="h-2.5 w-2.5 rounded-full bg-red-400/70" />
+        <span className="h-2.5 w-2.5 rounded-full bg-amber-400/70" />
+        <span className="h-2.5 w-2.5 rounded-full bg-emerald-400/70" />
+        <span className="ml-2 h-4 flex-1 rounded bg-background/70" />
+      </div>
+      <div className="bg-gradient-to-b from-muted/20 to-transparent p-4">{children}</div>
+      {legenda && (
+        <figcaption className="border-t border-border/50 bg-muted/20 px-4 py-2 text-center text-[11px] text-muted-foreground">
+          {legenda}
+        </figcaption>
+      )}
+    </figure>
+  );
+}
+
+const barra = "h-2 rounded-full bg-muted-foreground/15";
+
+function Mockup({ id }: { id: string }) {
+  if (id === "lista-pacientes") {
+    return (
+      <MockupFrame legenda="Página Pacientes — botão “Importar arquivo” no topo">
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2">
+            <div className="grid h-6 w-6 place-items-center rounded-lg gradient-brand text-brand-foreground">
+              <span className="text-[10px]">P</span>
+            </div>
+            <span className="text-sm font-medium">Pacientes</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="flex items-center gap-1 rounded-lg px-2 py-1 text-[11px] font-medium text-brand ring-2 ring-brand/40">
+              <Upload className="h-3 w-3" /> Importar arquivo
+            </span>
+            <span className="rounded-lg gradient-brand px-2 py-1 text-[11px] text-brand-foreground">
+              Novo paciente
+            </span>
+          </div>
+        </div>
+        <div className="mt-4 grid grid-cols-3 gap-2">
+          {[0, 1, 2, 3, 4, 5].map((i) => (
+            <div key={i} className="rounded-lg border border-border/50 bg-background/50 p-2">
+              <div className="h-6 w-6 rounded-full bg-muted-foreground/15" />
+              <div className={cn(barra, "mt-2 w-3/4")} />
+              <div className={cn(barra, "mt-1.5 w-1/2")} />
+            </div>
+          ))}
+        </div>
+      </MockupFrame>
+    );
+  }
+
+  if (id === "dialog-abas") {
+    return (
+      <MockupFrame legenda="Janela de importação — abas “Enviar arquivo” e “Colar da planilha”">
+        <div className="mx-auto max-w-md rounded-xl border border-border/60 bg-background/70 p-3">
+          <div className="flex items-center gap-2 text-sm font-medium">
+            <FileSpreadsheet className="h-4 w-4 text-brand" /> Importar pacientes
+          </div>
+          <div className="mt-3 grid grid-cols-2 gap-1 rounded-lg bg-muted/50 p-1 text-[11px]">
+            <span className="flex items-center justify-center gap-1 rounded-md bg-background py-1 font-medium shadow-sm">
+              <Upload className="h-3 w-3" /> Enviar arquivo
+            </span>
+            <span className="flex items-center justify-center gap-1 rounded-md py-1 text-muted-foreground">
+              <ClipboardPaste className="h-3 w-3" /> Colar da planilha
+            </span>
+          </div>
+          <div className="mt-3 grid place-items-center gap-1 rounded-lg border-2 border-dashed border-border/60 p-6 text-center">
+            <Upload className="h-6 w-6 text-muted-foreground" />
+            <span className="text-[11px] text-brand underline">Selecionar arquivo</span>
+            <span className="text-[10px] text-muted-foreground">
+              .xlsx, .xls, .csv — inclusive SisClin
+            </span>
+          </div>
+        </div>
+      </MockupFrame>
+    );
+  }
+
+  if (id === "modelo") {
+    return (
+      <MockupFrame legenda="“Baixar modelo de planilha” — arquivo pronto com as colunas certas">
+        <div className="mx-auto max-w-md rounded-xl border border-border/60 bg-background/70 p-3">
+          <div className="grid place-items-center gap-1 rounded-lg border-2 border-dashed border-border/60 p-5 text-center">
+            <Upload className="h-5 w-5 text-muted-foreground" />
+            <span className="text-[11px] text-brand underline">Selecionar arquivo</span>
+          </div>
+          <div className="mt-3 flex items-center justify-center gap-1.5 text-[11px]">
+            <span className="text-muted-foreground">Não tem uma planilha pronta?</span>
+            <span className="flex items-center gap-1 font-medium text-brand ring-2 ring-brand/40 rounded-md px-1.5 py-0.5">
+              <Download className="h-3 w-3" /> Baixar modelo de planilha
+            </span>
+          </div>
+        </div>
+      </MockupFrame>
+    );
+  }
+
+  if (id === "preview-tabela") {
+    const linhas = [
+      { nome: "Alicia dos Santos", nasc: "27/01/2021" },
+      { nome: "João da Costa", nasc: "26/09/2018" },
+      { nome: "Rafael Romano", nasc: "30/01/2018" },
+    ];
+    return (
+      <MockupFrame legenda="Preview editável — cada linha vira um paciente; “Mais dados” abre os campos extras">
+        <div className="overflow-hidden rounded-lg border border-border/50">
+          <div className="grid grid-cols-[20px_1fr_90px_90px] items-center gap-2 border-b border-border/50 bg-muted/40 px-3 py-1.5 text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
+            <span />
+            <span>Nome</span>
+            <span>Nascimento</span>
+            <span>Mais dados</span>
+          </div>
+          {linhas.map((l, i) => (
+            <div
+              key={i}
+              className="grid grid-cols-[20px_1fr_90px_90px] items-center gap-2 border-b border-border/30 px-3 py-2 last:border-0"
+            >
+              <span className="grid h-3.5 w-3.5 place-items-center rounded-sm bg-brand text-[8px] text-brand-foreground">
+                ✓
+              </span>
+              <span className="truncate text-xs font-medium">{l.nome}</span>
+              <span className="text-[11px] text-muted-foreground">{l.nasc}</span>
+              <span className="w-fit rounded-full bg-brand/15 px-1.5 py-0.5 text-[9px] text-brand">
+                +7 campos
+              </span>
+            </div>
+          ))}
+        </div>
+        <div className="mt-3 flex justify-end">
+          <span className="rounded-lg gradient-brand px-3 py-1.5 text-[11px] text-brand-foreground">
+            Confirmar e criar 3 pacientes
+          </span>
+        </div>
+      </MockupFrame>
+    );
+  }
+
+  if (id === "confirmar") {
+    return (
+      <MockupFrame legenda="Pronto! Os pacientes entram na lista, com escolas e diagnósticos criados automaticamente">
+        <div className="mx-auto max-w-sm space-y-3">
+          <div className="flex items-center gap-2 rounded-lg border border-emerald-300/40 bg-emerald-50/60 px-3 py-2 text-sm dark:border-emerald-400/20 dark:bg-emerald-400/10">
+            <CheckCircle2 className="h-4 w-4 text-emerald-500" />
+            <span className="font-medium">5 pacientes criados · 2 escolas</span>
+          </div>
+          {[0, 1, 2].map((i) => (
+            <div
+              key={i}
+              className="flex items-center gap-2 rounded-lg border border-border/50 bg-background/50 px-3 py-2"
+            >
+              <div className="h-6 w-6 rounded-full bg-muted-foreground/15" />
+              <div className="flex-1">
+                <div className={cn(barra, "w-2/3")} />
+                <div className={cn(barra, "mt-1 w-1/3")} />
+              </div>
+              <span className="rounded-full bg-brand/15 px-1.5 py-0.5 text-[9px] text-brand">
+                ativo
+              </span>
+            </div>
+          ))}
+        </div>
+      </MockupFrame>
+    );
+  }
+
+  return null;
+}
+
+/* ---------------------------------------------------------------- */
+
 function ResultadosBusca({
   resultados,
   onAbrirCategoria,
+  onAbrirArtigo,
 }: {
   resultados: { categoria: CategoriaAjuda; artigo: ArtigoAjuda }[];
   onAbrirCategoria: (id: string) => void;
+  onAbrirArtigo: (catId: string, artId: string) => void;
 }) {
   if (resultados.length === 0) {
     return (
@@ -275,7 +790,14 @@ function ResultadosBusca({
             >
               <AccordionTrigger className="text-left text-sm font-medium hover:no-underline">
                 <span className="flex min-w-0 flex-col gap-0.5">
-                  <span>{artigo.titulo}</span>
+                  <span className="flex items-center gap-2">
+                    {artigo.titulo}
+                    {artigo.tutorial && (
+                      <Badge className="bg-brand/15 text-[9px] text-brand hover:bg-brand/15">
+                        Tutorial
+                      </Badge>
+                    )}
+                  </span>
                   <span className="flex items-center gap-1 text-xs font-normal text-brand">
                     <categoria.icon className="h-3 w-3" /> {categoria.titulo}
                   </span>
@@ -287,9 +809,16 @@ function ResultadosBusca({
                   variant="ghost"
                   size="sm"
                   className="mt-3 text-brand"
-                  onClick={() => onAbrirCategoria(categoria.id)}
+                  onClick={() =>
+                    artigo.tutorial
+                      ? onAbrirArtigo(categoria.id, artigo.id)
+                      : onAbrirCategoria(categoria.id)
+                  }
                 >
-                  Ver categoria {categoria.titulo} <ChevronRight className="ml-1 h-3.5 w-3.5" />
+                  {artigo.tutorial
+                    ? "Abrir tutorial completo"
+                    : `Ver categoria ${categoria.titulo}`}
+                  <ChevronRight className="ml-1 h-3.5 w-3.5" />
                 </Button>
               </AccordionContent>
             </AccordionItem>
