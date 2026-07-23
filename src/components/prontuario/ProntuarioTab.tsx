@@ -23,7 +23,7 @@ import {
 } from "@/components/ui/table";
 import {
   Target, Activity, TrendingUp, CheckCircle2, Pencil, Trash2,
-  Plus, FlaskConical, FileAudio, CalendarCheck2, Clock, XCircle,
+  FlaskConical, FileAudio, CalendarCheck2, Clock, XCircle, ChevronDown,
 } from "lucide-react";
 import { SessaoDialog } from "@/components/prontuario/SessaoDialog";
 import { PlanejamentoSessoes } from "@/components/prontuario/PlanejamentoSessoes";
@@ -155,9 +155,6 @@ export function ProntuarioTab({ pacienteId }: { pacienteId: string }) {
         <Button size="sm" variant="secondary" onClick={() => setNovaSessaoTipo("avaliacao")}>
           <FlaskConical className="mr-2 h-4 w-4" /> Sessão avaliação
         </Button>
-        <NovaMetaDialog pacienteId={pacienteId} onSaved={() => {
-          qc.invalidateQueries({ queryKey: ["metas", pacienteId] });
-        }} />
         <ImportarSessoesDialog pacienteId={pacienteId} onDone={invalidate} />
       </div>
 
@@ -170,112 +167,30 @@ export function ProntuarioTab({ pacienteId }: { pacienteId: string }) {
         }}
       />
 
-      {/* Metas em andamento */}
-      <Card className="glass">
-        <CardHeader className="flex flex-row items-center justify-between gap-2">
-          <CardTitle className="text-base">Metas terapêuticas</CardTitle>
-          {arquivadasCount > 0 && (
-            <label className="flex cursor-pointer items-center gap-2 text-xs text-muted-foreground">
-              <Switch checked={mostrarArquivadas} onCheckedChange={setMostrarArquivadas} />
-              Mostrar arquivadas ({arquivadasCount})
-            </label>
-          )}
-        </CardHeader>
-        <CardContent>
-          {metasVisiveis.length === 0 ? (
-            <p className="text-sm text-muted-foreground">
-              {metas.length === 0 ? "Nenhuma meta cadastrada ainda." : "Nenhuma meta ativa. Ative “Mostrar arquivadas” para ver as arquivadas."}
-            </p>
-          ) : (
-            <div className="space-y-2">
-              {metasVisiveis.map((m) => (
-                <MetaRow key={m.id} meta={m} onChanged={() => qc.invalidateQueries({ queryKey: ["metas", pacienteId] })} />
-              ))}
-            </div>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* Histórico de sessões */}
-      <Card className="glass">
-        <CardHeader>
-          <CardTitle className="text-base">Sessões recentes</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {sessoes.length === 0 ? (
-            <p className="text-sm text-muted-foreground">
+      {/* Histórico de sessões — cards expansíveis (as metas vivem no Plano) */}
+      <div className="space-y-2">
+        <h3 className="px-1 text-base font-semibold">Sessões registradas</h3>
+        {sessoes.length === 0 ? (
+          <Card className="glass">
+            <CardContent className="p-6 text-sm text-muted-foreground">
               Nenhuma sessão registrada ainda — é aqui que nasce o prontuário.
-              Use <strong>Nova sessão</strong> acima para registrar o primeiro atendimento
+              Use <strong>Sessão intervenção</strong> ou <strong>Sessão avaliação</strong> acima
               (dá para ditar por áudio e deixar a IA resumir).
-            </p>
-          ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Data</TableHead>
-                  <TableHead>Tipo</TableHead>
-                  <TableHead>Eng.</TableHead>
-                  <TableHead>Suporte</TableHead>
-                  <TableHead>Metas / GAS</TableHead>
-                  <TableHead>Mídia</TableHead>
-                  <TableHead className="text-right">Ações</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {sessoes.slice(0, 15).map((s) => (
-                  <TableRow key={s.id}>
-                    <TableCell className="whitespace-nowrap">
-                      {formatData(s.data_sessao, "dd/MM/yy")}
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant={s.tipo === "avaliacao" ? "secondary" : "outline"} className="text-[10px]">
-                        {s.tipo === "avaliacao" ? "Avaliação" : "Intervenção"}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-xs">
-                      {ENGAJAMENTO_LABELS.find((e) => e.value === String(s.engajamento))?.label ?? "—"}
-                    </TableCell>
-                    <TableCell className="text-xs">
-                      {NIVEIS_SUPORTE.find((n) => n.value === s.nivel_suporte)?.label ?? "—"}
-                    </TableCell>
-                    <TableCell className="text-xs max-w-xs">
-                      {(s.sessao_metas ?? []).length === 0 ? "—" : (s.sessao_metas ?? []).map((sm: any) => (
-                        <span key={sm.meta_id} className="inline-block mr-2">
-                          {sm.meta?.titulo}
-                          {sm.nivel_gas_observado != null && (
-                            <Badge variant="outline" className="ml-1 text-[10px]">
-                              GAS {sm.nivel_gas_observado > 0 ? "+" : ""}{sm.nivel_gas_observado}
-                            </Badge>
-                          )}
-                        </span>
-                      ))}
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex gap-1" title={s.orientacao_casa ? `Orientação de casa: ${s.orientacao_status === "feita" ? "feita" : s.orientacao_status === "nao_feita" ? "não feita" : "pendente"}` : undefined}>
-                        {s.audio_path && <FileAudio className="h-4 w-4 text-brand" />}
-                        {s.orientacao_casa && s.orientacao_status === "feita" && <CheckCircle2 className="h-4 w-4 text-emerald-600" />}
-                        {s.orientacao_casa && s.orientacao_status === "nao_feita" && <XCircle className="h-4 w-4 text-red-600" />}
-                        {s.orientacao_casa && (!s.orientacao_status || s.orientacao_status === "pendente") && <Clock className="h-4 w-4 text-amber-600" />}
-                      </div>
-                    </TableCell>
-                    <TableCell className="text-right whitespace-nowrap">
-                      <Button size="icon" variant="ghost" onClick={() => {
-                        setEditSessaoTipo((s.tipo as any) ?? "intervencao");
-                        setEditSessaoId(s.id);
-                      }}>
-                        <Pencil className="h-4 w-4" />
-                      </Button>
-                      <Button size="icon" variant="ghost" onClick={() => excluirSessao(s.id)}>
-                        <Trash2 className="h-4 w-4 text-destructive" />
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          )}
-        </CardContent>
-      </Card>
+            </CardContent>
+          </Card>
+        ) : (
+          <div className="space-y-2">
+            {sessoes.map((s) => (
+              <SessaoCard
+                key={s.id}
+                s={s}
+                onEditar={() => { setEditSessaoTipo((s.tipo as any) ?? "intervencao"); setEditSessaoId(s.id); }}
+                onExcluir={() => excluirSessao(s.id)}
+              />
+            ))}
+          </div>
+        )}
+      </div>
 
       {/* Frequência recente */}
       <Card className="glass">
@@ -327,6 +242,89 @@ export function ProntuarioTab({ pacienteId }: { pacienteId: string }) {
         />
       )}
     </div>
+  );
+}
+
+// =================== Card de sessão (expansível) ===================
+function SessaoCard({ s, onEditar, onExcluir }: { s: any; onEditar: () => void; onExcluir: () => void }) {
+  const [aberto, setAberto] = useState(false);
+  const eng = ENGAJAMENTO_LABELS.find((e) => e.value === String(s.engajamento))?.label;
+  const suporte = NIVEIS_SUPORTE.find((n) => n.value === s.nivel_suporte)?.label;
+  const metasSessao = (s.sessao_metas ?? []) as any[];
+  // Melhor texto disponível para a prévia.
+  const preview: string | null =
+    s.ia_resumo || s.evolucao || s.soap_subjetivo || s.observacoes || s.transcricao || null;
+
+  const blocos: { label: string; texto?: string | null }[] = [
+    { label: "Evolução", texto: s.evolucao },
+    { label: "S — Subjetivo", texto: s.soap_subjetivo },
+    { label: "O — Objetivo", texto: s.soap_objetivo },
+    { label: "A — Avaliação", texto: s.soap_avaliacao },
+    { label: "P — Plano", texto: s.soap_plano },
+    { label: "Observações", texto: s.observacoes },
+    { label: "Orientação de casa", texto: s.orientacao_texto },
+    { label: "Nota p/ próxima sessão", texto: s.nota_proxima_sessao },
+    { label: "Resumo por IA", texto: s.ia_resumo },
+  ].filter((b) => b.texto);
+
+  return (
+    <Card className="glass overflow-hidden">
+      <div
+        className="flex cursor-pointer items-start gap-3 p-3 transition hover:bg-accent/30"
+        onClick={() => setAberto((v) => !v)}
+      >
+        <div className="mt-0.5 grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-brand/10 text-center leading-none text-brand">
+          <span className="text-sm font-semibold">{formatData(s.data_sessao, "dd")}</span>
+          <span className="text-[9px] uppercase">{formatData(s.data_sessao, "MMM")}</span>
+        </div>
+        <div className="min-w-0 flex-1">
+          <div className="flex flex-wrap items-center gap-1.5">
+            <Badge variant={s.tipo === "avaliacao" ? "secondary" : "outline"} className="text-[10px]">
+              {s.tipo === "avaliacao" ? "Avaliação" : "Intervenção"}
+            </Badge>
+            {eng && <span className="text-[11px] text-muted-foreground">Engajamento: {eng}</span>}
+            {suporte && <span className="text-[11px] text-muted-foreground">· {suporte}</span>}
+            {metasSessao.map((sm) => (
+              <Badge key={sm.meta_id} variant="outline" className="text-[10px]">
+                {sm.meta?.titulo}
+                {sm.nivel_gas_observado != null && ` · GAS ${sm.nivel_gas_observado > 0 ? "+" : ""}${sm.nivel_gas_observado}`}
+              </Badge>
+            ))}
+            {s.audio_path && <FileAudio className="h-3.5 w-3.5 text-brand" />}
+            {s.orientacao_casa && s.orientacao_status === "feita" && <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600" />}
+            {s.orientacao_casa && s.orientacao_status === "nao_feita" && <XCircle className="h-3.5 w-3.5 text-red-600" />}
+            {s.orientacao_casa && (!s.orientacao_status || s.orientacao_status === "pendente") && <Clock className="h-3.5 w-3.5 text-amber-600" />}
+          </div>
+          {preview && (
+            <p className={aberto ? "hidden" : "mt-1 line-clamp-2 text-sm text-muted-foreground"}>{preview}</p>
+          )}
+        </div>
+        <ChevronDown className={`mt-1 h-4 w-4 shrink-0 text-muted-foreground transition-transform ${aberto ? "rotate-180" : ""}`} />
+      </div>
+
+      {aberto && (
+        <div className="space-y-3 border-t border-border/40 p-4 pt-3">
+          {blocos.length === 0 ? (
+            <p className="text-sm text-muted-foreground">Sessão sem texto registrado.</p>
+          ) : (
+            blocos.map((b) => (
+              <div key={b.label}>
+                <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">{b.label}</p>
+                <p className="whitespace-pre-wrap text-sm">{b.texto}</p>
+              </div>
+            ))
+          )}
+          <div className="flex justify-end gap-2 pt-1">
+            <Button size="sm" variant="outline" onClick={(e) => { e.stopPropagation(); onEditar(); }}>
+              <Pencil className="mr-1.5 h-3.5 w-3.5" />Editar
+            </Button>
+            <Button size="sm" variant="ghost" onClick={(e) => { e.stopPropagation(); onExcluir(); }}>
+              <Trash2 className="h-4 w-4 text-destructive" />
+            </Button>
+          </div>
+        </div>
+      )}
+    </Card>
   );
 }
 

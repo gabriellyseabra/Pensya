@@ -13,11 +13,12 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 
 import {
   Sparkles, Search, Plus, FileText, Trash2, CheckCircle2, BookOpen, Upload, Printer, Target, RotateCw,
   Info, Network, Lightbulb, FlaskConical, ListPlus, TrendingUp,
-  Layers, Compass, ListOrdered, Brain, Waypoints, Archive,
+  Layers, Compass, ListOrdered, Brain, Waypoints, Archive, MoreHorizontal, Wand2,
 } from "lucide-react";
 import { gerarPlanoIA, buscarPubMed, extrairPdfAvaliacao, adicionarMetasIA } from "@/lib/plano.functions";
 import { imprimirPlano } from "@/lib/plano-documento";
@@ -141,7 +142,11 @@ export function PlanoTab({ pacienteId, onVerMonitoramento }: { pacienteId: strin
             </CardContent>
           </Card>
 
-          {selectedId && <PlanoDetalhe pacienteId={pacienteId} planoId={selectedId} onDeleted={() => setSelectedId(null)} onVerMonitoramento={onVerMonitoramento} />}
+          {selectedId && (
+            <div className="min-w-0">
+              <PlanoDetalhe pacienteId={pacienteId} planoId={selectedId} onDeleted={() => setSelectedId(null)} onVerMonitoramento={onVerMonitoramento} />
+            </div>
+          )}
         </div>
       )}
     </div>
@@ -472,47 +477,80 @@ function PlanoDetalhe({ pacienteId, planoId, onDeleted, onVerMonitoramento }: { 
           </Select>
           <Input type="number" className="w-24" value={form.ciclo_semanas ?? 12} onChange={(e) => setForm({ ...form, ciclo_semanas: parseInt(e.target.value, 10) || 12 })} />
           <span className="text-xs text-muted-foreground">semanas</span>
-          <div className="ml-auto flex gap-2">
+          <div className="ml-auto flex flex-wrap items-center gap-2">
             <Button onClick={salvar} variant="outline" size="sm">Salvar</Button>
-            <Button onClick={() => setShowIaDialog(true)} size="sm">
+            <Button onClick={() => setShowIaDialog(true)} size="sm" className="gradient-brand text-brand-foreground">
               <Sparkles className="mr-2 h-4 w-4" />Gerar com IA
             </Button>
-            {metas.length > 0 && (
-              <Button onClick={() => setShowAddMetasDialog(true)} size="sm" variant="outline">
-                <ListPlus className="mr-2 h-4 w-4" />Adicionar metas com IA
-              </Button>
-            )}
-            <label className="cursor-pointer">
-              <input type="file" accept="application/pdf" className="hidden" onChange={handlePdfUpload} disabled={pdfUploading} />
-              <Button variant="outline" size="sm" asChild>
-                <span><Upload className="mr-2 h-4 w-4" />{pdfUploading ? "Processando…" : "Laudo PDF"}</span>
-              </Button>
-            </label>
-            <Button
-              onClick={() => { imprimirPlano(planoId).catch((e) => toast.error(e.message || "Falha ao gerar documento")); }}
-              variant="outline" size="sm"
-            ><Printer className="mr-2 h-4 w-4" />Imprimir / PDF</Button>
-            {plano.status === "em_andamento" && metasSemVinculo > 0 && (
-              <Button onClick={ativarMetas} size="sm" variant="secondary">
-                <CheckCircle2 className="mr-2 h-4 w-4" />Ativar metas no prontuário ({metasSemVinculo})
-              </Button>
-            )}
-            {metasOrfas.length > 0 && (
-              <Button onClick={arquivarOrfas} size="sm" variant="outline" title="Metas ativas no prontuário que não existem mais no plano">
-                <Archive className="mr-2 h-4 w-4" />Arquivar metas fora do plano ({metasOrfas.length})
-              </Button>
-            )}
             {plano.status === "em_andamento" && metas.length > 0 && (
-              <Button onClick={() => setShowRevisaoDialog(true)} size="sm" variant="default">
+              <Button onClick={() => setShowRevisaoDialog(true)} size="sm" variant="secondary">
                 <RotateCw className="mr-2 h-4 w-4" />Revisar ciclo
               </Button>
             )}
-            {plano.status !== "em_andamento" && plano.status !== "finalizado" && metas.length > 0 && (
-              <Button onClick={aprovar} size="sm" variant="secondary"><CheckCircle2 className="mr-2 h-4 w-4" />Aprovar</Button>
-            )}
-            <Button onClick={excluir} variant="ghost" size="sm"><Trash2 className="h-4 w-4 text-rose-500" /></Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button size="icon" variant="ghost" className="h-9 w-9"><MoreHorizontal className="h-4 w-4" /></Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-60">
+                {metas.length > 0 && (
+                  <DropdownMenuItem onClick={() => setShowAddMetasDialog(true)}>
+                    <ListPlus className="mr-2 h-4 w-4" />Adicionar metas com IA
+                  </DropdownMenuItem>
+                )}
+                <DropdownMenuItem onClick={() => { imprimirPlano(planoId).catch((e) => toast.error(e.message || "Falha ao gerar documento")); }}>
+                  <Printer className="mr-2 h-4 w-4" />Imprimir / PDF
+                </DropdownMenuItem>
+                {plano.status === "em_andamento" && metasSemVinculo > 0 && (
+                  <DropdownMenuItem onClick={ativarMetas}>
+                    <CheckCircle2 className="mr-2 h-4 w-4" />Ativar metas no prontuário ({metasSemVinculo})
+                  </DropdownMenuItem>
+                )}
+                {metasOrfas.length > 0 && (
+                  <DropdownMenuItem onClick={arquivarOrfas}>
+                    <Archive className="mr-2 h-4 w-4" />Arquivar metas fora do plano ({metasOrfas.length})
+                  </DropdownMenuItem>
+                )}
+                {plano.status !== "em_andamento" && plano.status !== "finalizado" && metas.length > 0 && (
+                  <DropdownMenuItem onClick={aprovar}>
+                    <CheckCircle2 className="mr-2 h-4 w-4" />Aprovar plano
+                  </DropdownMenuItem>
+                )}
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={excluir} className="text-rose-600 focus:text-rose-600">
+                  <Trash2 className="mr-2 h-4 w-4" />Excluir plano
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </CardContent>
+      </Card>
+
+      {/* Destaque: não comece do zero — importe fontes e gere com IA */}
+      <Card className="glass overflow-hidden border-brand/30">
+        <div className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center">
+          <div className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl gradient-brand text-brand-foreground">
+            <Wand2 className="h-5 w-5" />
+          </div>
+          <div className="min-w-0 flex-1">
+            <p className="font-semibold leading-tight">Não precisa escrever do zero</p>
+            <p className="mt-0.5 text-sm text-muted-foreground">
+              A IA cruza o que já existe no sistema (anamnese, avaliações e testes) com os documentos
+              que você anexar (laudos, relatórios, registros antigos) e monta a formulação e as metas.
+              Revise e ajuste — o trabalho braçal é da IA.
+            </p>
+          </div>
+          <div className="flex shrink-0 gap-2">
+            <label className="cursor-pointer">
+              <input type="file" accept="application/pdf" className="hidden" onChange={handlePdfUpload} disabled={pdfUploading} />
+              <Button variant="outline" size="sm" asChild>
+                <span><Upload className="mr-2 h-4 w-4" />{pdfUploading ? "Processando…" : "Anexar laudo"}</span>
+              </Button>
+            </label>
+            <Button onClick={() => setShowIaDialog(true)} size="sm" className="gradient-brand text-brand-foreground">
+              <Sparkles className="mr-2 h-4 w-4" />Gerar com IA
+            </Button>
+          </div>
+        </div>
       </Card>
 
       {/* Header de progresso */}
@@ -550,7 +588,7 @@ function PlanoDetalhe({ pacienteId, planoId, onDeleted, onVerMonitoramento }: { 
         </div>
       )}
 
-      <SectionCard title="Contexto clínico" description="Queixa, hipóteses, medicação e objetivo do ciclo" icon={Info}>
+      <SectionCard title="Contexto clínico" description="Queixa, hipóteses, medicação e objetivo do ciclo" icon={Info} defaultOpen={false}>
         <div className="grid gap-3 md:grid-cols-2">
           <Field label="Queixa principal"><Textarea rows={2} value={form.queixa_principal ?? ""} onChange={(e) => setForm({ ...form, queixa_principal: e.target.value })} /></Field>
           <Field label="Hipótese diagnóstica"><Textarea rows={2} value={form.diagnostico_resumo ?? ""} onChange={(e) => setForm({ ...form, diagnostico_resumo: e.target.value })} /></Field>
@@ -568,7 +606,7 @@ function PlanoDetalhe({ pacienteId, planoId, onDeleted, onVerMonitoramento }: { 
 
       <FontesIntegradas raciocinio={plano.raciocinio_clinico} />
 
-      <SectionCard title="Formulação Clínica" description="ETAPA 2 · Restrições, limitações, funções (hipóteses) e fatores — CIF estruturada e priorizável" icon={Network}>
+      <SectionCard title="Formulação Clínica" description="ETAPA 2 · Restrições, limitações, funções (hipóteses) e fatores — CIF estruturada e priorizável" icon={Network} defaultOpen={false}>
         <FormulacaoEditor planoId={planoId} />
         <LegadoCif form={form} setForm={setForm} onSalvar={salvar} />
       </SectionCard>
@@ -1096,7 +1134,7 @@ function RaciocinioSecao({ planoId, raciocinio, onSaved }: { planoId: string; ra
   }
 
   return (
-    <SectionCard title="Síntese do raciocínio clínico" description="ETAPA 3 · Hipóteses com mais evidência, fatores secundários e lacunas" icon={Brain}>
+    <SectionCard title="Síntese do raciocínio clínico" description="ETAPA 3 · Hipóteses com mais evidência, fatores secundários e lacunas" icon={Brain} defaultOpen={false}>
       <Textarea
         rows={5}
         value={sintese}
