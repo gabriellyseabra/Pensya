@@ -70,6 +70,8 @@ FLUXO OBRIGATÓRIO — NUNCA gere metas sem antes construir a formulação:
 
 REGRAS: nunca invente dados clínicos — use apenas o contexto. Nunca use funções cognitivas como metas (exceto se explicitamente o foco principal). Sempre justifique decisões e mostre as evidências.
 
+TÍTULO DA META (campo "titulo_smart"): escreva um título FUNCIONAL curto e direto — o que a pessoa vai conseguir fazer no dia a dia (máx ~12 palavras). NÃO coloque a estrutura SMART na frase do título: métricas, percentuais, "em X de Y oportunidades", prazos e critérios de medição vão nos campos próprios (baseline, prazo_semanas, criterios_progressao e na escala GAS), nunca no título.
+
 Responda SOMENTE com JSON válido no schema:
 {
   "queixa_principal": "string",
@@ -521,7 +523,7 @@ TAREFA: o paciente já tem um plano em andamento (metas listadas no contexto). P
 
 REGRAS:
 1. Gere de 1 a 3 metas novas.
-2. Cada meta SMART + funcional, com Mapa da Meta completo.
+2. Cada meta funcional, com Mapa da Meta completo. O título ("titulo_smart") é curto e funcional — o que a pessoa vai conseguir fazer (máx ~12 palavras); métricas/prazos vão nos campos próprios, NUNCA no título.
 3. Escala GAS com 5 níveis observáveis (-2 a +2).
 4. NÃO invente dados. Use apenas o contexto.
 
@@ -592,6 +594,50 @@ Gere apenas as metas novas em JSON conforme o schema.`;
     const inseridas = await inserirMetasGeradas(supabase, data.plano_id, metas, ordemInicial, plano.ciclo_semanas);
 
     return { ok: true, metas_geradas: inseridas };
+  });
+
+// ============= IA: Simplificar títulos das metas (SMART → funcional) =============
+const SimplificarTitulosInput = z.object({ plano_id: z.string().uuid() });
+
+export const simplificarTitulosMetas = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => SimplificarTitulosInput.parse(d))
+  .handler(async ({ data, context }) => {
+    const supabase = context.supabase;
+    const { data: metas } = await supabase
+      .from("plano_metas")
+      .select("id, titulo_smart")
+      .eq("plano_id", data.plano_id);
+    const lista = (metas ?? []).filter((m: any) => (m.titulo_smart ?? "").trim().length > 0);
+    if (lista.length === 0) return { atualizadas: 0 };
+
+    const userPrompt = `Reescreva cada título de meta abaixo em formato FUNCIONAL, curto e direto — o que a pessoa vai conseguir fazer no dia a dia. NÃO use a estrutura SMART na frase: remova métricas, percentuais, "em X de Y oportunidades", prazos em semanas e critérios de medição do título (essas informações continuam registradas em outros campos da meta). Mantenha o SENTIDO clínico e o domínio. Máximo ~12 palavras por título.
+
+Exemplos:
+- "Aumentar o tempo de atenção sustentada de 5 para 15 min em 4 de 5 tarefas, em 12 semanas" → "Sustentar a atenção em tarefas acadêmicas"
+- "Melhorar a fluência leitora para 90 palavras/min com 95% de precisão" → "Ler com mais fluência e precisão"
+
+Responda SOMENTE com JSON válido: { "titulos": [ { "id": "uuid", "titulo": "string" } ] }
+
+Metas:
+${lista.map((m: any) => `- id ${m.id}: ${m.titulo_smart}`).join("\n")}`;
+
+    const parsed = await callGeminiJSON<{ titulos?: { id: string; titulo: string }[] }>({
+      model: "gemini-2.5-flash",
+      systemPrompt: "Você é uma psicopedagoga clínica que escreve metas funcionais curtas e claras.",
+      userPrompt,
+    });
+    const novos = Array.isArray(parsed.titulos) ? parsed.titulos : [];
+
+    let atualizadas = 0;
+    for (const t of novos) {
+      const meta = lista.find((m: any) => m.id === t.id);
+      const novo = (t.titulo ?? "").trim();
+      if (!meta || !novo || novo === meta.titulo_smart) continue;
+      const { error } = await supabase.from("plano_metas").update({ titulo_smart: novo }).eq("id", t.id);
+      if (!error) atualizadas++;
+    }
+    return { atualizadas };
   });
 
 // ============= IA: Extrair dados de PDF de avaliação =============

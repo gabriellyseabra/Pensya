@@ -29,7 +29,7 @@ const SECOES_PLANO = [
   { key: "evidencias", label: "Evidências", icon: FlaskConical },
   { key: "tutorial", label: "Como funciona", icon: GraduationCap },
 ] as const;
-import { gerarPlanoIA, buscarPubMed, extrairPdfAvaliacao, adicionarMetasIA } from "@/lib/plano.functions";
+import { gerarPlanoIA, buscarPubMed, extrairPdfAvaliacao, adicionarMetasIA, simplificarTitulosMetas } from "@/lib/plano.functions";
 import { imprimirPlano } from "@/lib/plano-documento";
 import { RevisaoCicloDialog } from "./RevisaoCicloDialog";
 import { FormulacaoEditor } from "./FormulacaoEditor";
@@ -169,6 +169,8 @@ function PlanoDetalhe({ pacienteId, planoId, onDeleted, onVerMonitoramento }: { 
   const pubmedFn = useServerFn(buscarPubMed);
   const extrairFn = useServerFn(extrairPdfAvaliacao);
   const adicionarMetasFn = useServerFn(adicionarMetasIA);
+  const simplificarFn = useServerFn(simplificarTitulosMetas);
+  const [simplificando, setSimplificando] = useState(false);
 
   const { data: dominiosCognitivos = [] } = useQuery({
     queryKey: ["dominios-cognitivos"],
@@ -506,6 +508,22 @@ function PlanoDetalhe({ pacienteId, planoId, onDeleted, onVerMonitoramento }: { 
                 {metas.length > 0 && (
                   <DropdownMenuItem onClick={() => setShowAddMetasDialog(true)}>
                     <ListPlus className="mr-2 h-4 w-4" />Adicionar metas com IA
+                  </DropdownMenuItem>
+                )}
+                {metas.length > 0 && (
+                  <DropdownMenuItem
+                    disabled={simplificando}
+                    onClick={async () => {
+                      setSimplificando(true);
+                      try {
+                        const r: any = await simplificarFn({ data: { plano_id: planoId } });
+                        toast.success(`${r?.atualizadas ?? 0} título(s) simplificado(s)`);
+                        qc.invalidateQueries({ queryKey: ["plano-metas", planoId] });
+                      } catch (e: any) { toast.error(e?.message ?? "Falha ao simplificar"); }
+                      finally { setSimplificando(false); }
+                    }}
+                  >
+                    <Wand2 className="mr-2 h-4 w-4" />{simplificando ? "Simplificando…" : "Simplificar títulos (IA)"}
                   </DropdownMenuItem>
                 )}
                 <DropdownMenuItem onClick={() => { imprimirPlano(planoId).catch((e) => toast.error(e.message || "Falha ao gerar documento")); }}>
