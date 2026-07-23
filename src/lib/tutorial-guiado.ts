@@ -42,16 +42,28 @@ function montarPassos(sofiaId: string | null): PassoDef[] {
       ...ficha({ aba: "cadastro" }),
     },
     {
+      key: "avaliacao",
+      titulo: "Veja a avaliação com resultados de testes",
+      descricao: "Anamnese estruturada e bateria aplicada, com percentis e interpretação.",
+      ...ficha({ aba: "clinico", sub: "avaliacao" }),
+    },
+    {
       key: "plano",
       titulo: "Explore o plano terapêutico",
-      descricao: "Metas SMART, escala GAS e estratégias baseadas em evidências.",
+      descricao: "Metas funcionais, escala GAS e estratégias baseadas em evidências.",
       ...ficha({ aba: "clinico", sub: "plano" }),
     },
     {
       key: "sessoes",
       titulo: "Leia as evoluções no prontuário",
-      descricao: "Três sessões registradas mostram como documentar o atendimento.",
+      descricao: "Sessões registradas e vinculadas às metas do plano.",
       ...ficha({ aba: "clinico", sub: "sessoes" }),
+    },
+    {
+      key: "perfil",
+      titulo: "Conheça o perfil clínico vivo",
+      descricao: "O que funciona com a Sofia: reforçadores, barreiras e estratégias.",
+      ...ficha({ aba: "clinico", sub: "perfil" }),
     },
     {
       key: "frequencia",

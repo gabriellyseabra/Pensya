@@ -15,16 +15,49 @@ export const AREAS = [
 ] as const;
 
 export const SUBS_CLINICO = [
-  { key: "avaliacao", label: "Avaliação", icon: ClipboardList, desc: "Anamnese, testagem e raciocínio clínico" },
-  { key: "plano", label: "Plano", icon: Target, desc: "Plano terapêutico com metas SMART e GAS" },
-  { key: "sessoes", label: "Sessões", icon: FileText, desc: "Registro de cada atendimento — o prontuário" },
-  { key: "frequencia", label: "Frequência", icon: CalendarCheck, desc: "Presenças, faltas e reposições" },
-  { key: "monitoramento", label: "Monitoramento", icon: TrendingUp, desc: "Evolução das metas e dos domínios cognitivos" },
-  { key: "perfil", label: "Perfil", icon: Sparkles, desc: "Perfil clínico vivo: o que funciona com este paciente" },
+  {
+    key: "avaliacao",
+    label: "Avaliação",
+    icon: ClipboardList,
+    desc: "Anamnese, testagem e raciocínio clínico",
+  },
+  {
+    key: "plano",
+    label: "Plano",
+    icon: Target,
+    desc: "Plano terapêutico com metas funcionais e GAS",
+  },
+  {
+    key: "sessoes",
+    label: "Sessões",
+    icon: FileText,
+    desc: "Registro de cada atendimento — o prontuário",
+  },
+  {
+    key: "frequencia",
+    label: "Frequência",
+    icon: CalendarCheck,
+    desc: "Presenças, faltas e reposições",
+  },
+  {
+    key: "monitoramento",
+    label: "Monitoramento",
+    icon: TrendingUp,
+    desc: "Evolução das metas e dos domínios cognitivos",
+  },
+  {
+    key: "perfil",
+    label: "Perfil",
+    icon: Sparkles,
+    desc: "Perfil clínico vivo: o que funciona com este paciente",
+  },
 ] as const;
 
 /** Converte valores antigos de aba (links/urls legados) para o novo par área+sub. */
-export function resolverAba(aba?: string | null, sub?: string | null): { aba: string; sub?: string } {
+export function resolverAba(
+  aba?: string | null,
+  sub?: string | null,
+): { aba: string; sub?: string } {
   const legado: Record<string, { aba: string; sub?: string }> = {
     ficha: { aba: "cadastro" },
     "perfil-vivo": { aba: "clinico", sub: "perfil" },
@@ -65,7 +98,9 @@ export function PacienteTabsNav({
             <TabsTrigger
               key={a.key}
               value={a.key}
-              onClick={() => onNavigate(a.key, a.key === "clinico" ? (sub ?? "avaliacao") : undefined)}
+              onClick={() =>
+                onNavigate(a.key, a.key === "clinico" ? (sub ?? "avaliacao") : undefined)
+              }
               className="whitespace-nowrap rounded-full px-4 py-1.5 text-sm data-[state=active]:bg-foreground data-[state=active]:text-background data-[state=active]:shadow-sm"
             >
               {a.label}

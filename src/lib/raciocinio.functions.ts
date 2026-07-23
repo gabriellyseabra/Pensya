@@ -45,22 +45,45 @@ export const gerarRaciocinioClinico = createServerFn({ method: "POST" })
     const { supabase } = context;
 
     const [{ data: pac }, { data: pre }, { data: diags }, { data: avals }] = await Promise.all([
-      supabase.from("pacientes").select("nome, data_nascimento, genero, queixa_principal, expectativas, observacoes, escolaridade, serie_curso").eq("id", data.paciente_id).maybeSingle(),
-      supabase.from("paciente_pre_anamnese").select("secoes_estruturadas, resumos_secao, gestacao, parto, saude, contexto_familiar, tratamentos_anteriores").eq("paciente_id", data.paciente_id).maybeSingle(),
-      supabase.from("paciente_diagnosticos").select("diagnostico:diagnosticos(nome)").eq("paciente_id", data.paciente_id),
-      supabase.from("avaliacoes").select("id, titulo, data_inicio, data_fim, conclusao, hipoteses, status, testes_aplicados(escore_padrao, percentil, classificacao, observacoes_qualitativas, data_aplicacao, teste:testes_catalogo(nome, dominio:dominios_cognitivos(nome)))").eq("paciente_id", data.paciente_id).order("created_at", { ascending: false }),
+      supabase
+        .from("pacientes")
+        .select(
+          "nome, data_nascimento, genero, queixa_principal, expectativas, observacoes, escolaridade, serie_curso",
+        )
+        .eq("id", data.paciente_id)
+        .maybeSingle(),
+      supabase
+        .from("paciente_pre_anamnese")
+        .select(
+          "secoes_estruturadas, resumos_secao, gestacao, parto, saude, contexto_familiar, tratamentos_anteriores",
+        )
+        .eq("paciente_id", data.paciente_id)
+        .maybeSingle(),
+      supabase
+        .from("paciente_diagnosticos")
+        .select("diagnostico:diagnosticos(nome)")
+        .eq("paciente_id", data.paciente_id),
+      supabase
+        .from("avaliacoes")
+        .select(
+          "id, titulo, data_inicio, data_fim, conclusao, hipoteses, status, testes_aplicados(escore_padrao, percentil, classificacao, observacoes_qualitativas, data_aplicacao, teste:testes_catalogo(nome, dominio:dominios_cognitivos(nome)))",
+        )
+        .eq("paciente_id", data.paciente_id)
+        .order("created_at", { ascending: false }),
     ]);
 
     if (!pac) throw new Error("Paciente não encontrado");
 
     const idade = pac.data_nascimento
-      ? Math.floor((Date.now() - new Date(pac.data_nascimento).getTime()) / (1000 * 60 * 60 * 24 * 365.25))
+      ? Math.floor(
+          (Date.now() - new Date(pac.data_nascimento).getTime()) / (1000 * 60 * 60 * 24 * 365.25),
+        )
       : null;
 
     // Agregar perfil cognitivo por domínio
     const porDominio: Record<string, any[]> = {};
-    for (const a of (avals ?? [])) {
-      for (const t of ((a as any).testes_aplicados ?? [])) {
+    for (const a of avals ?? []) {
+      for (const t of (a as any).testes_aplicados ?? []) {
         const dom = t.teste?.dominio?.nome ?? "Sem domínio";
         (porDominio[dom] = porDominio[dom] ?? []).push({
           teste: t.teste?.nome,
@@ -72,20 +95,32 @@ export const gerarRaciocinioClinico = createServerFn({ method: "POST" })
       }
     }
 
-    const perfilTxt = Object.entries(porDominio).map(([d, ts]) =>
-      `\n• ${d}:\n${ts.map(t => `   – ${t.teste}: ${t.classificacao ?? "—"}${t.percentil != null ? ` (P${t.percentil})` : ""}${t.escore_padrao != null ? ` EP=${t.escore_padrao}` : ""}${t.obs ? ` | obs: ${t.obs}` : ""}`).join("\n")}`
-    ).join("\n") || "Nenhum teste aplicado registrado.";
+    const perfilTxt =
+      Object.entries(porDominio)
+        .map(
+          ([d, ts]) =>
+            `\n• ${d}:\n${ts.map((t) => `   – ${t.teste}: ${t.classificacao ?? "—"}${t.percentil != null ? ` (P${t.percentil})` : ""}${t.escore_padrao != null ? ` EP=${t.escore_padrao}` : ""}${t.obs ? ` | obs: ${t.obs}` : ""}`).join("\n")}`,
+        )
+        .join("\n") || "Nenhum teste aplicado registrado.";
 
-    const anamneseTxt = formatarAnamnese((pre as any)?.secoes_estruturadas, (pre as any)?.resumos_secao);
-    const preAnamneseTxt = anamneseTxt
-      ?? (pre
-        ? JSON.stringify({
-            gestacao: (pre as any).gestacao,
-            parto: (pre as any).parto,
-            saude: (pre as any).saude,
-            contexto_familiar: (pre as any).contexto_familiar,
-            tratamentos_anteriores: (pre as any).tratamentos_anteriores,
-          }, null, 2)
+    const anamneseTxt = formatarAnamnese(
+      (pre as any)?.secoes_estruturadas,
+      (pre as any)?.resumos_secao,
+    );
+    const preAnamneseTxt =
+      anamneseTxt ??
+      (pre
+        ? JSON.stringify(
+            {
+              gestacao: (pre as any).gestacao,
+              parto: (pre as any).parto,
+              saude: (pre as any).saude,
+              contexto_familiar: (pre as any).contexto_familiar,
+              tratamentos_anteriores: (pre as any).tratamentos_anteriores,
+            },
+            null,
+            2,
+          )
         : "—");
 
     // MÓDULO 3 — Referências da biblioteca relevantes (queixa + diagnósticos + domínios)
@@ -102,7 +137,12 @@ Escolaridade: ${pac.escolaridade ?? "—"} | Série: ${pac.serie_curso ?? "—"}
 Queixa: ${pac.queixa_principal ?? "—"}
 Expectativas: ${pac.expectativas ?? "—"}
 Observações: ${pac.observacoes ?? "—"}
-Diagnósticos: ${(diags ?? []).map((d: any) => d.diagnostico?.nome).filter(Boolean).join(", ") || "—"}
+Diagnósticos: ${
+      (diags ?? [])
+        .map((d: any) => d.diagnostico?.nome)
+        .filter(Boolean)
+        .join(", ") || "—"
+    }
 
 ANAMNESE
 ${preAnamneseTxt}
@@ -120,7 +160,7 @@ Devolva JSON com este schema:
   "hipoteses_diagnosticas": [{ "hipotese": "nomeie o quadro quando os dados sugerirem (ex.: TEA, TDAH, Transtorno de Aprendizagem, TOD) — sempre como HIPÓTESE a investigar, nunca diagnóstico fechado", "justificativa": "quais achados da anamnese/perfil sustentam" }],
   "fatores_contextuais": { "facilitadores": ["..."], "barreiras": ["..."] },
   "prioridades_intervencao": [{ "ordem": 1, "area": "...", "racional": "por que essa área primeiro" }],
-  "metas_sugeridas": [{ "titulo": "meta funcional SMART", "dominio": "...", "racional_clinico": "..." }],
+  "metas_sugeridas": [{ "titulo": "meta funcional curta — o que a pessoa vai conseguir fazer no dia a dia, SEM estrutura SMART (sem métricas, percentuais ou prazos na frase)", "dominio": "...", "racional_clinico": "..." }],
   "encaminhamentos": ["..."],
   "alertas": ["lacuna importante ou risco"]
 }`;
@@ -148,10 +188,13 @@ export const criarPlanoDeRaciocinio = createServerFn({ method: "POST" })
         ciclo_semanas: 12,
         diagnostico_resumo: r.sintese_diagnostica ?? null,
         cif_pessoais: (r.pontos_fortes ?? []).join("; ") || null,
-        cif_ambientais: [
-          (r.fatores_contextuais?.facilitadores ?? []).map((f: string) => `+ ${f}`).join("; "),
-          (r.fatores_contextuais?.barreiras ?? []).map((b: string) => `– ${b}`).join("; "),
-        ].filter(Boolean).join(" | ") || null,
+        cif_ambientais:
+          [
+            (r.fatores_contextuais?.facilitadores ?? []).map((f: string) => `+ ${f}`).join("; "),
+            (r.fatores_contextuais?.barreiras ?? []).map((b: string) => `– ${b}`).join("; "),
+          ]
+            .filter(Boolean)
+            .join(" | ") || null,
       })
       .select("id")
       .single();
@@ -159,14 +202,15 @@ export const criarPlanoDeRaciocinio = createServerFn({ method: "POST" })
 
     const metas = (r.metas_sugeridas ?? []).slice(0, 8);
     if (metas.length) {
-      await supabase.from("plano_metas").insert(metas.map((m: any, i: number) => ({
-        plano_id: plano!.id,
-        titulo_smart: m.titulo ?? `Meta ${i + 1}`,
-        justificativa: m.racional_clinico ?? null,
-        dominio: m.dominio ?? null,
-        ordem: i + 1,
-      })));
+      await supabase.from("plano_metas").insert(
+        metas.map((m: any, i: number) => ({
+          plano_id: plano!.id,
+          titulo_smart: m.titulo ?? `Meta ${i + 1}`,
+          justificativa: m.racional_clinico ?? null,
+          dominio: m.dominio ?? null,
+          ordem: i + 1,
+        })),
+      );
     }
     return { plano_id: plano!.id };
   });
-

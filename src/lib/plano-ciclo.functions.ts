@@ -29,14 +29,18 @@ type AnaliseRegras = {
 async function carregarDadosCiclo(supabase: any, plano_id: string) {
   const { data: plano } = await supabase
     .from("planos_terapeuticos")
-    .select("id, paciente_id, titulo, ciclo_semanas, data_inicio, data_revisao_prevista, objetivo_participacao, cif_funcoes, cif_atividades, cif_participacao")
+    .select(
+      "id, paciente_id, titulo, ciclo_semanas, data_inicio, data_revisao_prevista, objetivo_participacao, cif_funcoes, cif_atividades, cif_participacao",
+    )
     .eq("id", plano_id)
     .maybeSingle();
   if (!plano) throw new Error("Plano não encontrado");
 
   const { data: metas } = await supabase
     .from("plano_metas")
-    .select("id, titulo_smart, dominio, baseline, prazo_semanas, status, meta_terapeutica_id, ordem")
+    .select(
+      "id, titulo_smart, dominio, baseline, prazo_semanas, status, meta_terapeutica_id, ordem",
+    )
     .eq("plano_id", plano_id)
     .order("ordem");
 
@@ -45,7 +49,9 @@ async function carregarDadosCiclo(supabase: any, plano_id: string) {
   if (metaIds.length) {
     const { data } = await supabase
       .from("sessao_metas")
-      .select("meta_id, plano_meta_id, desempenho, nivel_gas_observado, engajamento, sessao:prontuario_sessoes(id, data_sessao, paciente_id)")
+      .select(
+        "meta_id, plano_meta_id, desempenho, nivel_gas_observado, engajamento, sessao:prontuario_sessoes(id, data_sessao, paciente_id)",
+      )
       .in("meta_id", metaIds);
     sessaoMetas = (data ?? []).filter((s: any) => s.sessao?.paciente_id === plano.paciente_id);
   }
@@ -87,7 +93,9 @@ export const analisarCicloRegras = createServerFn({ method: "POST" })
     }
 
     const analiseMetas: MetaAnalise[] = metas.map((m: any) => {
-      const regs = (porMeta.get(m.meta_terapeutica_id) ?? []).sort((a, b) => (a.data ?? "").localeCompare(b.data ?? ""));
+      const regs = (porMeta.get(m.meta_terapeutica_id) ?? []).sort((a, b) =>
+        (a.data ?? "").localeCompare(b.data ?? ""),
+      );
       const desemps = regs.map((r) => r.desempenho).filter((n) => n != null) as number[];
       const gass = regs.map((r) => r.nivel_gas_observado).filter((n) => n != null) as number[];
       const desempMedio = avg(desemps);
@@ -104,7 +112,12 @@ export const analisarCicloRegras = createServerFn({ method: "POST" })
       } else if (gasUltimo != null && gasUltimo >= 1 && gass.filter((g) => g >= 1).length >= 2) {
         sugestao = "encerrar";
         motivo = "Meta atingida ou superada (GAS ≥ +1 em ≥2 registros).";
-      } else if (desempRecente != null && desempRecente < 2 && desemps.length >= 4 && tend !== "progresso") {
+      } else if (
+        desempRecente != null &&
+        desempRecente < 2 &&
+        desemps.length >= 4 &&
+        tend !== "progresso"
+      ) {
         sugestao = "ajustar";
         motivo = `Desempenho recente baixo (média ${desempRecente}) sem evolução. Revisar estratégias ou meta.`;
       } else if (tend === "regressao") {
@@ -134,7 +147,9 @@ export const analisarCicloRegras = createServerFn({ method: "POST" })
 
     const alertas: string[] = [];
     if (plano.data_revisao_prevista) {
-      const dias = Math.ceil((new Date(plano.data_revisao_prevista).getTime() - Date.now()) / 86400000);
+      const dias = Math.ceil(
+        (new Date(plano.data_revisao_prevista).getTime() - Date.now()) / 86400000,
+      );
       if (dias < 0) alertas.push(`Ciclo expirou há ${-dias} dias.`);
       else if (dias < 14) alertas.push(`Ciclo termina em ${dias} dias.`);
     }
@@ -158,7 +173,7 @@ REGRAS:
 - Não invente números. Use APENAS os dados do resumo.
 - Conecte desempenho com perfil CIF, queixa e contexto.
 - Para cada meta indique manter | ajustar | encerrar | suspender, com justificativa clínica.
-- Quando sugerir nova meta, ela deve ser FUNCIONAL e SMART.
+- Quando sugerir nova meta, ela deve ser FUNCIONAL e relevante para o dia a dia — SEM estrutura SMART no título (métricas, percentuais e prazos ficam nos campos próprios da meta, nunca na frase).
 - Devolva SOMENTE JSON válido.`;
 
 const RevisarIAInput = z.object({
@@ -203,11 +218,15 @@ const AprovarInput = z.object({
   resumo: z.any(),
   sugestoes: z.any().optional(),
   observacao: z.string().max(4000).optional(),
-  decisoes: z.array(z.object({
-    meta_id: z.string().uuid(),
-    novo_status: z.enum(["ativa", "concluida", "suspensa", "revisada"]),
-    nivel_gas_atingido: z.number().int().min(-2).max(2).nullable().optional(),
-  })).default([]),
+  decisoes: z
+    .array(
+      z.object({
+        meta_id: z.string().uuid(),
+        novo_status: z.enum(["ativa", "concluida", "suspensa", "revisada"]),
+        nivel_gas_atingido: z.number().int().min(-2).max(2).nullable().optional(),
+      }),
+    )
+    .default([]),
 });
 
 export const aprovarRevisaoCiclo = createServerFn({ method: "POST" })

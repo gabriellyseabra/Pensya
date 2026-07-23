@@ -42,55 +42,84 @@ export const gerarDevolutivaIA = createServerFn({ method: "POST" })
     // Plano (o indicado ou o mais recente)
     let plano: any = null;
     if (data.plano_id) {
-      const { data: p } = await supabase.from("planos_terapeuticos").select("id, titulo, objetivo_participacao, ciclo_semanas").eq("id", data.plano_id).maybeSingle();
+      const { data: p } = await supabase
+        .from("planos_terapeuticos")
+        .select("id, titulo, objetivo_participacao, ciclo_semanas")
+        .eq("id", data.plano_id)
+        .maybeSingle();
       plano = p;
     } else {
-      const { data: p } = await supabase.from("planos_terapeuticos").select("id, titulo, objetivo_participacao, ciclo_semanas").eq("paciente_id", data.paciente_id).order("created_at", { ascending: false }).limit(1).maybeSingle();
+      const { data: p } = await supabase
+        .from("planos_terapeuticos")
+        .select("id, titulo, objetivo_participacao, ciclo_semanas")
+        .eq("paciente_id", data.paciente_id)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
       plano = p;
     }
 
     const { data: metasPlano } = await supabase
       .from("plano_metas")
-      .select("titulo_smart, dominio, status, nivel_gas_atingido, meta_terapeutica_id, objetivo:plano_objetivos(titulo)")
+      .select(
+        "titulo_smart, dominio, status, nivel_gas_atingido, meta_terapeutica_id, objetivo:plano_objetivos(titulo)",
+      )
       .eq("plano_id", plano?.id ?? "00000000-0000-0000-0000-000000000000");
 
     // Sessões + registro por meta (evidências, componentes, GAS, progresso) + variáveis transversais
     const { data: sessoes } = await supabase
       .from("prontuario_sessoes")
-      .select("id, data_sessao, engajamento, motivacao, persistencia, autorregulacao, participacao, sessao_metas(meta_id, nivel_gas_observado, evidencias_clinicas, componentes_trabalhados, houve_progresso)")
+      .select(
+        "id, data_sessao, engajamento, motivacao, persistencia, autorregulacao, participacao, sessao_metas(meta_id, nivel_gas_observado, evidencias_clinicas, componentes_trabalhados, houve_progresso)",
+      )
       .eq("paciente_id", data.paciente_id)
       .order("data_sessao", { ascending: true });
 
-    // Índice meta_terapeutica -> título SMART
+    // Índice meta_terapeutica -> título da meta
     const tituloPorMeta = new Map<string, string>();
-    (metasPlano ?? []).forEach((m: any) => { if (m.meta_terapeutica_id) tituloPorMeta.set(m.meta_terapeutica_id, m.titulo_smart); });
+    (metasPlano ?? []).forEach((m: any) => {
+      if (m.meta_terapeutica_id) tituloPorMeta.set(m.meta_terapeutica_id, m.titulo_smart);
+    });
 
     // Agregação por meta
     const porMeta = new Map<string, any[]>();
-    for (const s of (sessoes ?? [])) {
-      for (const sm of ((s as any).sessao_metas ?? [])) {
+    for (const s of sessoes ?? []) {
+      for (const sm of (s as any).sessao_metas ?? []) {
         const arr = porMeta.get(sm.meta_id) ?? [];
         arr.push({ ...sm, data: (s as any).data_sessao });
         porMeta.set(sm.meta_id, arr);
       }
     }
 
-    const metasResumo = Array.from(porMeta.entries()).map(([metaId, regs]) => {
-      regs.sort((a, b) => (a.data ?? "").localeCompare(b.data ?? ""));
-      const gass = regs.map((r) => r.nivel_gas_observado).filter((n) => n != null).map(Number);
-      const forte = new Map<string, number>(); const limita = new Map<string, number>();
-      for (const r of regs) {
-        const comps: string[] = Array.isArray(r.componentes_trabalhados) ? r.componentes_trabalhados : [];
-        if (PROGRESSO_POS.has(r.houve_progresso)) comps.forEach((c) => forte.set(c, (forte.get(c) ?? 0) + 1));
-        else if (PROGRESSO_NEG.has(r.houve_progresso)) comps.forEach((c) => limita.set(c, (limita.get(c) ?? 0) + 1));
-      }
-      const evid = regs.filter((r) => (r.evidencias_clinicas ?? "").trim()).slice(-4).map((r) => `(${r.data}) ${r.evidencias_clinicas}`);
-      return `Meta: ${tituloPorMeta.get(metaId) ?? "—"}
+    const metasResumo = Array.from(porMeta.entries())
+      .map(([metaId, regs]) => {
+        regs.sort((a, b) => (a.data ?? "").localeCompare(b.data ?? ""));
+        const gass = regs
+          .map((r) => r.nivel_gas_observado)
+          .filter((n) => n != null)
+          .map(Number);
+        const forte = new Map<string, number>();
+        const limita = new Map<string, number>();
+        for (const r of regs) {
+          const comps: string[] = Array.isArray(r.componentes_trabalhados)
+            ? r.componentes_trabalhados
+            : [];
+          if (PROGRESSO_POS.has(r.houve_progresso))
+            comps.forEach((c) => forte.set(c, (forte.get(c) ?? 0) + 1));
+          else if (PROGRESSO_NEG.has(r.houve_progresso))
+            comps.forEach((c) => limita.set(c, (limita.get(c) ?? 0) + 1));
+        }
+        const evid = regs
+          .filter((r) => (r.evidencias_clinicas ?? "").trim())
+          .slice(-4)
+          .map((r) => `(${r.data}) ${r.evidencias_clinicas}`);
+        return `Meta: ${tituloPorMeta.get(metaId) ?? "—"}
   GAS: ${gass.length ? gass.join(" → ") : "sem registro"} (último: ${gass.length ? gass[gass.length - 1] : "—"})
   Componentes fortalecidos: ${Array.from(forte.keys()).join(", ") || "—"}
   Componentes ainda limitantes: ${Array.from(limita.keys()).join(", ") || "—"}
   Evidências recentes: ${evid.join(" | ") || "—"}`;
-    }).join("\n\n");
+      })
+      .join("\n\n");
 
     const transversais = {
       engajamento: avg((sessoes ?? []).map((s: any) => s.engajamento)),
@@ -101,7 +130,8 @@ export const gerarDevolutivaIA = createServerFn({ method: "POST" })
     };
 
     const idade = pac?.data_nascimento
-      ? Math.floor((Date.now() - new Date(pac.data_nascimento).getTime()) / 31557600000) : null;
+      ? Math.floor((Date.now() - new Date(pac.data_nascimento).getTime()) / 31557600000)
+      : null;
 
     const userPrompt = `PACIENTE: ${pac?.nome ?? "—"} | Idade: ${idade ?? "—"} | ${pac?.escolaridade ?? "—"} ${pac?.serie_curso ?? ""}
 Queixa: ${pac?.queixa_principal ?? "—"}
@@ -126,6 +156,10 @@ Redija a devolutiva do ciclo em JSON com este schema EXATO:
   "proximas_prioridades": ["..."]
 }`;
 
-    const parsed = await callGeminiJSON({ model: "gemini-2.5-pro", systemPrompt: SYSTEM_PROMPT, userPrompt });
+    const parsed = await callGeminiJSON({
+      model: "gemini-2.5-pro",
+      systemPrompt: SYSTEM_PROMPT,
+      userPrompt,
+    });
     return { plano_id: plano?.id ?? null, conteudo: parsed, ai_modelo: "gemini-2.5-pro" };
   });

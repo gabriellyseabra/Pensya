@@ -105,7 +105,7 @@ export const CATEGORIAS_AJUDA: CategoriaAjuda[] = [
           {
             t: "p",
             texto:
-              "Toda clínica no Pensya começa com a Sofia, uma paciente fictícia com a ficha completa preenchida: cadastro, responsáveis, anamnese, diagnóstico, plano terapêutico com metas e escala GAS, sessões registradas no prontuário e frequência na agenda. Ela existe para você explorar cada funcionalidade vendo dados de verdade — sem medo de mexer em paciente real.",
+              "Toda clínica no Pensya começa com a Sofia, uma paciente fictícia com a ficha completa de ponta a ponta: cadastro, responsáveis, anamnese estruturada, avaliação concluída com resultados de testes (percentis e interpretação), plano terapêutico com CIF, metas funcionais e escala GAS, sessões registradas e vinculadas às metas, perfil clínico vivo e frequência na agenda. Ela existe para você explorar cada funcionalidade vendo dados de verdade — sem medo de mexer em paciente real.",
           },
           {
             t: "passos",
