@@ -14,6 +14,7 @@ import {
   Megaphone,
   Bell,
   DoorOpen,
+  LifeBuoy,
   LogOut,
   Menu,
   ChevronUp,
@@ -31,7 +32,14 @@ type Item = { title: string; url: string; icon: React.ComponentType<{ className?
 // Terapeuta com acesso restrito só enxerga estas seções (home/dashboard,
 // agenda, pacientes, tarefas atribuídas a ela e o próprio financeiro — sem o
 // financeiro da clínica nem a gestão).
-const TERAPEUTA_URLS = new Set(["/dashboard", "/agenda", "/pacientes", "/tarefas", "/meu-financeiro"]);
+const TERAPEUTA_URLS = new Set([
+  "/dashboard",
+  "/agenda",
+  "/pacientes",
+  "/tarefas",
+  "/meu-financeiro",
+  "/central-de-ajuda",
+]);
 // Itens que só o terapeuta vê (admin/secretaria não veem "Meu financeiro").
 const SO_TERAPEUTA_URLS = new Set(["/meu-financeiro"]);
 
@@ -82,7 +90,10 @@ const groups: { label: string; items: Item[] }[] = [
   },
   {
     label: "Configurações",
-    items: [{ title: "Configurações", url: "/configuracoes", icon: Settings }],
+    items: [
+      { title: "Configurações", url: "/configuracoes", icon: Settings },
+      { title: "Central de ajuda", url: "/central-de-ajuda", icon: LifeBuoy },
+    ],
   },
 ];
 
@@ -207,7 +218,11 @@ export function MobileNav() {
       </SheetTrigger>
       <SheetContent side="left" className="w-72 bg-rail p-0 text-rail-foreground">
         <div className="flex h-full flex-col p-4">
-          <img src="/pensya-logo-horizontal-dark.svg" alt="Pensya" className="mb-4 h-8 w-auto object-contain" />
+          <img
+            src="/pensya-logo-horizontal-dark.svg"
+            alt="Pensya"
+            className="mb-4 h-8 w-auto object-contain"
+          />
           <div className="flex-1 space-y-4 overflow-y-auto">
             {visibleGroups.map((g) => (
               <div key={g.label}>
