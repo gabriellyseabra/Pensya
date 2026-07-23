@@ -28,12 +28,47 @@ export type BlocoAjuda =
   | { t: "passos"; itens: string[] }
   | { t: "dica"; texto: string };
 
+/** Campo de uma seção do sistema, para as tabelas "campos desta seção". */
+export interface TutorialCampo {
+  campo: string;
+  descricao: string;
+}
+
+/** Um passo numerado de um tutorial detalhado. */
+export interface TutorialPasso {
+  titulo: string;
+  descricao?: string;
+  /** Tabela "campos desta seção". */
+  campos?: TutorialCampo[];
+  /** Caixa de dica (amarela). */
+  dica?: string;
+  /** Id de uma ilustração/mockup renderizada na página. */
+  mockup?: string;
+}
+
+export interface TutorialProximo {
+  titulo: string;
+  descricao: string;
+}
+
+/**
+ * Tutorial detalhado (formato "página inteira"): introdução, passos numerados
+ * com tabelas de campos, dicas e ilustrações, e "o que fazer depois".
+ */
+export interface TutorialAjuda {
+  antesDeComecar?: string[];
+  passos: TutorialPasso[];
+  oQueFazerDepois?: TutorialProximo[];
+}
+
 export interface ArtigoAjuda {
   id: string;
   titulo: string;
   corpo: BlocoAjuda[];
   /** Visível apenas para admin/secretária. */
   gestao?: boolean;
+  /** Quando presente, o artigo abre como um tutorial detalhado de página inteira. */
+  tutorial?: TutorialAjuda;
 }
 
 export interface CategoriaAjuda {
@@ -46,6 +81,103 @@ export interface CategoriaAjuda {
   artigos: ArtigoAjuda[];
 }
 
+/**
+ * Tutorial detalhado de importação de pacientes. Definido uma vez e
+ * referenciado em duas categorias (Primeiros passos e Pacientes e prontuário).
+ * Marcado como gestão: aparece só para admin/secretária, mesmo nessas
+ * categorias abertas, porque importar a base é uma ação administrativa.
+ */
+const TUTORIAL_IMPORTAR_PACIENTES: ArtigoAjuda = {
+  id: "importar-pacientes",
+  titulo: "Como importar seus pacientes (Excel, CSV, SisClin ou colar)",
+  gestao: true,
+  corpo: [
+    {
+      t: "p",
+      texto:
+        "Traga sua base de pacientes de uma planilha Excel/CSV, da exportação direta do SisClin ou colando as células copiadas da sua planilha. O sistema reconhece as colunas automaticamente pelos nomes dos cabeçalhos e mostra um preview editável antes de criar.",
+    },
+  ],
+  tutorial: {
+    antesDeComecar: [
+      "Cadastre a equipe e as modalidades antes de importar: assim o profissional responsável e a modalidade de cada paciente são reconhecidos, e o vínculo do paciente com a terapeuta já vem pronto.",
+      "Você pode trazer os dados de três formas: uma planilha (.xlsx, .xls ou .csv), a exportação direta do SisClin (sem editar nada) ou colando as células copiadas do Excel/Google Sheets.",
+    ],
+    passos: [
+      {
+        titulo: "Abra Pacientes e clique em “Importar arquivo”",
+        descricao:
+          "No menu lateral, abra Pacientes. No topo da tela, ao lado de “Novo paciente”, clique em “Importar arquivo”. Abre uma janela com duas abas: enviar um arquivo ou colar da planilha.",
+        mockup: "lista-pacientes",
+      },
+      {
+        titulo: "Escolha como trazer os dados",
+        descricao:
+          "Na aba “Enviar arquivo”, selecione o .xlsx, .xls ou .csv — inclusive o export do SisClin, sem precisar arrumar nada: as linhas de título do topo são ignoradas sozinhas. Na aba “Colar da planilha”, copie as células no Excel/Google Sheets e cole no campo.",
+        dica: "Ao colar, selecione também a linha de títulos das colunas (Nome, Nascimento, Responsável…). É por esses nomes que o sistema reconhece cada coluna — sem eles, ele não sabe o que é cada dado.",
+        mockup: "dialog-abas",
+      },
+      {
+        titulo: "Não tem uma planilha pronta? Baixe o modelo",
+        descricao:
+          "Clique em “Baixar modelo de planilha” para começar de um arquivo .xlsx com todas as colunas certas e dois exemplos preenchidos. Substitua os exemplos pelos seus pacientes e importe.",
+        mockup: "modelo",
+      },
+      {
+        titulo: "Confira o preview e ajuste o que precisar",
+        descricao:
+          "Cada linha vira um paciente, com os campos já preenchidos e editáveis. Abra “Mais dados” em qualquer linha para ver e ajustar os campos extras. Desmarque quem você não quer importar agora.",
+        campos: [
+          { campo: "Nome", descricao: "Nome do paciente — é o único campo obrigatório." },
+          { campo: "Nascimento", descricao: "Aceita datas em dd/mm/aaaa ou aaaa-mm-dd." },
+          {
+            campo: "Responsável",
+            descricao: "Vira o responsável principal; um segundo responsável também é importado.",
+          },
+          {
+            campo: "Diagnóstico",
+            descricao: "Separado por vírgula; “em investigação” vira hipótese diagnóstica.",
+          },
+          {
+            campo: "Modalidade",
+            descricao: "Casada com as modalidades da clínica (Presencial, Online, Domiciliar).",
+          },
+          {
+            campo: "Profissional responsável",
+            descricao: "Casado por nome com a equipe — cria o vínculo do paciente com a terapeuta.",
+          },
+          {
+            campo: "Status",
+            descricao: "Ativo, Inativo, Pausado ou Alta — normalizado automaticamente.",
+          },
+        ],
+        dica: "Se uma modalidade ou profissional não for reconhecido, um aviso aparece ao final da importação — você corrige depois na ficha do paciente.",
+        mockup: "preview-tabela",
+      },
+      {
+        titulo: "Confirme e crie os pacientes",
+        descricao:
+          "Clique em “Confirmar e criar”. Os pacientes entram na lista na hora, e escolas e diagnósticos que ainda não existiam são criados automaticamente.",
+        mockup: "confirmar",
+      },
+    ],
+    oQueFazerDepois: [
+      {
+        titulo: "Preencher a anamnese",
+        descricao: "Complete a ficha clínica de cada paciente importado.",
+      },
+      {
+        titulo: "Confirmar o vínculo com a profissional",
+        descricao: "Garanta o profissional responsável para liberar a agenda e o prontuário dela.",
+      },
+      {
+        titulo: "Agendar os atendimentos",
+        descricao: "Monte a agenda dos pacientes recém-importados.",
+      },
+    ],
+  },
+};
+
 export const CATEGORIAS_AJUDA: CategoriaAjuda[] = [
   {
     id: "primeiros-passos",
@@ -53,6 +185,7 @@ export const CATEGORIAS_AJUDA: CategoriaAjuda[] = [
     descricao: "Conheça o Pensya, a navegação e como cada papel funciona.",
     icon: Rocket,
     artigos: [
+      TUTORIAL_IMPORTAR_PACIENTES,
       {
         id: "o-que-e-pensya",
         titulo: "O que é o Pensya e como ele organiza a clínica",
@@ -309,6 +442,7 @@ export const CATEGORIAS_AJUDA: CategoriaAjuda[] = [
           },
         ],
       },
+      TUTORIAL_IMPORTAR_PACIENTES,
     ],
   },
   {
@@ -622,33 +756,6 @@ export const CATEGORIAS_AJUDA: CategoriaAjuda[] = [
             t: "p",
             texto:
               "A página Comercial acompanha o funil de novos contatos até virarem pacientes — útil para não perder oportunidades entre a primeira conversa e a primeira sessão.",
-          },
-        ],
-      },
-      {
-        id: "importar-dados",
-        titulo: "Importar pacientes de planilhas (Excel, CSV ou SisClin)",
-        corpo: [
-          {
-            t: "p",
-            texto:
-              "Em Pacientes, use “Importar arquivo” para trazer sua base de duas maneiras: enviando uma planilha (Excel/CSV ou a exportação direta do SisClin) ou colando os dados direto da sua planilha. Você não precisa deixar a planilha em um formato específico: o sistema reconhece as colunas pelos nomes dos cabeçalhos e, no caso do SisClin, detecta sozinho a linha de cabeçalho (ignorando as linhas de título e de grupos no topo do arquivo).",
-          },
-          {
-            t: "passos",
-            itens: [
-              "Abra Pacientes e clique em “Importar arquivo”.",
-              "Aba “Enviar arquivo”: selecione o .xlsx, .xls ou .csv — inclusive o export do SisClin, sem edição.",
-              "Ou aba “Colar da planilha”: no Excel/Google Sheets, selecione as linhas incluindo a linha de títulos das colunas, copie (Ctrl+C) e cole (Ctrl+V).",
-              "Não tem uma planilha pronta? Clique em “Baixar modelo de planilha” para começar de um arquivo com as colunas certas e dois exemplos.",
-              "Confira o preview: cada linha vira um paciente, com os campos já preenchidos e editáveis. Abra “Mais dados” para ver diagnóstico, modalidade, status, profissional responsável e datas.",
-              "Desmarque quem não quer importar e clique em “Confirmar e criar”.",
-            ],
-          },
-          {
-            t: "dica",
-            texto:
-              "Modalidade, profissional responsável e diagnóstico são casados com os cadastros da sua clínica — por isso vale cadastrar a equipe e as modalidades antes de importar, para que o vínculo do paciente com a profissional já venha pronto. Diagnósticos novos e “em investigação” são tratados automaticamente. Se algo não for reconhecido, um aviso aparece ao final e você ajusta na ficha.",
           },
         ],
       },
