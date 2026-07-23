@@ -203,7 +203,11 @@ export function ProntuarioTab({ pacienteId }: { pacienteId: string }) {
         </CardHeader>
         <CardContent>
           {sessoes.length === 0 ? (
-            <p className="text-sm text-muted-foreground">Nenhuma sessão registrada.</p>
+            <p className="text-sm text-muted-foreground">
+              Nenhuma sessão registrada ainda — é aqui que nasce o prontuário.
+              Use <strong>Nova sessão</strong> acima para registrar o primeiro atendimento
+              (dá para ditar por áudio e deixar a IA resumir).
+            </p>
           ) : (
             <Table>
               <TableHeader>
@@ -280,7 +284,11 @@ export function ProntuarioTab({ pacienteId }: { pacienteId: string }) {
         </CardHeader>
         <CardContent>
           {frequencia.length === 0 ? (
-            <p className="text-sm text-muted-foreground">Nenhum registro de frequência.</p>
+            <p className="text-sm text-muted-foreground">
+              Nenhum registro de frequência ainda. As presenças e faltas entram
+              automaticamente ao registrar atendimentos na agenda — ou manualmente
+              na aba Frequência.
+            </p>
           ) : (
             <div className="flex flex-wrap gap-2">
               {frequencia.slice(0, 20).map((f) => {
