@@ -299,3 +299,103 @@ export async function parsearTextoColado(texto: string): Promise<PacienteImportR
   const workbook = XLSX.read(texto, { type: "string", cellDates: true });
   return linhasDoWorkbook(XLSX, workbook);
 }
+
+// Cabeçalhos do modelo — todos reconhecidos por mapHeader(). Servem de
+// referência para quem prefere montar a planilha do zero.
+const MODELO_CABECALHOS = [
+  "Nome",
+  "Data de nascimento",
+  "Gênero",
+  "CPF",
+  "Responsável 1",
+  "Responsável 2",
+  "Telefone",
+  "E-mail",
+  "CPF do responsável",
+  "Endereço",
+  "Escola",
+  "Contato da escola",
+  "Escolaridade",
+  "Série/Ano",
+  "Diagnóstico",
+  "Modalidade",
+  "Local de atendimento",
+  "Status",
+  "Profissional responsável",
+  "Especialidade",
+  "Mensalidade",
+  "Dia de vencimento",
+  "Data da última avaliação",
+  "Data da alta",
+  "Queixa principal",
+  "Observações",
+];
+
+const MODELO_EXEMPLOS = [
+  [
+    "Maria Silva (exemplo)",
+    "10/03/2017",
+    "Feminino",
+    "",
+    "Joana Silva",
+    "Pedro Silva",
+    "(11) 90000-0000",
+    "familia@exemplo.com",
+    "",
+    "Rua das Flores, 123",
+    "Colégio Aurora",
+    "(11) 3000-0000",
+    "Ensino Fundamental I",
+    "2º ano",
+    "TDAH",
+    "Presencial",
+    "Sala 1",
+    "Ativo",
+    "Nome da profissional",
+    "Psicopedagogia",
+    "550,00",
+    "10",
+    "",
+    "",
+    "Dificuldade de leitura",
+    "",
+  ],
+  [
+    "João Souza (exemplo)",
+    "22/08/2016",
+    "Masculino",
+    "",
+    "Ana Souza",
+    "",
+    "(11) 91111-1111",
+    "",
+    "",
+    "Av. Central, 45",
+    "Escola Nova",
+    "",
+    "Ensino Fundamental I",
+    "3º ano",
+    "Em investigação",
+    "Online",
+    "Zoom",
+    "Ativo",
+    "",
+    "",
+    "600,00",
+    "5",
+    "",
+    "",
+    "",
+    "",
+  ],
+];
+
+/** Gera e baixa um modelo .xlsx com as colunas reconhecidas + 2 linhas de exemplo. */
+export async function baixarModeloPlanilhaPacientes(): Promise<void> {
+  const XLSX = await import("xlsx");
+  const ws = XLSX.utils.aoa_to_sheet([MODELO_CABECALHOS, ...MODELO_EXEMPLOS]);
+  ws["!cols"] = MODELO_CABECALHOS.map((h) => ({ wch: Math.max(12, h.length + 2) }));
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, "Pacientes");
+  XLSX.writeFile(wb, "modelo-pacientes-pensya.xlsx");
+}

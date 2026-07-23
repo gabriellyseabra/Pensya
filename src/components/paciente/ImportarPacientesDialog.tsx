@@ -32,10 +32,15 @@ import {
   ChevronRight,
   X,
   ClipboardPaste,
+  Download,
 } from "lucide-react";
 import { toast } from "sonner";
 import { criarPacientesEmLote } from "@/lib/importar-pacientes.functions";
-import { parsearPlanilhaPacientes, parsearTextoColado } from "@/lib/importar-pacientes-parser";
+import {
+  parsearPlanilhaPacientes,
+  parsearTextoColado,
+  baixarModeloPlanilhaPacientes,
+} from "@/lib/importar-pacientes-parser";
 
 type Row = {
   nome: string;
@@ -248,6 +253,22 @@ export function ImportarPacientesDialog({ onDone }: { onDone?: () => void }) {
                     <Loader2 className="h-4 w-4 animate-spin" /> Analisando {fileName}...
                   </div>
                 )}
+              </div>
+              <div className="mt-3 flex items-center justify-center gap-2 text-xs text-muted-foreground">
+                <span>Não tem uma planilha pronta?</span>
+                <Button
+                  type="button"
+                  variant="link"
+                  size="sm"
+                  className="h-auto p-0 text-brand"
+                  onClick={() =>
+                    baixarModeloPlanilhaPacientes().catch(() =>
+                      toast.error("Não foi possível gerar o modelo"),
+                    )
+                  }
+                >
+                  <Download className="mr-1 h-3.5 w-3.5" /> Baixar modelo de planilha
+                </Button>
               </div>
             </TabsContent>
 

@@ -640,6 +640,7 @@ export const CATEGORIAS_AJUDA: CategoriaAjuda[] = [
               "Abra Pacientes e clique em “Importar arquivo”.",
               "Aba “Enviar arquivo”: selecione o .xlsx, .xls ou .csv — inclusive o export do SisClin, sem edição.",
               "Ou aba “Colar da planilha”: no Excel/Google Sheets, selecione as linhas incluindo a linha de títulos das colunas, copie (Ctrl+C) e cole (Ctrl+V).",
+              "Não tem uma planilha pronta? Clique em “Baixar modelo de planilha” para começar de um arquivo com as colunas certas e dois exemplos.",
               "Confira o preview: cada linha vira um paciente, com os campos já preenchidos e editáveis. Abra “Mais dados” para ver diagnóstico, modalidade, status, profissional responsável e datas.",
               "Desmarque quem não quer importar e clique em “Confirmar e criar”.",
             ],
