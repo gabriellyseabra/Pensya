@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import { Link, useNavigate } from "@tanstack/react-router";
-import { Eye, ShieldCheck } from "lucide-react";
+import { Eye, ShieldCheck, LifeBuoy } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { AppSidebar, MobileNav } from "@/components/app-sidebar";
 import { UserMenu } from "@/components/user-menu";
@@ -13,7 +13,13 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Palette, Check } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { getVisaoAdmin, getMinhaOrganizacao, aplicarCorTema, clinicaLogoUrl, CORES_TEMA } from "@/lib/clinica-config";
+import {
+  getVisaoAdmin,
+  getMinhaOrganizacao,
+  aplicarCorTema,
+  clinicaLogoUrl,
+  CORES_TEMA,
+} from "@/lib/clinica-config";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -97,7 +103,10 @@ function CorTemaSwitcher({ org }: { org: { id: string; cor_tema: string } | null
     mutationFn: async (cor: string) => {
       if (!org?.id) throw new Error("Organização não encontrada");
       aplicarCorTema(cor);
-      const { error } = await supabase.from("organizacoes").update({ cor_tema: cor }).eq("id", org.id);
+      const { error } = await supabase
+        .from("organizacoes")
+        .update({ cor_tema: cor })
+        .eq("id", org.id);
       if (error) throw error;
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["minha-organizacao"] }),
@@ -180,6 +189,13 @@ export function AppShell({ children }: { children: ReactNode }) {
               <QuickSearch />
             </div>
             <div className="ml-auto flex items-center gap-1">
+              <Link
+                to="/central-de-ajuda"
+                title="Central de ajuda"
+                className="flex h-10 w-10 items-center justify-center rounded-full transition-colors hover:bg-accent"
+              >
+                <LifeBuoy className="h-5 w-5 text-muted-foreground" />
+              </Link>
               <CorTemaSwitcher org={org} />
               <UserMenu />
             </div>
