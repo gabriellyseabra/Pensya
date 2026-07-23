@@ -479,8 +479,9 @@ function PlanoContaForm({
         <Input value={nome} onChange={(e) => setNome(e.target.value)} required />
       </div>
       <div>
-        <Label>Código (opcional)</Label>
-        <Input value={codigo} onChange={(e) => setCodigo(e.target.value)} placeholder="Gerado automaticamente se vazio" />
+        <Label>Código <span className="font-normal text-muted-foreground">(opcional)</span></Label>
+        <Input value={codigo} onChange={(e) => setCodigo(e.target.value)} placeholder="Ex.: 2.1 — deixe vazio para gerar automático" />
+        <p className="mt-1 text-xs text-muted-foreground">Numeração hierárquica que organiza a ordem das categorias nos relatórios (ex.: DRE). Não precisa preencher.</p>
       </div>
       <DialogFooter>
         <Button type="submit" disabled={submitting} className="gradient-brand text-brand-foreground">Salvar</Button>

@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { DialogFooter } from "@/components/ui/dialog";
+import { Plus, Check, X } from "lucide-react";
 import { toast } from "sonner";
 
 export type Lanc = {
@@ -27,8 +28,13 @@ export function LancamentoForm({
   onSaved: () => void;
   onCancel: () => void;
 }) {
+  const qc = useQueryClient();
   const [form, setForm] = useState<Partial<Lanc>>(editing ?? { tipo: "despesa", status: "previsto", vencimento: new Date().toISOString().slice(0, 10), competencia: new Date().toISOString().slice(0, 10) });
   const [saving, setSaving] = useState(false);
+  // Criação inline de centro de custo (para não precisar ir às configurações).
+  const [novoCentroAberto, setNovoCentroAberto] = useState(false);
+  const [novoCentroNome, setNovoCentroNome] = useState("");
+  const [criandoCentro, setCriandoCentro] = useState(false);
   // Enquanto falso, mudar o Vencimento também atualiza a Competência (mesmo mês).
   // Assim que o usuário mexe na Competência diretamente, os dois passam a ser independentes
   // (ex.: pago em junho, mas referente à competência de maio).
@@ -60,6 +66,29 @@ export function LancamentoForm({
     queryFn: async () =>
       (await supabase.from("formas_recebimento").select("id, nome, taxa_percentual, taxa_fixa, conta_padrao_id").eq("ativo", true).order("ordem")).data ?? [],
   });
+  const { data: centros } = useQuery({
+    queryKey: ["sel-centros"],
+    queryFn: async () => (await supabase.from("centros_custo").select("id, nome").eq("ativo", true).order("nome")).data ?? [],
+  });
+
+  async function criarCentro() {
+    const nome = novoCentroNome.trim();
+    if (!nome) return;
+    setCriandoCentro(true);
+    try {
+      const { data, error } = await supabase.from("centros_custo").insert({ nome }).select("id").single();
+      if (error) throw error;
+      await qc.invalidateQueries({ queryKey: ["sel-centros"] });
+      setForm((f) => ({ ...f, centro_custo_id: data.id }));
+      setNovoCentroNome("");
+      setNovoCentroAberto(false);
+      toast.success("Centro de custo criado");
+    } catch (e: any) {
+      toast.error(e?.message ?? "Erro ao criar centro de custo");
+    } finally {
+      setCriandoCentro(false);
+    }
+  }
 
   const planosFiltrados = (planos ?? []).filter((p: any) => p.tipo === form.tipo && p.parent_id);
 
@@ -220,6 +249,45 @@ export function LancamentoForm({
             <p className="mt-1 text-xs text-muted-foreground">
               Taxa: R$ {taxaCalc.toFixed(2)} · Líquido: <span className="font-medium text-foreground">R$ {liquidoCalc.toFixed(2)}</span>
             </p>
+          )}
+        </div>
+        <div>
+          <div className="flex items-center justify-between">
+            <Label>Centro de custo <span className="font-normal text-muted-foreground">(opcional)</span></Label>
+            {!novoCentroAberto && (
+              <button
+                type="button"
+                onClick={() => setNovoCentroAberto(true)}
+                className="flex items-center gap-1 text-xs text-brand hover:underline"
+              >
+                <Plus className="h-3 w-3" /> Novo
+              </button>
+            )}
+          </div>
+          {novoCentroAberto ? (
+            <div className="flex items-center gap-1.5">
+              <Input
+                autoFocus
+                value={novoCentroNome}
+                placeholder="Nome do centro de custo"
+                onChange={(e) => setNovoCentroNome(e.target.value)}
+                onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); criarCentro(); } }}
+              />
+              <Button type="button" size="icon" className="h-9 w-9 shrink-0 gradient-brand text-white" disabled={criandoCentro} onClick={criarCentro}>
+                <Check className="h-4 w-4" />
+              </Button>
+              <Button type="button" size="icon" variant="ghost" className="h-9 w-9 shrink-0" onClick={() => { setNovoCentroAberto(false); setNovoCentroNome(""); }}>
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
+          ) : (
+            <Select value={form.centro_custo_id ?? "__none"} onValueChange={(v) => setForm({ ...form, centro_custo_id: v === "__none" ? null : v })}>
+              <SelectTrigger><SelectValue placeholder="Nenhum" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__none">Nenhum</SelectItem>
+                {(centros ?? []).map((c: any) => <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>)}
+              </SelectContent>
+            </Select>
           )}
         </div>
         <div className="sm:col-span-2">
