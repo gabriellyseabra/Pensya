@@ -37,6 +37,7 @@ import { ContasFixas } from "@/components/financeiro/ContasFixas";
 import { Inadimplencia } from "@/components/financeiro/Inadimplencia";
 import { Projecao } from "@/components/financeiro/Projecao";
 import { LancamentoForm, type Lanc } from "@/components/financeiro/LancamentoForm";
+import { CentralImportacao } from "@/components/financeiro/CentralImportacao";
 import { invalidarFinanceiro } from "@/lib/financeiro-cache";
 
 export const Route = createFileRoute("/_authenticated/financeiro")({
@@ -50,30 +51,30 @@ function currency(n: number) {
 type SubAba = { key: string; label: string; render: () => React.ReactNode };
 type GrupoFinanceiro = { key: string; label: string; icon: React.ComponentType<{ className?: string }>; abas: SubAba[] };
 
+// Organização orientada a tarefas: Receber · Pagar · Lançamentos · Relatórios.
 const GRUPOS_FINANCEIRO: GrupoFinanceiro[] = [
   { key: "visao", label: "Visão geral", icon: LayoutDashboard, abas: [{ key: "visao", label: "Visão geral", render: () => <VisaoGeral /> }] },
   {
-    key: "mensalidades", label: "Mensalidades", icon: Users,
+    key: "receber", label: "Receber", icon: TrendingUp,
     abas: [
       { key: "mensalidades", label: "Mensalidades", render: () => <Mensalidades /> },
       { key: "inadimplencia", label: "Inadimplência", render: () => <Inadimplencia /> },
+      { key: "receber", label: "A receber", render: () => <AReceber /> },
     ],
   },
   {
-    key: "contas", label: "Contas", icon: Wallet,
+    key: "pagar", label: "Pagar", icon: TrendingDown,
     abas: [
-      { key: "receber", label: "A receber", render: () => <AReceber /> },
       { key: "pagar", label: "A pagar", render: () => <APagar /> },
       { key: "fixas", label: "Contas fixas", render: () => <ContasFixas /> },
-      { key: "lancamentos", label: "Lançamentos", render: () => <Lancamentos /> },
+      { key: "folha", label: "Folha", render: () => <Folha /> },
     ],
   },
   {
-    key: "importar", label: "Importar", icon: Upload,
+    key: "lancamentos", label: "Lançamentos", icon: Wallet,
     abas: [
-      { key: "fluxo", label: "Fluxo de caixa (planilha)", render: () => <ImportarFluxoCaixa /> },
-      { key: "extrato", label: "Extrato bancário", render: () => <ExtratoBancario /> },
-      { key: "massa", label: "Lançamento em massa", render: () => <LancamentoEmMassa /> },
+      { key: "lancamentos", label: "Todos os lançamentos", render: () => <Lancamentos /> },
+      { key: "importar", label: "Importar", render: () => <CentralImportacao /> },
     ],
   },
   {
@@ -83,12 +84,6 @@ const GRUPOS_FINANCEIRO: GrupoFinanceiro[] = [
       { key: "categorias", label: "Por categoria", render: () => <PorCategoria /> },
       { key: "fluxo", label: "Fluxo de caixa", render: () => <FluxoCaixa /> },
       { key: "dre", label: "DRE", render: () => <DRE /> },
-    ],
-  },
-  {
-    key: "outros", label: "Outros", icon: MoreHorizontal,
-    abas: [
-      { key: "folha", label: "Folha", render: () => <Folha /> },
       { key: "investimentos", label: "Investimentos", render: () => <Investimentos /> },
     ],
   },
