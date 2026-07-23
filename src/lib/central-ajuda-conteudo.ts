@@ -105,7 +105,7 @@ export const CATEGORIAS_AJUDA: CategoriaAjuda[] = [
           {
             t: "p",
             texto:
-              "Toda clínica no Pensya começa com a Sofia, uma paciente fictícia com a ficha completa preenchida: cadastro, responsáveis, anamnese, diagnóstico, plano terapêutico com metas e escala GAS, sessões registradas no prontuário e frequência na agenda. Ela existe para você explorar cada funcionalidade vendo dados de verdade — sem medo de mexer em paciente real.",
+              "Toda clínica no Pensya começa com a Sofia, uma paciente fictícia com a ficha completa de ponta a ponta: cadastro, responsáveis, anamnese estruturada, avaliação concluída com resultados de testes (percentis e interpretação), plano terapêutico com CIF, metas funcionais e escala GAS, sessões registradas e vinculadas às metas, perfil clínico vivo e frequência na agenda. Ela existe para você explorar cada funcionalidade vendo dados de verdade — sem medo de mexer em paciente real.",
           },
           {
             t: "passos",
@@ -627,12 +627,28 @@ export const CATEGORIAS_AJUDA: CategoriaAjuda[] = [
       },
       {
         id: "importar-dados",
-        titulo: "Importar dados de planilhas",
+        titulo: "Importar pacientes de planilhas (Excel, CSV ou SisClin)",
         corpo: [
           {
             t: "p",
             texto:
-              "Se a clínica vem de planilhas ou de outro sistema, a página Importar centraliza a carga de dados. Prepare os arquivos conforme o modelo indicado na própria página e confira os dados após a importação.",
+              "Em Pacientes, use “Importar arquivo” para trazer sua base de duas maneiras: enviando uma planilha (Excel/CSV ou a exportação direta do SisClin) ou colando os dados direto da sua planilha. Você não precisa deixar a planilha em um formato específico: o sistema reconhece as colunas pelos nomes dos cabeçalhos e, no caso do SisClin, detecta sozinho a linha de cabeçalho (ignorando as linhas de título e de grupos no topo do arquivo).",
+          },
+          {
+            t: "passos",
+            itens: [
+              "Abra Pacientes e clique em “Importar arquivo”.",
+              "Aba “Enviar arquivo”: selecione o .xlsx, .xls ou .csv — inclusive o export do SisClin, sem edição.",
+              "Ou aba “Colar da planilha”: no Excel/Google Sheets, selecione as linhas incluindo a linha de títulos das colunas, copie (Ctrl+C) e cole (Ctrl+V).",
+              "Não tem uma planilha pronta? Clique em “Baixar modelo de planilha” para começar de um arquivo com as colunas certas e dois exemplos.",
+              "Confira o preview: cada linha vira um paciente, com os campos já preenchidos e editáveis. Abra “Mais dados” para ver diagnóstico, modalidade, status, profissional responsável e datas.",
+              "Desmarque quem não quer importar e clique em “Confirmar e criar”.",
+            ],
+          },
+          {
+            t: "dica",
+            texto:
+              "Modalidade, profissional responsável e diagnóstico são casados com os cadastros da sua clínica — por isso vale cadastrar a equipe e as modalidades antes de importar, para que o vínculo do paciente com a profissional já venha pronto. Diagnósticos novos e “em investigação” são tratados automaticamente. Se algo não for reconhecido, um aviso aparece ao final e você ajusta na ficha.",
           },
         ],
       },

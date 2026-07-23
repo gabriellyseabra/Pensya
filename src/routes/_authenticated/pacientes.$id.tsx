@@ -339,10 +339,11 @@ function PacienteDetailPage() {
               Paciente modelo — dados fictícios para você explorar o Pensya
             </p>
             <p className="mt-0.5 text-muted-foreground">
-              A ficha da Sofia já vem completa: cadastro, anamnese, diagnóstico, plano terapêutico
-              com metas e GAS, sessões registradas e frequência. Navegue pelas abas, edite e teste à
-              vontade — nada aqui é dado real. Quando não precisar mais, oculte o modelo na lista de
-              pacientes ou consulte a{" "}
+              A ficha da Sofia já vem completa de ponta a ponta: cadastro, anamnese estruturada,
+              avaliação com resultados de testes, plano terapêutico com CIF, metas funcionais e GAS,
+              sessões vinculadas às metas, perfil clínico vivo e frequência. Navegue pelas abas,
+              edite e teste à vontade — nada aqui é dado real. Quando não precisar mais, oculte o
+              modelo na lista de pacientes ou consulte a{" "}
               <Link to="/central-de-ajuda" className="font-medium text-brand hover:underline">
                 Central de ajuda
               </Link>
