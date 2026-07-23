@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useMemo, useState } from "react";
@@ -701,6 +701,7 @@ function calcAge(date: string) {
 }
 
 function NovoPacienteDialog({ onCreated }: { onCreated: () => void }) {
+  const navigate = useNavigate();
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState({
     nome: "",
@@ -740,9 +741,14 @@ function NovoPacienteDialog({ onCreated }: { onCreated: () => void }) {
           canal_origem_id: form.canal_origem_id || null,
         },
       }),
-    onSuccess: () => {
-      toast.success("Paciente cadastrado! Complete o perfil na anamnese.");
+    onSuccess: (res: any) => {
+      toast.success("Paciente cadastrado!", {
+        description: "Abrimos a ficha — o medidor mostra o que falta completar.",
+      });
       setOpen(false);
+      if (res?.pacienteId) {
+        navigate({ to: "/pacientes/$id", params: { id: res.pacienteId }, search: { aba: "cadastro" } as any });
+      }
       setForm({
         nome: "",
         data_nascimento: "",

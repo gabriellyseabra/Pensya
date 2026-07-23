@@ -8,6 +8,7 @@ import { Calendar, CheckCircle2, AlertTriangle, Activity, Target, FileText, Scho
 import { format, parseISO, differenceInDays } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { PerfilVivoSummary } from "./PerfilVivoSummary";
+import { PacienteJornadaCard } from "./PacienteJornadaCard";
 import { TimelineUnificada } from "./TimelineUnificada";
 
 
@@ -129,6 +130,9 @@ export function ResumoTab({ pacienteId }: { pacienteId: string }) {
 
   return (
     <div className="space-y-6">
+      {/* Jornada do caso + completude do cadastro (some quando 100%) */}
+      <PacienteJornadaCard pacienteId={pacienteId} />
+
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <KPI
           icon={<Calendar className="w-5 h-5" />}
