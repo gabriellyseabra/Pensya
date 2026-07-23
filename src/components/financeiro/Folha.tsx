@@ -11,7 +11,8 @@ import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { format, startOfMonth, endOfMonth, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { Calculator, Settings2, Lock, Printer, AlertTriangle, CheckCircle2 } from "lucide-react";
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
+import { Calculator, Settings2, Lock, Printer, AlertTriangle, CheckCircle2, Eye, ChevronLeft, ChevronRight, CalendarRange, LayoutList } from "lucide-react";
 import { toast } from "sonner";
 import { invalidarFinanceiro } from "@/lib/financeiro-cache";
 
@@ -28,6 +29,8 @@ export function Folha() {
   const [configOpen, setConfigOpen] = useState(false);
   const [configProf, setConfigProf] = useState<any>(null);
   const [holerite, setHolerite] = useState<any>(null);
+  const [detalhe, setDetalhe] = useState<any>(null);
+  const [view, setView] = useState<"mes" | "ano">("mes");
 
   const [ano, mes] = refMonth.split("-").map(Number);
   const competencia = new Date(ano, mes - 1, 1);
@@ -228,6 +231,19 @@ export function Folha() {
         </CardContent>
       </Card>
 
+      <div className="flex w-fit items-center gap-1 rounded-lg border p-1">
+        <Button size="sm" variant={view === "mes" ? "default" : "ghost"} onClick={() => setView("mes")}>
+          <LayoutList className="mr-1 h-3.5 w-3.5" />Mês
+        </Button>
+        <Button size="sm" variant={view === "ano" ? "default" : "ghost"} onClick={() => setView("ano")}>
+          <CalendarRange className="mr-1 h-3.5 w-3.5" />Ano
+        </Button>
+      </div>
+
+      {view === "ano" ? (
+        <FolhaAnual />
+      ) : (
+      <>
       <div className="flex flex-wrap items-center gap-2">
         <input
           type="month"
@@ -282,6 +298,9 @@ export function Folha() {
                       <Button size="sm" variant="outline" onClick={() => gerar.mutate(p.id)} disabled={!cfg}>
                         <Calculator className="w-3 h-3 mr-1" />Calcular
                       </Button>
+                      <Button size="sm" variant="ghost" onClick={() => setDetalhe({ prof: p, cfg })}>
+                        <Eye className="w-3 h-3 mr-1" />Detalhes
+                      </Button>
                       {f && f.status !== "fechada" && f.status !== "paga" && (
                         <Button size="sm" onClick={() => fechar.mutate(f)}>
                           <Lock className="w-3 h-3 mr-1" />Fechar
@@ -314,6 +333,8 @@ export function Folha() {
           </Table>
         </CardContent>
       </Card>
+      </>
+      )}
 
       <ColaboradorConfigDialog
         open={configOpen}
@@ -324,7 +345,244 @@ export function Folha() {
       />
 
       <HoleriteDialog folha={holerite} onClose={() => setHolerite(null)} />
+      <DetalhePorPacienteDialog detalhe={detalhe} competencia={competencia} onClose={() => setDetalhe(null)} />
     </div>
+  );
+}
+
+const MESES_CURTOS = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"];
+
+// Detalhe do valor por paciente no mês: nº de sessões contadas e valor calculado
+// conforme a forma de repasse (principalmente útil no "por sessão"/"por paciente").
+function DetalhePorPacienteDialog({ detalhe, competencia, onClose }: { detalhe: any; competencia: Date; onClose: () => void }) {
+  const prof = detalhe?.prof;
+  const cfg = detalhe?.cfg;
+  const forma = (cfg?.forma_repasse ?? "auto") as string;
+
+  const { data: linhas = [] } = useQuery({
+    queryKey: ["folha-detalhe", prof?.id, format(competencia, "yyyy-MM"), forma],
+    enabled: !!prof,
+    queryFn: async () => {
+      const ini = startOfMonth(competencia).toISOString();
+      const fim = endOfMonth(competencia).toISOString();
+      const { data: atend } = await supabase
+        .from("atendimentos")
+        .select("paciente_id, paciente:pacientes(nome), status_frequencia:status_frequencia(conta_presenca)")
+        .eq("profissional_id", prof.id)
+        .gte("inicio", ini)
+        .lte("inicio", fim);
+
+      const porPac: Record<string, { nome: string; sessoes: number }> = {};
+      for (const a of (atend ?? []) as any[]) {
+        if (a.status_frequencia?.conta_presenca === false) continue;
+        if (!a.paciente_id) continue;
+        (porPac[a.paciente_id] ??= { nome: a.paciente?.nome ?? "—", sessoes: 0 }).sessoes++;
+      }
+
+      const valores: Record<string, any> = {};
+      if (forma === "por_paciente") {
+        const { data: vs } = await supabase
+          .from("colaborador_paciente_valor").select("*").eq("profissional_id", prof.id);
+        for (const v of (vs ?? []) as any[]) valores[v.paciente_id] = v;
+      }
+
+      const receita: Record<string, number> = {};
+      if (forma === "percentual") {
+        const ids = Object.keys(porPac);
+        if (ids.length) {
+          const { data: pags } = await supabase
+            .from("pagamentos").select("paciente_id, valor")
+            .in("paciente_id", ids).eq("status", "pago")
+            .gte("pago_em", ini.slice(0, 10)).lte("pago_em", fim.slice(0, 10));
+          for (const p of (pags ?? []) as any[]) receita[p.paciente_id] = (receita[p.paciente_id] ?? 0) + Number(p.valor);
+        }
+      }
+
+      return Object.entries(porPac).map(([id, o]) => {
+        let valor = 0;
+        let base = "";
+        if (forma === "por_sessao" || forma === "auto") {
+          const v = Number(cfg?.valor_por_sessao || 0);
+          valor = o.sessoes * v;
+          base = `${o.sessoes} × ${currency(v)}`;
+        } else if (forma === "por_paciente") {
+          const v = valores[id];
+          if (!v) { base = "sem valor definido"; }
+          else if (v.modo === "fixo_mensal") { valor = o.sessoes > 0 ? Number(v.valor || 0) : 0; base = o.sessoes > 0 ? `fixo ${currency(Number(v.valor || 0))}` : "sem sessão no mês"; }
+          else { valor = o.sessoes * Number(v.valor || 0); base = `${o.sessoes} × ${currency(Number(v.valor || 0))}`; }
+        } else if (forma === "percentual") {
+          const r = receita[id] ?? 0;
+          const pct = Number(cfg?.comissao_percentual || 0);
+          valor = r * pct / 100;
+          base = `${currency(r)} × ${pct}%`;
+        } else if (forma === "fixo_mensal") {
+          base = "valor fixo mensal (não é por paciente)";
+        }
+        return { id, nome: o.nome, sessoes: o.sessoes, valor, base };
+      }).sort((a, b) => b.sessoes - a.sessoes);
+    },
+  });
+
+  const totalSessoes = linhas.reduce((s, l) => s + l.sessoes, 0);
+  const totalValor = linhas.reduce((s, l) => s + l.valor, 0);
+
+  return (
+    <Dialog open={!!detalhe} onOpenChange={(o) => !o && onClose()}>
+      <DialogContent className="max-w-lg">
+        <DialogHeader><DialogTitle>Detalhe por paciente — {prof?.nome}</DialogTitle></DialogHeader>
+        <p className="-mt-2 text-xs text-muted-foreground">
+          {format(competencia, "MMMM 'de' yyyy", { locale: ptBR })} · {FORMAS_REPASSE.find((f) => f.value === forma)?.label ?? forma}
+        </p>
+        {linhas.length === 0 ? (
+          <p className="py-6 text-center text-sm text-muted-foreground">Nenhuma sessão contada neste mês.</p>
+        ) : (
+          <div className="max-h-80 overflow-y-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Paciente</TableHead>
+                  <TableHead className="text-center">Sessões</TableHead>
+                  <TableHead className="text-right">Valor</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {linhas.map((l) => (
+                  <TableRow key={l.id}>
+                    <TableCell className="max-w-[180px] truncate">{l.nome}</TableCell>
+                    <TableCell className="text-center">{l.sessoes}</TableCell>
+                    <TableCell className="text-right">
+                      <div className="font-medium">{currency(l.valor)}</div>
+                      <div className="text-[10px] text-muted-foreground">{l.base}</div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        )}
+        <div className="flex justify-between border-t pt-2 text-sm font-semibold">
+          <span>Total: {totalSessoes} sessões</span>
+          <span>{currency(totalValor)}</span>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+// Dashboard anual da folha: gráfico por mês + totais por colaborador no ano.
+function FolhaAnual() {
+  const [ano, setAno] = useState(() => new Date().getFullYear());
+
+  const { data: folhas = [] } = useQuery({
+    queryKey: ["folha-ano", ano],
+    queryFn: async () =>
+      (await supabase
+        .from("folha_pagamento")
+        .select("*, profissional:profissionais_consultorio(nome)")
+        .gte("competencia", `${ano}-01-01`)
+        .lte("competencia", `${ano}-12-31`)).data ?? [],
+  });
+
+  const porMes = MESES_CURTOS.map((nome, idx) => {
+    const doMes = (folhas as any[]).filter((f) => parseISO(f.competencia).getMonth() === idx);
+    return {
+      mes: nome,
+      "Líquido": doMes.reduce((s, f) => s + Number(f.liquido || 0), 0),
+      "Pago": doMes.filter((f) => f.status === "paga").reduce((s, f) => s + Number(f.liquido || 0), 0),
+    };
+  });
+
+  const totalLiquido = (folhas as any[]).reduce((s, f) => s + Number(f.liquido || 0), 0);
+  const totalPago = (folhas as any[]).filter((f) => f.status === "paga").reduce((s, f) => s + Number(f.liquido || 0), 0);
+  const totalEncargos = (folhas as any[]).reduce((s, f) => s + Number(f.encargos || 0), 0);
+  const totalSessoes = (folhas as any[]).reduce((s, f) => s + Number(f.qtd_sessoes || 0), 0);
+
+  const porProf: Record<string, { nome: string; liquido: number; pago: number; sessoes: number; meses: number }> = {};
+  for (const f of folhas as any[]) {
+    const k = f.profissional_id;
+    (porProf[k] ??= { nome: f.profissional?.nome ?? "—", liquido: 0, pago: 0, sessoes: 0, meses: 0 });
+    porProf[k].liquido += Number(f.liquido || 0);
+    if (f.status === "paga") porProf[k].pago += Number(f.liquido || 0);
+    porProf[k].sessoes += Number(f.qtd_sessoes || 0);
+    porProf[k].meses += 1;
+  }
+  const profs = Object.values(porProf).sort((a, b) => b.liquido - a.liquido);
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center gap-2">
+        <Button size="icon" variant="ghost" onClick={() => setAno(ano - 1)}><ChevronLeft className="h-4 w-4" /></Button>
+        <span className="min-w-16 text-center font-semibold">{ano}</span>
+        <Button size="icon" variant="ghost" onClick={() => setAno(ano + 1)}><ChevronRight className="h-4 w-4" /></Button>
+      </div>
+
+      <div className="grid gap-3 grid-cols-2 lg:grid-cols-4">
+        <StatCard label="Líquido no ano" value={currency(totalLiquido)} />
+        <StatCard label="Pago" value={currency(totalPago)} tone="success" />
+        <StatCard label="Encargos" value={currency(totalEncargos)} />
+        <StatCard label="Sessões" value={String(totalSessoes)} />
+      </div>
+
+      <Card className="glass">
+        <CardHeader><CardTitle className="text-base">Folha por mês — {ano}</CardTitle></CardHeader>
+        <CardContent>
+          <div className="h-64">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={porMes} margin={{ top: 8, right: 8, left: -6, bottom: 0 }}>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} className="stroke-border/40" />
+                <XAxis dataKey="mes" tick={{ fontSize: 11 }} tickLine={false} axisLine={false} />
+                <YAxis tick={{ fontSize: 11 }} tickLine={false} axisLine={false} width={54} tickFormatter={(v) => `R$${(Number(v) / 1000).toFixed(0)}k`} />
+                <Tooltip formatter={(v: any) => currency(Number(v))} contentStyle={{ fontSize: 12, borderRadius: 8, border: "1px solid hsl(var(--border))", background: "hsl(var(--card))" }} />
+                <Legend wrapperStyle={{ fontSize: 12 }} />
+                <Bar dataKey="Líquido" fill="#6366f1" radius={[3, 3, 0, 0]} />
+                <Bar dataKey="Pago" fill="#10b981" radius={[3, 3, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card className="glass">
+        <CardContent className="p-0 overflow-x-auto">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Colaborador</TableHead>
+                <TableHead className="text-center">Meses</TableHead>
+                <TableHead className="text-center">Sessões</TableHead>
+                <TableHead className="text-right">Líquido no ano</TableHead>
+                <TableHead className="text-right">Pago</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {profs.length === 0 && (
+                <TableRow><TableCell colSpan={5} className="py-8 text-center text-sm text-muted-foreground">Nenhuma folha gerada em {ano}.</TableCell></TableRow>
+              )}
+              {profs.map((p, i) => (
+                <TableRow key={i}>
+                  <TableCell className="font-medium">{p.nome}</TableCell>
+                  <TableCell className="text-center">{p.meses}</TableCell>
+                  <TableCell className="text-center">{p.sessoes}</TableCell>
+                  <TableCell className="text-right font-semibold">{currency(p.liquido)}</TableCell>
+                  <TableCell className="text-right">{currency(p.pago)}</TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
+function StatCard({ label, value, tone }: { label: string; value: string; tone?: "success" }) {
+  return (
+    <Card className="glass">
+      <CardContent className="pt-4">
+        <p className="text-xs text-muted-foreground">{label}</p>
+        <p className={`mt-1 text-xl font-semibold ${tone === "success" ? "text-emerald-600" : ""}`}>{value}</p>
+      </CardContent>
+    </Card>
   );
 }
 
