@@ -18,6 +18,7 @@ import {
   Menu,
   ChevronUp,
   ChevronDown,
+  Upload,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
@@ -70,6 +71,7 @@ const groups: { label: string; items: Item[] }[] = [
     label: "Gestão",
     items: [
       { title: "Financeiro", url: "/financeiro", icon: DollarSign },
+      { title: "Importar", url: "/importar", icon: Upload },
       { title: "Contratos", url: "/contratos", icon: FileText },
       { title: "Indicadores", url: "/indicadores", icon: BarChart3 },
       { title: "Comercial", url: "/marketing", icon: Megaphone },

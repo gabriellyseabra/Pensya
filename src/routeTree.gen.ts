@@ -9,76 +9,61 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as SalasRouteImport } from './routes/salas'
-import { Route as ResetPasswordRouteImport } from './routes/reset-password'
-import { Route as PortalRouteImport } from './routes/portal'
-import { Route as OnboardingRouteImport } from './routes/onboarding'
-import { Route as AuthRouteImport } from './routes/auth'
-import { Route as AdminPensyaRouteImport } from './routes/admin-pensya'
-import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as IndexRouteImport } from './routes/index'
-import { Route as PortalIndexRouteImport } from './routes/portal.index'
-import { Route as SalasTokenRouteImport } from './routes/salas.$token'
-import { Route as ProcessoPublicoTokenRouteImport } from './routes/processo-publico.$token'
-import { Route as PortalRelatoriosRouteImport } from './routes/portal.relatorios'
-import { Route as PortalFinanceiroRouteImport } from './routes/portal.financeiro'
-import { Route as PortalEvolucaoRouteImport } from './routes/portal.evolucao'
-import { Route as PortalDiarioRouteImport } from './routes/portal.diario'
-import { Route as CadastroTokenRouteImport } from './routes/cadastro.$token'
-import { Route as AssinarTokenRouteImport } from './routes/assinar.$token'
-import { Route as AuthenticatedTarefasRouteImport } from './routes/_authenticated/tarefas'
-import { Route as AuthenticatedSublocacaoRouteImport } from './routes/_authenticated/sublocacao'
-import { Route as AuthenticatedProdutosRouteImport } from './routes/_authenticated/produtos'
-import { Route as AuthenticatedMeuFinanceiroRouteImport } from './routes/_authenticated/meu-financeiro'
-import { Route as AuthenticatedMarketingRouteImport } from './routes/_authenticated/marketing'
-import { Route as AuthenticatedIndicadoresRouteImport } from './routes/_authenticated/indicadores'
-import { Route as AuthenticatedFinanceiroRouteImport } from './routes/_authenticated/financeiro'
-import { Route as AuthenticatedEquipeRouteImport } from './routes/_authenticated/equipe'
-import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
-import { Route as AuthenticatedContratosRouteImport } from './routes/_authenticated/contratos'
-import { Route as AuthenticatedConfiguracoesRouteImport } from './routes/_authenticated/configuracoes'
-import { Route as AuthenticatedCadastrosRouteImport } from './routes/_authenticated/cadastros'
-import { Route as AuthenticatedAlertasRouteImport } from './routes/_authenticated/alertas'
+import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
+import { Route as AdminPensyaRouteImport } from './routes/admin-pensya'
+import { Route as AuthRouteImport } from './routes/auth'
+import { Route as OnboardingRouteImport } from './routes/onboarding'
+import { Route as PortalRouteImport } from './routes/portal'
+import { Route as ResetPasswordRouteImport } from './routes/reset-password'
+import { Route as SalasRouteImport } from './routes/salas'
 import { Route as AuthenticatedAgendaRouteImport } from './routes/_authenticated/agenda'
-import { Route as AuthenticatedProcessosIndexRouteImport } from './routes/_authenticated/processos.index'
-import { Route as AuthenticatedPacientesIndexRouteImport } from './routes/_authenticated/pacientes.index'
-import { Route as AuthenticatedConfiguracoesIndexRouteImport } from './routes/_authenticated/configuracoes.index'
-import { Route as PortalConviteTokenRouteImport } from './routes/portal_.convite.$token'
-import { Route as EquipeConviteTokenRouteImport } from './routes/equipe_.convite.$token'
-import { Route as AuthenticatedProcessosIdRouteImport } from './routes/_authenticated/processos.$id'
-import { Route as AuthenticatedPacientesIdRouteImport } from './routes/_authenticated/pacientes.$id'
-import { Route as AuthenticatedConfiguracoesReferenciasRouteImport } from './routes/_authenticated/configuracoes.referencias'
-import { Route as AuthenticatedConfiguracoesRecursosRouteImport } from './routes/_authenticated/configuracoes.recursos'
-import { Route as AuthenticatedConfiguracoesProtocolosRouteImport } from './routes/_authenticated/configuracoes.protocolos'
-import { Route as AuthenticatedConfiguracoesInstrumentosRouteImport } from './routes/_authenticated/configuracoes.instrumentos'
-import { Route as AuthenticatedConfiguracoesIaRouteImport } from './routes/_authenticated/configuracoes.ia'
-import { Route as AuthenticatedConfiguracoesBateriasRouteImport } from './routes/_authenticated/configuracoes.baterias'
+import { Route as AuthenticatedAlertasRouteImport } from './routes/_authenticated/alertas'
+import { Route as AuthenticatedCadastrosRouteImport } from './routes/_authenticated/cadastros'
+import { Route as AuthenticatedConfiguracoesRouteImport } from './routes/_authenticated/configuracoes'
+import { Route as AuthenticatedContratosRouteImport } from './routes/_authenticated/contratos'
+import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
+import { Route as AuthenticatedEquipeRouteImport } from './routes/_authenticated/equipe'
+import { Route as AuthenticatedFinanceiroRouteImport } from './routes/_authenticated/financeiro'
+import { Route as AuthenticatedImportarRouteImport } from './routes/_authenticated/importar'
+import { Route as AuthenticatedIndicadoresRouteImport } from './routes/_authenticated/indicadores'
+import { Route as AuthenticatedMarketingRouteImport } from './routes/_authenticated/marketing'
+import { Route as AuthenticatedMeuFinanceiroRouteImport } from './routes/_authenticated/meu-financeiro'
+import { Route as AuthenticatedProdutosRouteImport } from './routes/_authenticated/produtos'
+import { Route as AuthenticatedSublocacaoRouteImport } from './routes/_authenticated/sublocacao'
+import { Route as AuthenticatedTarefasRouteImport } from './routes/_authenticated/tarefas'
+import { Route as AssinarTokenRouteImport } from './routes/assinar.$token'
+import { Route as CadastroTokenRouteImport } from './routes/cadastro.$token'
+import { Route as PortalIndexRouteImport } from './routes/portal.index'
+import { Route as PortalDiarioRouteImport } from './routes/portal.diario'
+import { Route as PortalEvolucaoRouteImport } from './routes/portal.evolucao'
+import { Route as PortalFinanceiroRouteImport } from './routes/portal.financeiro'
+import { Route as PortalRelatoriosRouteImport } from './routes/portal.relatorios'
+import { Route as ProcessoPublicoTokenRouteImport } from './routes/processo-publico.$token'
+import { Route as SalasTokenRouteImport } from './routes/salas.$token'
 import { Route as AuthenticatedCadastrosModelosRouteImport } from './routes/_authenticated/cadastros_.modelos'
+import { Route as AuthenticatedConfiguracoesIndexRouteImport } from './routes/_authenticated/configuracoes.index'
+import { Route as AuthenticatedConfiguracoesBateriasRouteImport } from './routes/_authenticated/configuracoes.baterias'
+import { Route as AuthenticatedConfiguracoesIaRouteImport } from './routes/_authenticated/configuracoes.ia'
+import { Route as AuthenticatedConfiguracoesInstrumentosRouteImport } from './routes/_authenticated/configuracoes.instrumentos'
+import { Route as AuthenticatedConfiguracoesProtocolosRouteImport } from './routes/_authenticated/configuracoes.protocolos'
+import { Route as AuthenticatedConfiguracoesRecursosRouteImport } from './routes/_authenticated/configuracoes.recursos'
+import { Route as AuthenticatedConfiguracoesReferenciasRouteImport } from './routes/_authenticated/configuracoes.referencias'
+import { Route as AuthenticatedPacientesIndexRouteImport } from './routes/_authenticated/pacientes.index'
+import { Route as AuthenticatedPacientesIdRouteImport } from './routes/_authenticated/pacientes.$id'
+import { Route as AuthenticatedProcessosIndexRouteImport } from './routes/_authenticated/processos.index'
+import { Route as AuthenticatedProcessosIdRouteImport } from './routes/_authenticated/processos.$id'
+import { Route as EquipeConviteTokenRouteImport } from './routes/equipe_.convite.$token'
+import { Route as PortalConviteTokenRouteImport } from './routes/portal_.convite.$token'
 import { Route as ApiPublicWebhooksInfinitepayRouteImport } from './routes/api/public/webhooks/infinitepay'
 
-const SalasRoute = SalasRouteImport.update({
-  id: '/salas',
-  path: '/salas',
+const IndexRoute = IndexRouteImport.update({
+  id: '/',
+  path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ResetPasswordRoute = ResetPasswordRouteImport.update({
-  id: '/reset-password',
-  path: '/reset-password',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const PortalRoute = PortalRouteImport.update({
-  id: '/portal',
-  path: '/portal',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const OnboardingRoute = OnboardingRouteImport.update({
-  id: '/onboarding',
-  path: '/onboarding',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AuthRoute = AuthRouteImport.update({
-  id: '/auth',
-  path: '/auth',
+const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
+  id: '/_authenticated',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AdminPensyaRoute = AdminPensyaRouteImport.update({
@@ -86,110 +71,44 @@ const AdminPensyaRoute = AdminPensyaRouteImport.update({
   path: '/admin-pensya',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
-  id: '/_authenticated',
+const AuthRoute = AuthRouteImport.update({
+  id: '/auth',
+  path: '/auth',
   getParentRoute: () => rootRouteImport,
 } as any)
-const IndexRoute = IndexRouteImport.update({
-  id: '/',
-  path: '/',
+const OnboardingRoute = OnboardingRouteImport.update({
+  id: '/onboarding',
+  path: '/onboarding',
   getParentRoute: () => rootRouteImport,
 } as any)
-const PortalIndexRoute = PortalIndexRouteImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => PortalRoute,
-} as any)
-const SalasTokenRoute = SalasTokenRouteImport.update({
-  id: '/$token',
-  path: '/$token',
-  getParentRoute: () => SalasRoute,
-} as any)
-const ProcessoPublicoTokenRoute = ProcessoPublicoTokenRouteImport.update({
-  id: '/processo-publico/$token',
-  path: '/processo-publico/$token',
+const PortalRoute = PortalRouteImport.update({
+  id: '/portal',
+  path: '/portal',
   getParentRoute: () => rootRouteImport,
 } as any)
-const PortalRelatoriosRoute = PortalRelatoriosRouteImport.update({
-  id: '/relatorios',
-  path: '/relatorios',
-  getParentRoute: () => PortalRoute,
-} as any)
-const PortalFinanceiroRoute = PortalFinanceiroRouteImport.update({
-  id: '/financeiro',
-  path: '/financeiro',
-  getParentRoute: () => PortalRoute,
-} as any)
-const PortalEvolucaoRoute = PortalEvolucaoRouteImport.update({
-  id: '/evolucao',
-  path: '/evolucao',
-  getParentRoute: () => PortalRoute,
-} as any)
-const PortalDiarioRoute = PortalDiarioRouteImport.update({
-  id: '/diario',
-  path: '/diario',
-  getParentRoute: () => PortalRoute,
-} as any)
-const CadastroTokenRoute = CadastroTokenRouteImport.update({
-  id: '/cadastro/$token',
-  path: '/cadastro/$token',
+const ResetPasswordRoute = ResetPasswordRouteImport.update({
+  id: '/reset-password',
+  path: '/reset-password',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AssinarTokenRoute = AssinarTokenRouteImport.update({
-  id: '/assinar/$token',
-  path: '/assinar/$token',
+const SalasRoute = SalasRouteImport.update({
+  id: '/salas',
+  path: '/salas',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AuthenticatedTarefasRoute = AuthenticatedTarefasRouteImport.update({
-  id: '/tarefas',
-  path: '/tarefas',
+const AuthenticatedAgendaRoute = AuthenticatedAgendaRouteImport.update({
+  id: '/agenda',
+  path: '/agenda',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
-const AuthenticatedSublocacaoRoute = AuthenticatedSublocacaoRouteImport.update({
-  id: '/sublocacao',
-  path: '/sublocacao',
+const AuthenticatedAlertasRoute = AuthenticatedAlertasRouteImport.update({
+  id: '/alertas',
+  path: '/alertas',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
-const AuthenticatedProdutosRoute = AuthenticatedProdutosRouteImport.update({
-  id: '/produtos',
-  path: '/produtos',
-  getParentRoute: () => AuthenticatedRouteRoute,
-} as any)
-const AuthenticatedMeuFinanceiroRoute =
-  AuthenticatedMeuFinanceiroRouteImport.update({
-    id: '/meu-financeiro',
-    path: '/meu-financeiro',
-    getParentRoute: () => AuthenticatedRouteRoute,
-  } as any)
-const AuthenticatedMarketingRoute = AuthenticatedMarketingRouteImport.update({
-  id: '/marketing',
-  path: '/marketing',
-  getParentRoute: () => AuthenticatedRouteRoute,
-} as any)
-const AuthenticatedIndicadoresRoute =
-  AuthenticatedIndicadoresRouteImport.update({
-    id: '/indicadores',
-    path: '/indicadores',
-    getParentRoute: () => AuthenticatedRouteRoute,
-  } as any)
-const AuthenticatedFinanceiroRoute = AuthenticatedFinanceiroRouteImport.update({
-  id: '/financeiro',
-  path: '/financeiro',
-  getParentRoute: () => AuthenticatedRouteRoute,
-} as any)
-const AuthenticatedEquipeRoute = AuthenticatedEquipeRouteImport.update({
-  id: '/equipe',
-  path: '/equipe',
-  getParentRoute: () => AuthenticatedRouteRoute,
-} as any)
-const AuthenticatedDashboardRoute = AuthenticatedDashboardRouteImport.update({
-  id: '/dashboard',
-  path: '/dashboard',
-  getParentRoute: () => AuthenticatedRouteRoute,
-} as any)
-const AuthenticatedContratosRoute = AuthenticatedContratosRouteImport.update({
-  id: '/contratos',
-  path: '/contratos',
+const AuthenticatedCadastrosRoute = AuthenticatedCadastrosRouteImport.update({
+  id: '/cadastros',
+  path: '/cadastros',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedConfiguracoesRoute =
@@ -198,31 +117,112 @@ const AuthenticatedConfiguracoesRoute =
     path: '/configuracoes',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
-const AuthenticatedCadastrosRoute = AuthenticatedCadastrosRouteImport.update({
-  id: '/cadastros',
-  path: '/cadastros',
+const AuthenticatedContratosRoute = AuthenticatedContratosRouteImport.update({
+  id: '/contratos',
+  path: '/contratos',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
-const AuthenticatedAlertasRoute = AuthenticatedAlertasRouteImport.update({
-  id: '/alertas',
-  path: '/alertas',
+const AuthenticatedDashboardRoute = AuthenticatedDashboardRouteImport.update({
+  id: '/dashboard',
+  path: '/dashboard',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
-const AuthenticatedAgendaRoute = AuthenticatedAgendaRouteImport.update({
-  id: '/agenda',
-  path: '/agenda',
+const AuthenticatedEquipeRoute = AuthenticatedEquipeRouteImport.update({
+  id: '/equipe',
+  path: '/equipe',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
-const AuthenticatedProcessosIndexRoute =
-  AuthenticatedProcessosIndexRouteImport.update({
-    id: '/processos/',
-    path: '/processos/',
+const AuthenticatedFinanceiroRoute = AuthenticatedFinanceiroRouteImport.update({
+  id: '/financeiro',
+  path: '/financeiro',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedImportarRoute = AuthenticatedImportarRouteImport.update({
+  id: '/importar',
+  path: '/importar',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedIndicadoresRoute =
+  AuthenticatedIndicadoresRouteImport.update({
+    id: '/indicadores',
+    path: '/indicadores',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
-const AuthenticatedPacientesIndexRoute =
-  AuthenticatedPacientesIndexRouteImport.update({
-    id: '/pacientes/',
-    path: '/pacientes/',
+const AuthenticatedMarketingRoute = AuthenticatedMarketingRouteImport.update({
+  id: '/marketing',
+  path: '/marketing',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedMeuFinanceiroRoute =
+  AuthenticatedMeuFinanceiroRouteImport.update({
+    id: '/meu-financeiro',
+    path: '/meu-financeiro',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedProdutosRoute = AuthenticatedProdutosRouteImport.update({
+  id: '/produtos',
+  path: '/produtos',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedSublocacaoRoute = AuthenticatedSublocacaoRouteImport.update({
+  id: '/sublocacao',
+  path: '/sublocacao',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedTarefasRoute = AuthenticatedTarefasRouteImport.update({
+  id: '/tarefas',
+  path: '/tarefas',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AssinarTokenRoute = AssinarTokenRouteImport.update({
+  id: '/assinar/$token',
+  path: '/assinar/$token',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CadastroTokenRoute = CadastroTokenRouteImport.update({
+  id: '/cadastro/$token',
+  path: '/cadastro/$token',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PortalIndexRoute = PortalIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => PortalRoute,
+} as any)
+const PortalDiarioRoute = PortalDiarioRouteImport.update({
+  id: '/diario',
+  path: '/diario',
+  getParentRoute: () => PortalRoute,
+} as any)
+const PortalEvolucaoRoute = PortalEvolucaoRouteImport.update({
+  id: '/evolucao',
+  path: '/evolucao',
+  getParentRoute: () => PortalRoute,
+} as any)
+const PortalFinanceiroRoute = PortalFinanceiroRouteImport.update({
+  id: '/financeiro',
+  path: '/financeiro',
+  getParentRoute: () => PortalRoute,
+} as any)
+const PortalRelatoriosRoute = PortalRelatoriosRouteImport.update({
+  id: '/relatorios',
+  path: '/relatorios',
+  getParentRoute: () => PortalRoute,
+} as any)
+const ProcessoPublicoTokenRoute = ProcessoPublicoTokenRouteImport.update({
+  id: '/processo-publico/$token',
+  path: '/processo-publico/$token',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SalasTokenRoute = SalasTokenRouteImport.update({
+  id: '/$token',
+  path: '/$token',
+  getParentRoute: () => SalasRoute,
+} as any)
+const AuthenticatedCadastrosModelosRoute =
+  AuthenticatedCadastrosModelosRouteImport.update({
+    id: '/cadastros_/modelos',
+    path: '/cadastros/modelos',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
 const AuthenticatedConfiguracoesIndexRoute =
@@ -231,50 +231,10 @@ const AuthenticatedConfiguracoesIndexRoute =
     path: '/',
     getParentRoute: () => AuthenticatedConfiguracoesRoute,
   } as any)
-const PortalConviteTokenRoute = PortalConviteTokenRouteImport.update({
-  id: '/portal_/convite/$token',
-  path: '/portal/convite/$token',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const EquipeConviteTokenRoute = EquipeConviteTokenRouteImport.update({
-  id: '/equipe_/convite/$token',
-  path: '/equipe/convite/$token',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AuthenticatedProcessosIdRoute =
-  AuthenticatedProcessosIdRouteImport.update({
-    id: '/processos/$id',
-    path: '/processos/$id',
-    getParentRoute: () => AuthenticatedRouteRoute,
-  } as any)
-const AuthenticatedPacientesIdRoute =
-  AuthenticatedPacientesIdRouteImport.update({
-    id: '/pacientes/$id',
-    path: '/pacientes/$id',
-    getParentRoute: () => AuthenticatedRouteRoute,
-  } as any)
-const AuthenticatedConfiguracoesReferenciasRoute =
-  AuthenticatedConfiguracoesReferenciasRouteImport.update({
-    id: '/referencias',
-    path: '/referencias',
-    getParentRoute: () => AuthenticatedConfiguracoesRoute,
-  } as any)
-const AuthenticatedConfiguracoesRecursosRoute =
-  AuthenticatedConfiguracoesRecursosRouteImport.update({
-    id: '/recursos',
-    path: '/recursos',
-    getParentRoute: () => AuthenticatedConfiguracoesRoute,
-  } as any)
-const AuthenticatedConfiguracoesProtocolosRoute =
-  AuthenticatedConfiguracoesProtocolosRouteImport.update({
-    id: '/protocolos',
-    path: '/protocolos',
-    getParentRoute: () => AuthenticatedConfiguracoesRoute,
-  } as any)
-const AuthenticatedConfiguracoesInstrumentosRoute =
-  AuthenticatedConfiguracoesInstrumentosRouteImport.update({
-    id: '/instrumentos',
-    path: '/instrumentos',
+const AuthenticatedConfiguracoesBateriasRoute =
+  AuthenticatedConfiguracoesBateriasRouteImport.update({
+    id: '/baterias',
+    path: '/baterias',
     getParentRoute: () => AuthenticatedConfiguracoesRoute,
   } as any)
 const AuthenticatedConfiguracoesIaRoute =
@@ -283,18 +243,64 @@ const AuthenticatedConfiguracoesIaRoute =
     path: '/ia',
     getParentRoute: () => AuthenticatedConfiguracoesRoute,
   } as any)
-const AuthenticatedConfiguracoesBateriasRoute =
-  AuthenticatedConfiguracoesBateriasRouteImport.update({
-    id: '/baterias',
-    path: '/baterias',
+const AuthenticatedConfiguracoesInstrumentosRoute =
+  AuthenticatedConfiguracoesInstrumentosRouteImport.update({
+    id: '/instrumentos',
+    path: '/instrumentos',
     getParentRoute: () => AuthenticatedConfiguracoesRoute,
   } as any)
-const AuthenticatedCadastrosModelosRoute =
-  AuthenticatedCadastrosModelosRouteImport.update({
-    id: '/cadastros_/modelos',
-    path: '/cadastros/modelos',
+const AuthenticatedConfiguracoesProtocolosRoute =
+  AuthenticatedConfiguracoesProtocolosRouteImport.update({
+    id: '/protocolos',
+    path: '/protocolos',
+    getParentRoute: () => AuthenticatedConfiguracoesRoute,
+  } as any)
+const AuthenticatedConfiguracoesRecursosRoute =
+  AuthenticatedConfiguracoesRecursosRouteImport.update({
+    id: '/recursos',
+    path: '/recursos',
+    getParentRoute: () => AuthenticatedConfiguracoesRoute,
+  } as any)
+const AuthenticatedConfiguracoesReferenciasRoute =
+  AuthenticatedConfiguracoesReferenciasRouteImport.update({
+    id: '/referencias',
+    path: '/referencias',
+    getParentRoute: () => AuthenticatedConfiguracoesRoute,
+  } as any)
+const AuthenticatedPacientesIndexRoute =
+  AuthenticatedPacientesIndexRouteImport.update({
+    id: '/pacientes/',
+    path: '/pacientes/',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedPacientesIdRoute =
+  AuthenticatedPacientesIdRouteImport.update({
+    id: '/pacientes/$id',
+    path: '/pacientes/$id',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedProcessosIndexRoute =
+  AuthenticatedProcessosIndexRouteImport.update({
+    id: '/processos/',
+    path: '/processos/',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedProcessosIdRoute =
+  AuthenticatedProcessosIdRouteImport.update({
+    id: '/processos/$id',
+    path: '/processos/$id',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const EquipeConviteTokenRoute = EquipeConviteTokenRouteImport.update({
+  id: '/equipe_/convite/$token',
+  path: '/equipe/convite/$token',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PortalConviteTokenRoute = PortalConviteTokenRouteImport.update({
+  id: '/portal_/convite/$token',
+  path: '/portal/convite/$token',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPublicWebhooksInfinitepayRoute =
   ApiPublicWebhooksInfinitepayRouteImport.update({
     id: '/api/public/webhooks/infinitepay',
@@ -318,6 +324,7 @@ export interface FileRoutesByFullPath {
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/equipe': typeof AuthenticatedEquipeRoute
   '/financeiro': typeof AuthenticatedFinanceiroRoute
+  '/importar': typeof AuthenticatedImportarRoute
   '/indicadores': typeof AuthenticatedIndicadoresRoute
   '/marketing': typeof AuthenticatedMarketingRoute
   '/meu-financeiro': typeof AuthenticatedMeuFinanceiroRoute
@@ -363,6 +370,7 @@ export interface FileRoutesByTo {
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/equipe': typeof AuthenticatedEquipeRoute
   '/financeiro': typeof AuthenticatedFinanceiroRoute
+  '/importar': typeof AuthenticatedImportarRoute
   '/indicadores': typeof AuthenticatedIndicadoresRoute
   '/marketing': typeof AuthenticatedMarketingRoute
   '/meu-financeiro': typeof AuthenticatedMeuFinanceiroRoute
@@ -412,6 +420,7 @@ export interface FileRoutesById {
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
   '/_authenticated/equipe': typeof AuthenticatedEquipeRoute
   '/_authenticated/financeiro': typeof AuthenticatedFinanceiroRoute
+  '/_authenticated/importar': typeof AuthenticatedImportarRoute
   '/_authenticated/indicadores': typeof AuthenticatedIndicadoresRoute
   '/_authenticated/marketing': typeof AuthenticatedMarketingRoute
   '/_authenticated/meu-financeiro': typeof AuthenticatedMeuFinanceiroRoute
@@ -461,6 +470,7 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/equipe'
     | '/financeiro'
+    | '/importar'
     | '/indicadores'
     | '/marketing'
     | '/meu-financeiro'
@@ -506,6 +516,7 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/equipe'
     | '/financeiro'
+    | '/importar'
     | '/indicadores'
     | '/marketing'
     | '/meu-financeiro'
@@ -554,6 +565,7 @@ export interface FileRouteTypes {
     | '/_authenticated/dashboard'
     | '/_authenticated/equipe'
     | '/_authenticated/financeiro'
+    | '/_authenticated/importar'
     | '/_authenticated/indicadores'
     | '/_authenticated/marketing'
     | '/_authenticated/meu-financeiro'
@@ -605,46 +617,11 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/salas': {
-      id: '/salas'
-      path: '/salas'
-      fullPath: '/salas'
-      preLoaderRoute: typeof SalasRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/reset-password': {
-      id: '/reset-password'
-      path: '/reset-password'
-      fullPath: '/reset-password'
-      preLoaderRoute: typeof ResetPasswordRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/portal': {
-      id: '/portal'
-      path: '/portal'
-      fullPath: '/portal'
-      preLoaderRoute: typeof PortalRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/onboarding': {
-      id: '/onboarding'
-      path: '/onboarding'
-      fullPath: '/onboarding'
-      preLoaderRoute: typeof OnboardingRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/auth': {
-      id: '/auth'
-      path: '/auth'
-      fullPath: '/auth'
-      preLoaderRoute: typeof AuthRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/admin-pensya': {
-      id: '/admin-pensya'
-      path: '/admin-pensya'
-      fullPath: '/admin-pensya'
-      preLoaderRoute: typeof AdminPensyaRouteImport
+    '/': {
+      id: '/'
+      path: '/'
+      fullPath: '/'
+      preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_authenticated': {
@@ -654,158 +631,53 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedRouteRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/': {
-      id: '/'
-      path: '/'
-      fullPath: '/'
-      preLoaderRoute: typeof IndexRouteImport
+    '/admin-pensya': {
+      id: '/admin-pensya'
+      path: '/admin-pensya'
+      fullPath: '/admin-pensya'
+      preLoaderRoute: typeof AdminPensyaRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/portal/': {
-      id: '/portal/'
-      path: '/'
-      fullPath: '/portal/'
-      preLoaderRoute: typeof PortalIndexRouteImport
-      parentRoute: typeof PortalRoute
-    }
-    '/salas/$token': {
-      id: '/salas/$token'
-      path: '/$token'
-      fullPath: '/salas/$token'
-      preLoaderRoute: typeof SalasTokenRouteImport
-      parentRoute: typeof SalasRoute
-    }
-    '/processo-publico/$token': {
-      id: '/processo-publico/$token'
-      path: '/processo-publico/$token'
-      fullPath: '/processo-publico/$token'
-      preLoaderRoute: typeof ProcessoPublicoTokenRouteImport
+    '/auth': {
+      id: '/auth'
+      path: '/auth'
+      fullPath: '/auth'
+      preLoaderRoute: typeof AuthRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/portal/relatorios': {
-      id: '/portal/relatorios'
-      path: '/relatorios'
-      fullPath: '/portal/relatorios'
-      preLoaderRoute: typeof PortalRelatoriosRouteImport
-      parentRoute: typeof PortalRoute
-    }
-    '/portal/financeiro': {
-      id: '/portal/financeiro'
-      path: '/financeiro'
-      fullPath: '/portal/financeiro'
-      preLoaderRoute: typeof PortalFinanceiroRouteImport
-      parentRoute: typeof PortalRoute
-    }
-    '/portal/evolucao': {
-      id: '/portal/evolucao'
-      path: '/evolucao'
-      fullPath: '/portal/evolucao'
-      preLoaderRoute: typeof PortalEvolucaoRouteImport
-      parentRoute: typeof PortalRoute
-    }
-    '/portal/diario': {
-      id: '/portal/diario'
-      path: '/diario'
-      fullPath: '/portal/diario'
-      preLoaderRoute: typeof PortalDiarioRouteImport
-      parentRoute: typeof PortalRoute
-    }
-    '/cadastro/$token': {
-      id: '/cadastro/$token'
-      path: '/cadastro/$token'
-      fullPath: '/cadastro/$token'
-      preLoaderRoute: typeof CadastroTokenRouteImport
+    '/onboarding': {
+      id: '/onboarding'
+      path: '/onboarding'
+      fullPath: '/onboarding'
+      preLoaderRoute: typeof OnboardingRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/assinar/$token': {
-      id: '/assinar/$token'
-      path: '/assinar/$token'
-      fullPath: '/assinar/$token'
-      preLoaderRoute: typeof AssinarTokenRouteImport
+    '/portal': {
+      id: '/portal'
+      path: '/portal'
+      fullPath: '/portal'
+      preLoaderRoute: typeof PortalRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/_authenticated/tarefas': {
-      id: '/_authenticated/tarefas'
-      path: '/tarefas'
-      fullPath: '/tarefas'
-      preLoaderRoute: typeof AuthenticatedTarefasRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
+    '/reset-password': {
+      id: '/reset-password'
+      path: '/reset-password'
+      fullPath: '/reset-password'
+      preLoaderRoute: typeof ResetPasswordRouteImport
+      parentRoute: typeof rootRouteImport
     }
-    '/_authenticated/sublocacao': {
-      id: '/_authenticated/sublocacao'
-      path: '/sublocacao'
-      fullPath: '/sublocacao'
-      preLoaderRoute: typeof AuthenticatedSublocacaoRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
+    '/salas': {
+      id: '/salas'
+      path: '/salas'
+      fullPath: '/salas'
+      preLoaderRoute: typeof SalasRouteImport
+      parentRoute: typeof rootRouteImport
     }
-    '/_authenticated/produtos': {
-      id: '/_authenticated/produtos'
-      path: '/produtos'
-      fullPath: '/produtos'
-      preLoaderRoute: typeof AuthenticatedProdutosRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
-    '/_authenticated/meu-financeiro': {
-      id: '/_authenticated/meu-financeiro'
-      path: '/meu-financeiro'
-      fullPath: '/meu-financeiro'
-      preLoaderRoute: typeof AuthenticatedMeuFinanceiroRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
-    '/_authenticated/marketing': {
-      id: '/_authenticated/marketing'
-      path: '/marketing'
-      fullPath: '/marketing'
-      preLoaderRoute: typeof AuthenticatedMarketingRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
-    '/_authenticated/indicadores': {
-      id: '/_authenticated/indicadores'
-      path: '/indicadores'
-      fullPath: '/indicadores'
-      preLoaderRoute: typeof AuthenticatedIndicadoresRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
-    '/_authenticated/financeiro': {
-      id: '/_authenticated/financeiro'
-      path: '/financeiro'
-      fullPath: '/financeiro'
-      preLoaderRoute: typeof AuthenticatedFinanceiroRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
-    '/_authenticated/equipe': {
-      id: '/_authenticated/equipe'
-      path: '/equipe'
-      fullPath: '/equipe'
-      preLoaderRoute: typeof AuthenticatedEquipeRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
-    '/_authenticated/dashboard': {
-      id: '/_authenticated/dashboard'
-      path: '/dashboard'
-      fullPath: '/dashboard'
-      preLoaderRoute: typeof AuthenticatedDashboardRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
-    '/_authenticated/contratos': {
-      id: '/_authenticated/contratos'
-      path: '/contratos'
-      fullPath: '/contratos'
-      preLoaderRoute: typeof AuthenticatedContratosRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
-    '/_authenticated/configuracoes': {
-      id: '/_authenticated/configuracoes'
-      path: '/configuracoes'
-      fullPath: '/configuracoes'
-      preLoaderRoute: typeof AuthenticatedConfiguracoesRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
-    '/_authenticated/cadastros': {
-      id: '/_authenticated/cadastros'
-      path: '/cadastros'
-      fullPath: '/cadastros'
-      preLoaderRoute: typeof AuthenticatedCadastrosRouteImport
+    '/_authenticated/agenda': {
+      id: '/_authenticated/agenda'
+      path: '/agenda'
+      fullPath: '/agenda'
+      preLoaderRoute: typeof AuthenticatedAgendaRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/alertas': {
@@ -815,25 +687,165 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAlertasRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
-    '/_authenticated/agenda': {
-      id: '/_authenticated/agenda'
-      path: '/agenda'
-      fullPath: '/agenda'
-      preLoaderRoute: typeof AuthenticatedAgendaRouteImport
+    '/_authenticated/cadastros': {
+      id: '/_authenticated/cadastros'
+      path: '/cadastros'
+      fullPath: '/cadastros'
+      preLoaderRoute: typeof AuthenticatedCadastrosRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
-    '/_authenticated/processos/': {
-      id: '/_authenticated/processos/'
-      path: '/processos'
-      fullPath: '/processos/'
-      preLoaderRoute: typeof AuthenticatedProcessosIndexRouteImport
+    '/_authenticated/configuracoes': {
+      id: '/_authenticated/configuracoes'
+      path: '/configuracoes'
+      fullPath: '/configuracoes'
+      preLoaderRoute: typeof AuthenticatedConfiguracoesRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
-    '/_authenticated/pacientes/': {
-      id: '/_authenticated/pacientes/'
-      path: '/pacientes'
-      fullPath: '/pacientes/'
-      preLoaderRoute: typeof AuthenticatedPacientesIndexRouteImport
+    '/_authenticated/contratos': {
+      id: '/_authenticated/contratos'
+      path: '/contratos'
+      fullPath: '/contratos'
+      preLoaderRoute: typeof AuthenticatedContratosRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/dashboard': {
+      id: '/_authenticated/dashboard'
+      path: '/dashboard'
+      fullPath: '/dashboard'
+      preLoaderRoute: typeof AuthenticatedDashboardRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/equipe': {
+      id: '/_authenticated/equipe'
+      path: '/equipe'
+      fullPath: '/equipe'
+      preLoaderRoute: typeof AuthenticatedEquipeRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/financeiro': {
+      id: '/_authenticated/financeiro'
+      path: '/financeiro'
+      fullPath: '/financeiro'
+      preLoaderRoute: typeof AuthenticatedFinanceiroRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/importar': {
+      id: '/_authenticated/importar'
+      path: '/importar'
+      fullPath: '/importar'
+      preLoaderRoute: typeof AuthenticatedImportarRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/indicadores': {
+      id: '/_authenticated/indicadores'
+      path: '/indicadores'
+      fullPath: '/indicadores'
+      preLoaderRoute: typeof AuthenticatedIndicadoresRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/marketing': {
+      id: '/_authenticated/marketing'
+      path: '/marketing'
+      fullPath: '/marketing'
+      preLoaderRoute: typeof AuthenticatedMarketingRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/meu-financeiro': {
+      id: '/_authenticated/meu-financeiro'
+      path: '/meu-financeiro'
+      fullPath: '/meu-financeiro'
+      preLoaderRoute: typeof AuthenticatedMeuFinanceiroRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/produtos': {
+      id: '/_authenticated/produtos'
+      path: '/produtos'
+      fullPath: '/produtos'
+      preLoaderRoute: typeof AuthenticatedProdutosRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/sublocacao': {
+      id: '/_authenticated/sublocacao'
+      path: '/sublocacao'
+      fullPath: '/sublocacao'
+      preLoaderRoute: typeof AuthenticatedSublocacaoRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/tarefas': {
+      id: '/_authenticated/tarefas'
+      path: '/tarefas'
+      fullPath: '/tarefas'
+      preLoaderRoute: typeof AuthenticatedTarefasRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/assinar/$token': {
+      id: '/assinar/$token'
+      path: '/assinar/$token'
+      fullPath: '/assinar/$token'
+      preLoaderRoute: typeof AssinarTokenRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/cadastro/$token': {
+      id: '/cadastro/$token'
+      path: '/cadastro/$token'
+      fullPath: '/cadastro/$token'
+      preLoaderRoute: typeof CadastroTokenRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/portal/': {
+      id: '/portal/'
+      path: '/'
+      fullPath: '/portal/'
+      preLoaderRoute: typeof PortalIndexRouteImport
+      parentRoute: typeof PortalRoute
+    }
+    '/portal/diario': {
+      id: '/portal/diario'
+      path: '/diario'
+      fullPath: '/portal/diario'
+      preLoaderRoute: typeof PortalDiarioRouteImport
+      parentRoute: typeof PortalRoute
+    }
+    '/portal/evolucao': {
+      id: '/portal/evolucao'
+      path: '/evolucao'
+      fullPath: '/portal/evolucao'
+      preLoaderRoute: typeof PortalEvolucaoRouteImport
+      parentRoute: typeof PortalRoute
+    }
+    '/portal/financeiro': {
+      id: '/portal/financeiro'
+      path: '/financeiro'
+      fullPath: '/portal/financeiro'
+      preLoaderRoute: typeof PortalFinanceiroRouteImport
+      parentRoute: typeof PortalRoute
+    }
+    '/portal/relatorios': {
+      id: '/portal/relatorios'
+      path: '/relatorios'
+      fullPath: '/portal/relatorios'
+      preLoaderRoute: typeof PortalRelatoriosRouteImport
+      parentRoute: typeof PortalRoute
+    }
+    '/processo-publico/$token': {
+      id: '/processo-publico/$token'
+      path: '/processo-publico/$token'
+      fullPath: '/processo-publico/$token'
+      preLoaderRoute: typeof ProcessoPublicoTokenRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/salas/$token': {
+      id: '/salas/$token'
+      path: '/$token'
+      fullPath: '/salas/$token'
+      preLoaderRoute: typeof SalasTokenRouteImport
+      parentRoute: typeof SalasRoute
+    }
+    '/_authenticated/cadastros_/modelos': {
+      id: '/_authenticated/cadastros_/modelos'
+      path: '/cadastros/modelos'
+      fullPath: '/cadastros/modelos'
+      preLoaderRoute: typeof AuthenticatedCadastrosModelosRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/configuracoes/': {
@@ -843,60 +855,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedConfiguracoesIndexRouteImport
       parentRoute: typeof AuthenticatedConfiguracoesRoute
     }
-    '/portal_/convite/$token': {
-      id: '/portal_/convite/$token'
-      path: '/portal/convite/$token'
-      fullPath: '/portal/convite/$token'
-      preLoaderRoute: typeof PortalConviteTokenRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/equipe_/convite/$token': {
-      id: '/equipe_/convite/$token'
-      path: '/equipe/convite/$token'
-      fullPath: '/equipe/convite/$token'
-      preLoaderRoute: typeof EquipeConviteTokenRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/_authenticated/processos/$id': {
-      id: '/_authenticated/processos/$id'
-      path: '/processos/$id'
-      fullPath: '/processos/$id'
-      preLoaderRoute: typeof AuthenticatedProcessosIdRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
-    '/_authenticated/pacientes/$id': {
-      id: '/_authenticated/pacientes/$id'
-      path: '/pacientes/$id'
-      fullPath: '/pacientes/$id'
-      preLoaderRoute: typeof AuthenticatedPacientesIdRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
-    '/_authenticated/configuracoes/referencias': {
-      id: '/_authenticated/configuracoes/referencias'
-      path: '/referencias'
-      fullPath: '/configuracoes/referencias'
-      preLoaderRoute: typeof AuthenticatedConfiguracoesReferenciasRouteImport
-      parentRoute: typeof AuthenticatedConfiguracoesRoute
-    }
-    '/_authenticated/configuracoes/recursos': {
-      id: '/_authenticated/configuracoes/recursos'
-      path: '/recursos'
-      fullPath: '/configuracoes/recursos'
-      preLoaderRoute: typeof AuthenticatedConfiguracoesRecursosRouteImport
-      parentRoute: typeof AuthenticatedConfiguracoesRoute
-    }
-    '/_authenticated/configuracoes/protocolos': {
-      id: '/_authenticated/configuracoes/protocolos'
-      path: '/protocolos'
-      fullPath: '/configuracoes/protocolos'
-      preLoaderRoute: typeof AuthenticatedConfiguracoesProtocolosRouteImport
-      parentRoute: typeof AuthenticatedConfiguracoesRoute
-    }
-    '/_authenticated/configuracoes/instrumentos': {
-      id: '/_authenticated/configuracoes/instrumentos'
-      path: '/instrumentos'
-      fullPath: '/configuracoes/instrumentos'
-      preLoaderRoute: typeof AuthenticatedConfiguracoesInstrumentosRouteImport
+    '/_authenticated/configuracoes/baterias': {
+      id: '/_authenticated/configuracoes/baterias'
+      path: '/baterias'
+      fullPath: '/configuracoes/baterias'
+      preLoaderRoute: typeof AuthenticatedConfiguracoesBateriasRouteImport
       parentRoute: typeof AuthenticatedConfiguracoesRoute
     }
     '/_authenticated/configuracoes/ia': {
@@ -906,19 +869,75 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedConfiguracoesIaRouteImport
       parentRoute: typeof AuthenticatedConfiguracoesRoute
     }
-    '/_authenticated/configuracoes/baterias': {
-      id: '/_authenticated/configuracoes/baterias'
-      path: '/baterias'
-      fullPath: '/configuracoes/baterias'
-      preLoaderRoute: typeof AuthenticatedConfiguracoesBateriasRouteImport
+    '/_authenticated/configuracoes/instrumentos': {
+      id: '/_authenticated/configuracoes/instrumentos'
+      path: '/instrumentos'
+      fullPath: '/configuracoes/instrumentos'
+      preLoaderRoute: typeof AuthenticatedConfiguracoesInstrumentosRouteImport
       parentRoute: typeof AuthenticatedConfiguracoesRoute
     }
-    '/_authenticated/cadastros_/modelos': {
-      id: '/_authenticated/cadastros_/modelos'
-      path: '/cadastros/modelos'
-      fullPath: '/cadastros/modelos'
-      preLoaderRoute: typeof AuthenticatedCadastrosModelosRouteImport
+    '/_authenticated/configuracoes/protocolos': {
+      id: '/_authenticated/configuracoes/protocolos'
+      path: '/protocolos'
+      fullPath: '/configuracoes/protocolos'
+      preLoaderRoute: typeof AuthenticatedConfiguracoesProtocolosRouteImport
+      parentRoute: typeof AuthenticatedConfiguracoesRoute
+    }
+    '/_authenticated/configuracoes/recursos': {
+      id: '/_authenticated/configuracoes/recursos'
+      path: '/recursos'
+      fullPath: '/configuracoes/recursos'
+      preLoaderRoute: typeof AuthenticatedConfiguracoesRecursosRouteImport
+      parentRoute: typeof AuthenticatedConfiguracoesRoute
+    }
+    '/_authenticated/configuracoes/referencias': {
+      id: '/_authenticated/configuracoes/referencias'
+      path: '/referencias'
+      fullPath: '/configuracoes/referencias'
+      preLoaderRoute: typeof AuthenticatedConfiguracoesReferenciasRouteImport
+      parentRoute: typeof AuthenticatedConfiguracoesRoute
+    }
+    '/_authenticated/pacientes/': {
+      id: '/_authenticated/pacientes/'
+      path: '/pacientes'
+      fullPath: '/pacientes/'
+      preLoaderRoute: typeof AuthenticatedPacientesIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/pacientes/$id': {
+      id: '/_authenticated/pacientes/$id'
+      path: '/pacientes/$id'
+      fullPath: '/pacientes/$id'
+      preLoaderRoute: typeof AuthenticatedPacientesIdRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/processos/': {
+      id: '/_authenticated/processos/'
+      path: '/processos'
+      fullPath: '/processos/'
+      preLoaderRoute: typeof AuthenticatedProcessosIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/processos/$id': {
+      id: '/_authenticated/processos/$id'
+      path: '/processos/$id'
+      fullPath: '/processos/$id'
+      preLoaderRoute: typeof AuthenticatedProcessosIdRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/equipe_/convite/$token': {
+      id: '/equipe_/convite/$token'
+      path: '/equipe/convite/$token'
+      fullPath: '/equipe/convite/$token'
+      preLoaderRoute: typeof EquipeConviteTokenRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/portal_/convite/$token': {
+      id: '/portal_/convite/$token'
+      path: '/portal/convite/$token'
+      fullPath: '/portal/convite/$token'
+      preLoaderRoute: typeof PortalConviteTokenRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/api/public/webhooks/infinitepay': {
       id: '/api/public/webhooks/infinitepay'
@@ -970,6 +989,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
   AuthenticatedEquipeRoute: typeof AuthenticatedEquipeRoute
   AuthenticatedFinanceiroRoute: typeof AuthenticatedFinanceiroRoute
+  AuthenticatedImportarRoute: typeof AuthenticatedImportarRoute
   AuthenticatedIndicadoresRoute: typeof AuthenticatedIndicadoresRoute
   AuthenticatedMarketingRoute: typeof AuthenticatedMarketingRoute
   AuthenticatedMeuFinanceiroRoute: typeof AuthenticatedMeuFinanceiroRoute
@@ -992,6 +1012,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
   AuthenticatedEquipeRoute: AuthenticatedEquipeRoute,
   AuthenticatedFinanceiroRoute: AuthenticatedFinanceiroRoute,
+  AuthenticatedImportarRoute: AuthenticatedImportarRoute,
   AuthenticatedIndicadoresRoute: AuthenticatedIndicadoresRoute,
   AuthenticatedMarketingRoute: AuthenticatedMarketingRoute,
   AuthenticatedMeuFinanceiroRoute: AuthenticatedMeuFinanceiroRoute,

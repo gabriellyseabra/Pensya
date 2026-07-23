@@ -37,7 +37,6 @@ import { ContasFixas } from "@/components/financeiro/ContasFixas";
 import { Inadimplencia } from "@/components/financeiro/Inadimplencia";
 import { Projecao } from "@/components/financeiro/Projecao";
 import { LancamentoForm, type Lanc } from "@/components/financeiro/LancamentoForm";
-import { CentralImportacao } from "@/components/financeiro/CentralImportacao";
 import { invalidarFinanceiro } from "@/lib/financeiro-cache";
 
 export const Route = createFileRoute("/_authenticated/financeiro")({
@@ -74,7 +73,7 @@ const GRUPOS_FINANCEIRO: GrupoFinanceiro[] = [
     key: "lancamentos", label: "Lançamentos", icon: Wallet,
     abas: [
       { key: "lancamentos", label: "Todos os lançamentos", render: () => <Lancamentos /> },
-      { key: "importar", label: "Importar", render: () => <CentralImportacao /> },
+      { key: "extrato", label: "Extrato bancário", render: () => <ExtratoBancario /> },
     ],
   },
   {
