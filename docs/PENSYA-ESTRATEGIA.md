@@ -146,3 +146,86 @@ alunas fundadoras → ajustes → abertura.
 **Verificação de isolamento (crítico antes de qualquer aluna real):** criar 2 organizações de teste e comprovar
 que nenhuma enxerga dados da outra — incluindo portal da família, storage e funções `SECURITY DEFINER`;
 rodar o advisor de segurança do Supabase após reescrever as RLS.
+
+## 8. Roadmap de funcionalidades competitivas (jul/2026)
+
+> Análise feita a partir do vídeo-demonstração do **ClínicaExperts** (sistema de gestão de clínicas), adaptada
+> à realidade da psicopedagogia/terapia. Achado central: o Pensya **já tem as peças de dados** que pareciam
+> exclusivas do concorrente (recorrência de sessões, comissão/repasse flexível, mensalidade recorrente, CRM
+> Kanban, assinatura de documentos com variáveis). O que falta não é função — é **automação de servidor**
+> (não existe nenhuma edge function nem job agendado hoje) e alguns módulos operacionais pontuais.
+> Cada bloco abaixo traz a decisão tomada com a Gabi.
+
+### O que NÃO fazer (fora do escopo — é clínica de estética/médica)
+Estoque com lotes/validade/XML, baixa de consumo de materiais, injetáveis/mapas corporais, odontograma,
+IMC/Fitzpatrick/adipometria, análise facial por IA, prescrição via MEMED, vídeo de teleconsulta embutido.
+
+### Bloco A — Financeiro desacoplado do adquirente *(1º a executar)*
+Nem toda clínica usa InfinitePay. Abstrair:
+- **Contas financeiras** (caixa, banco, cofre) com **logo do banco** (seletor com logos + upload como fallback).
+- **Formas de recebimento** (dinheiro, Pix, cartão/maquininha com taxa configurável) independentes de adquirente.
+- No fechamento: escolher forma + **conta de destino** (o "split" do concorrente) e calcular o **líquido**
+  descontando a taxa. InfinitePay vira *uma* opção, não a base.
+
+### Bloco B — Convênios + lista de espera
+- **Convênios** como entidade: cadastro dos aceitos, vínculo no agendamento, **tabela de valores por
+  convênio × procedimento**. Financeiro distingue particular × convênio (reflete em recebimento/repasse).
+- **Lista de espera** por profissional/convênio; ao cancelar um horário, o sistema sugere encaixe compatível.
+- Depende do Bloco A.
+
+### Bloco C — Pacote/pré-pago de sessões (saldo consumível)
+Para quem cobra por sessão: paciente compra N sessões, saldo debita a cada sessão concluída ("saldo 6/10").
+Liga no financeiro (entrada do pacote) e na agenda (debita ao concluir). Depende do Bloco A.
+
+### Bloco D — Documentos e diagnóstico *(rápido, independente)*
+- **Declaração de comparecimento**: modelo editável com logo da clínica + variáveis automáticas (nome, data,
+  horário) — reaproveita a infra de templates/assinatura existente.
+- **Campo de diagnóstico** para paciente já diagnosticado: catálogo **CID-11** (público — OMS/DATASUS).
+  DSM-5-TR: **não reproduzir o texto dos critérios (copyright APA)**; a IA pode *raciocinar* sobre os critérios
+  para **sugerir hipóteses a partir dos dados** (raciocínio clínico, não distribuição do material) — validar.
+- **QR-Code foto → prontuário**: profissional gera QR na tela, aponta o celular e a foto (produção escrita,
+  desenho) cai direto no prontuário/galeria.
+
+### Bloco E — Teleconsulta (link colável)
+Campo de link no agendamento, aceitando **link fixo** (Zoom pessoal) **ou por atendimento** (Meet).
+Custo zero. Sem vídeo embutido.
+
+### Bloco F — Gestão de insumos e licenças de testes *(módulo leve)*
+- **Insumos do consultório**: item + quantidade + alerta de reposição (sem lote/XML/baixa automática).
+- **Licenças de testes**: controle de folhas/aplicações restantes e validade da licença (ex.: créditos
+  VOL/Vetor), com alerta. Útil e específico da área — ninguém faz.
+
+### Bloco G — Avaliação, testes e laudos *(o diferencial — "liderar")*
+Cuidado jurídico: **o Pensya não distribui tabela de norma de teste algum**. Automatiza só o que não é
+protegido (organização de escores, gráficos, redação da narrativa interpretativa, montagem do laudo).
+Escore/percentil vem inserido pela profissional licenciada, ou a clínica cadastra a tabela que licenciou;
+instrumentos de domínio público podem vir prontos.
+- **Gerador de gráficos como ferramenta do sistema**: tipo de gráfico e paleta editáveis, **sugestão de tipo
+  conforme o que o teste avalia**, inserível numa janela na página de Avaliação para apresentar gráficos +
+  detalhes do teste.
+- **Manter** narrativa, percentis e **classificação Guillmette** já existentes.
+- **Reformular a `AvaliacaoTab`**: hoje há lacunas (testes, resultados, testes qualitativos) e "texto muito
+  grande". Ação: **auditar a tela atual antes de redesenhar**.
+- Produtizar (adaptado) o arsenal de skills clínicas (APET, ETDAH-PAIS, MFFT-BR, TNABV, PROADE, Ice Cream,
+  Cinco Pontos, devolutiva, plano funcional) — o que o concorrente jamais teria.
+
+### Bloco H — Evolução longitudinal por meta
+Indicador **embutido** na meta que já existe ("melhora / estável / estagnada" + mini gráfico), recolhido por
+padrão, expande sob demanda. Reaproveita o modelo Sofia (sessão ↔ meta). **Sem módulo novo** (evitar confusão).
+
+### Bloco I — Cérebro 3D (refino)
+Manter visível, mas: **corrigir bug de cor das regiões** (bolinhas não colorindo certo — diagnosticar primeiro),
+**ocultar o card lateral** e trazê-lo sob demanda (drawer ao clicar na região), **reduzir o espaço** ocupado.
+
+### Fora do escopo por ora (reavaliar)
+- **Automação/régua de comunicação** (lembrete + confirmação-que-vira-verde + aniversário): mecânica é edge
+  function + `pg_cron`; e-mail é ~custo zero, WhatsApp exige API oficial da Meta. **Aguardando reunião da Gabi
+  sobre WhatsApp (semana de jul/2026).**
+- **WhatsApp integrado (Clean Chat)** e **escriba de sessão por áudio** (transcrição barata mas somável →
+  gated por cota + consentimento LGPD): apostas de médio prazo.
+- **Autoagendamento público**: adiado; alvo futuro é a **agenda de sublocação** (profissional reserva sala).
+
+### Ordem de execução acordada
+A (financeiro desacoplado) → D (documentos/diagnóstico/QR, rápido) → B (convênios/espera) + C (pacotes) →
+F (insumos/licenças) → G (avaliação/gráficos/laudos) → H (evolução longitudinal) → I (cérebro 3D) →
+depois: automação/WhatsApp/escriba conforme decisão comercial.
