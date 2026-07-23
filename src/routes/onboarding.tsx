@@ -32,7 +32,9 @@ function OnboardingPage() {
       if (error) throw error;
     },
     onSuccess: () => {
-      toast.success("Clínica criada! Bem-vinda ao Pensya.");
+      toast.success("Clínica criada com agenda e financeiro pré-configurados!", {
+        description: "Siga os primeiros passos no painel para personalizar.",
+      });
       navigate({ to: "/dashboard", replace: true });
     },
     onError: (e: Error) => toast.error(e.message),
@@ -75,7 +77,8 @@ function OnboardingPage() {
           </Button>
         </form>
         <p className="mt-5 text-center text-xs text-muted-foreground">
-          Você poderá ajustar logo, dados e equipe depois em Configurações.
+          Sua clínica já vem com agenda, salas e financeiro pré-configurados —
+          o painel mostra os primeiros passos para personalizar tudo.
         </p>
       </div>
     </div>
