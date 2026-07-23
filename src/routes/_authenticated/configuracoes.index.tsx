@@ -17,12 +17,17 @@ import { CLINICA_LOGO_BUCKET, clinicaLogoUrl, getMinhaOrganizacao, CORES_TEMA, a
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_authenticated/configuracoes/")({
+  validateSearch: (s: Record<string, unknown>): { tab?: string } => ({
+    tab: typeof s.tab === "string" ? s.tab : undefined,
+  }),
   component: ConfigPage,
 });
 
 import { PageHero } from "@/components/shared/PageHero";
-import { Settings as SettingsIcon, Building2, Users as UsersIcon, BookOpen, School, Wallet, ListChecks, ArrowRight, Library } from "lucide-react";
-import { Link } from "@tanstack/react-router";
+import { Settings as SettingsIcon, Building2, Users as UsersIcon, BookOpen, School, Wallet, ListChecks, ArrowRight, ArrowLeft, Library } from "lucide-react";
+import { Link, useNavigate } from "@tanstack/react-router";
+import { ConfiguracoesHub, type HubEntry } from "@/components/shared/ConfiguracoesHub";
+import { infoDe, ROTAS_EXTRA } from "@/lib/configuracoes-catalogo";
 
 type TabDef = { key: string; label: string; fields: readonly string[] };
 
@@ -66,6 +71,21 @@ const GROUPS: { key: string; label: string; icon: React.ComponentType<{ classNam
 ];
 
 function ConfigPage() {
+  const { tab } = Route.useSearch();
+  const navigate = useNavigate();
+
+  // Entradas do hub: abas dos grupos (menos os links, cobertos por ROTAS_EXTRA).
+  const entries: HubEntry[] = [
+    ...GROUPS.flatMap((g) =>
+      g.tabs
+        .filter((t) => !t.key.endsWith("_link"))
+        .map((t) => ({ key: t.key, label: t.label, grupo: g.label, ...infoDe(t.key) })),
+    ),
+    ...ROTAS_EXTRA.map((r) => ({ key: r.key, label: r.label, grupo: "Ferramentas clínicas", descricao: r.descricao, nivel: r.nivel, href: r.href })),
+  ];
+
+  const grupoAtivo = tab ? GROUPS.find((g) => g.tabs.some((t) => t.key === tab)) : undefined;
+
   return (
     <div className="space-y-6">
       <PageHero
@@ -76,7 +96,17 @@ function ConfigPage() {
         variant="dark"
       />
 
-      <Tabs defaultValue={GROUPS[0].key}>
+      {!tab ? (
+        <ConfiguracoesHub
+          entries={entries}
+          onOpen={(key) => navigate({ to: "/configuracoes", search: { tab: key } })}
+        />
+      ) : (
+      <>
+      <Button variant="ghost" size="sm" onClick={() => navigate({ to: "/configuracoes", search: {} })}>
+        <ArrowLeft className="mr-1.5 h-4 w-4" />Todas as configurações
+      </Button>
+      <Tabs key={tab} defaultValue={grupoAtivo?.key ?? GROUPS[0].key}>
         <TabsList className="glass h-auto flex-wrap">
           {GROUPS.map((g) => (
             <TabsTrigger key={g.key} value={g.key} className="gap-1.5">
@@ -89,7 +119,7 @@ function ConfigPage() {
         {GROUPS.map((g) => (
           <TabsContent key={g.key} value={g.key} className="mt-4">
             {(
-              <Tabs defaultValue={g.tabs[0]?.key}>
+              <Tabs defaultValue={g.key === grupoAtivo?.key && tab ? tab : g.tabs[0]?.key}>
                 <div className="grid gap-4 md:grid-cols-[200px_minmax(0,1fr)]">
                   <TabsList className="glass flex h-auto w-full flex-row flex-wrap justify-start gap-1 md:flex-col md:items-stretch">
                     {g.tabs.map((t) => (
@@ -162,6 +192,8 @@ function ConfigPage() {
           </TabsContent>
         ))}
       </Tabs>
+      </>
+      )}
     </div>
   );
 }
