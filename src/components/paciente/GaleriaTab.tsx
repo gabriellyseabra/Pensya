@@ -14,6 +14,7 @@ import {
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { Upload, Download, Trash2, ImageIcon, Film, Play, Loader2 } from "lucide-react";
+import { QrFotoButton } from "@/components/paciente/QrFotoButton";
 
 const BUCKET = "pacientes-docs";
 const MAX_BYTES = 25 * 1024 * 1024; // 25 MB
@@ -33,6 +34,7 @@ const ORIGEM_LABEL: Record<string, string> = {
   sessao: "Sessão",
   familia: "Família",
   upload: "Upload",
+  qr: "Celular",
 };
 
 function isVideo(m: Midia) {
@@ -148,10 +150,13 @@ export function GaleriaTab({ pacienteId }: { pacienteId: string }) {
             Fotos e vídeos do paciente — inclusive os anexados no registro de sessão. Clique para ampliar ou baixar.
           </p>
         </div>
-        <Button size="sm" onClick={() => fileRef.current?.click()} disabled={uploading}>
-          {uploading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Upload className="w-4 h-4 mr-2" />}
-          {uploading ? "Enviando..." : "Enviar fotos/vídeos"}
-        </Button>
+        <div className="flex items-center gap-2">
+          <QrFotoButton pacienteId={pacienteId} />
+          <Button size="sm" onClick={() => fileRef.current?.click()} disabled={uploading}>
+            {uploading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Upload className="w-4 h-4 mr-2" />}
+            {uploading ? "Enviando..." : "Enviar fotos/vídeos"}
+          </Button>
+        </div>
         <input ref={fileRef} type="file" accept="image/*,video/*" multiple className="hidden" onChange={upload} />
       </CardHeader>
 

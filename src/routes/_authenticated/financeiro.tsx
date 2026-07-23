@@ -14,8 +14,10 @@ import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogT
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import {
   Plus, TrendingUp, TrendingDown, Wallet, AlertTriangle, Link2, RefreshCw, Copy, Check,
-  LayoutDashboard, Users, Upload, BarChart3, MoreHorizontal,
+  LayoutDashboard, Users, Upload, BarChart3, MoreHorizontal, Settings2, ArrowRight,
 } from "lucide-react";
+import { Link } from "@tanstack/react-router";
+import { FinanceiroConfig, useFinanceiroSetupStatus } from "@/components/financeiro/FinanceiroConfig";
 import { toast } from "sonner";
 import { format, parseISO, startOfMonth, endOfMonth, startOfYear, endOfYear, subMonths, isAfter } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -40,6 +42,9 @@ import { LancamentoForm, type Lanc } from "@/components/financeiro/LancamentoFor
 import { invalidarFinanceiro } from "@/lib/financeiro-cache";
 
 export const Route = createFileRoute("/_authenticated/financeiro")({
+  validateSearch: (s: Record<string, unknown>): { tab?: string } => ({
+    tab: typeof s.tab === "string" ? s.tab : undefined,
+  }),
   component: FinanceiroPage,
 });
 
@@ -86,9 +91,36 @@ const GRUPOS_FINANCEIRO: GrupoFinanceiro[] = [
       { key: "investimentos", label: "Investimentos", render: () => <Investimentos /> },
     ],
   },
+  {
+    key: "configurar", label: "Configurar", icon: Settings2,
+    abas: [{ key: "configurar", label: "Configurar", render: () => <FinanceiroConfig /> }],
+  },
 ];
 
+/** Alerta fixo no topo: sem conta ou sem forma de recebimento, avisa antes de lançar. */
+function FinanceiroSetupAlert({ onConfigurar }: { onConfigurar: () => void }) {
+  const { carregado, configurado, temContas, temFormas } = useFinanceiroSetupStatus();
+  if (!carregado || configurado) return null;
+  const faltando = [!temContas && "uma conta/banco", !temFormas && "uma forma de recebimento"].filter(Boolean).join(" e ");
+  return (
+    <div className="flex flex-col gap-2 rounded-2xl border border-amber-500/40 bg-amber-500/10 px-4 py-3 text-sm sm:flex-row sm:items-center sm:justify-between">
+      <span className="flex items-center gap-2 text-amber-700 dark:text-amber-300">
+        <AlertTriangle className="h-4 w-4 shrink-0" />
+        Configure {faltando} antes de começar os lançamentos e cadastros financeiros.
+      </span>
+      <Button size="sm" onClick={onConfigurar} className="gradient-brand text-brand-foreground shrink-0">
+        Configurar agora <ArrowRight className="ml-1.5 h-4 w-4" />
+      </Button>
+    </div>
+  );
+}
+
 function FinanceiroPage() {
+  const { tab } = Route.useSearch();
+  const navigate = Route.useNavigate();
+  const grupoAtivo = GRUPOS_FINANCEIRO.some((g) => g.key === tab) ? tab! : GRUPOS_FINANCEIRO[0].key;
+  const setGrupo = (v: string) => navigate({ search: { tab: v }, replace: true });
+
   return (
     <div className="space-y-6">
       <PageHero
@@ -99,7 +131,9 @@ function FinanceiroPage() {
         variant="dark"
       />
 
-      <Tabs defaultValue={GRUPOS_FINANCEIRO[0].key}>
+      <FinanceiroSetupAlert onConfigurar={() => setGrupo("configurar")} />
+
+      <Tabs value={grupoAtivo} onValueChange={setGrupo}>
         <TabsList className="glass h-auto flex-wrap">
           {GRUPOS_FINANCEIRO.map((g) => (
             <TabsTrigger key={g.key} value={g.key} className="gap-1.5">

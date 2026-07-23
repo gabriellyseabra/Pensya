@@ -16,6 +16,7 @@ export type Lanc = {
   tipo_servico_id: string | null; centro_custo_id: string | null;
   fornecedor_id: string | null; paciente_id: string | null;
   forma_pagamento: string | null; observacoes: string | null;
+  forma_recebimento_id?: string | null; taxa?: number | null; valor_liquido?: number | null;
 };
 
 /** Campos + lógica de salvar de um lançamento (receita/despesa) em `lancamentos_financeiros`. */
@@ -54,8 +55,19 @@ export function LancamentoForm({
     queryKey: ["sel-tipos"],
     queryFn: async () => (await supabase.from("tipos_servico").select("id, nome").eq("ativo", true).order("nome")).data ?? [],
   });
+  const { data: formas } = useQuery({
+    queryKey: ["sel-formas-recebimento"],
+    queryFn: async () =>
+      (await supabase.from("formas_recebimento").select("id, nome, taxa_percentual, taxa_fixa, conta_padrao_id").eq("ativo", true).order("ordem")).data ?? [],
+  });
 
   const planosFiltrados = (planos ?? []).filter((p: any) => p.tipo === form.tipo && p.parent_id);
+
+  // Calcula taxa e líquido a partir da forma escolhida e do valor.
+  const formaSel = (formas ?? []).find((f: any) => f.id === form.forma_recebimento_id);
+  const valorNum = Number(form.valor || 0);
+  const taxaCalc = formaSel ? valorNum * (Number(formaSel.taxa_percentual || 0) / 100) + Number(formaSel.taxa_fixa || 0) : 0;
+  const liquidoCalc = valorNum - taxaCalc;
 
   async function salvar() {
     setSaving(true);
@@ -68,7 +80,12 @@ export function LancamentoForm({
         conta_id: form.conta_id || null, plano_conta_id: form.plano_conta_id || null,
         tipo_servico_id: form.tipo_servico_id || null, centro_custo_id: form.centro_custo_id || null,
         fornecedor_id: form.fornecedor_id || null, paciente_id: form.paciente_id || null,
-        forma_pagamento: form.forma_pagamento || null, observacoes: form.observacoes || null,
+        forma_recebimento_id: form.forma_recebimento_id || null,
+        // Mantém o texto de forma_pagamento em sincronia (retrocompatibilidade/telas antigas).
+        forma_pagamento: formaSel?.nome ?? form.forma_pagamento ?? null,
+        taxa: formaSel ? Number(taxaCalc.toFixed(2)) : 0,
+        valor_liquido: formaSel ? Number(liquidoCalc.toFixed(2)) : null,
+        observacoes: form.observacoes || null,
       };
       if (editing?.id) {
         const { error } = await supabase.from("lancamentos_financeiros").update(payload).eq("id", editing.id);
@@ -181,8 +198,29 @@ export function LancamentoForm({
           </div>
         )}
         <div>
-          <Label>Forma de pagamento</Label>
-          <Input value={form.forma_pagamento ?? ""} placeholder="PIX, dinheiro, cartão..." onChange={(e) => setForm({ ...form, forma_pagamento: e.target.value })} />
+          <Label>Forma de recebimento</Label>
+          <Select
+            value={form.forma_recebimento_id ?? ""}
+            onValueChange={(v) => {
+              const f = (formas ?? []).find((x: any) => x.id === v);
+              setForm((prev) => ({
+                ...prev,
+                forma_recebimento_id: v,
+                // Se a forma tem conta padrão e ainda não escolhemos conta, sugere.
+                conta_id: prev.conta_id || f?.conta_padrao_id || null,
+              }));
+            }}
+          >
+            <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+            <SelectContent>
+              {(formas ?? []).map((f: any) => <SelectItem key={f.id} value={f.id}>{f.nome}</SelectItem>)}
+            </SelectContent>
+          </Select>
+          {formaSel && taxaCalc > 0 && valorNum > 0 && (
+            <p className="mt-1 text-xs text-muted-foreground">
+              Taxa: R$ {taxaCalc.toFixed(2)} · Líquido: <span className="font-medium text-foreground">R$ {liquidoCalc.toFixed(2)}</span>
+            </p>
+          )}
         </div>
         <div className="sm:col-span-2">
           <Label>Observações</Label>

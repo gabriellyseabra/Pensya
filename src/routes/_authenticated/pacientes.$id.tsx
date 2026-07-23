@@ -68,6 +68,7 @@ import { DataDrawer } from "@/components/shared/DataDrawer";
 import { ArquivosTab } from "@/components/paciente/ArquivosTab";
 import { FichaCadastralTab } from "@/components/paciente/FichaCadastralTab";
 import { PacienteTabsNav, resolverAba } from "@/components/paciente/PacienteTabsNav";
+import { DiagnosticosManager } from "@/components/paciente/DiagnosticosManager";
 import { ImportarProntuarioTab } from "@/components/paciente/ImportarProntuarioTab";
 import { BrainStateCard } from "@/components/paciente/BrainStateCard";
 import { PACIENTE_STATUS, PACIENTE_STATUS_LABEL } from "@/lib/paciente-status";
@@ -804,7 +805,10 @@ function PacienteDetailPage() {
                   checked={!!form.hipotese_diagnostica}
                   onCheckedChange={(v) => setForm({ ...form, hipotese_diagnostica: v })}
                 />
-                <Label className="text-sm">Possui hipótese diagnóstica</Label>
+                <Label className="text-sm">Possui hipótese diagnóstica (em investigação)</Label>
+              </div>
+              <div className="rounded-xl border border-border/50 bg-background/40 p-3">
+                <DiagnosticosManager pacienteId={id} />
               </div>
               <FormRow label="Observações gerais">
                 <Textarea
