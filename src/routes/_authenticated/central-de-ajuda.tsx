@@ -30,7 +30,7 @@ import {
 import { PageHero } from "@/components/shared/PageHero";
 import { Mockup } from "@/components/shared/AjudaMockups";
 import { useRoles } from "@/hooks/use-role";
-import { useTutorialGuiado } from "@/lib/tutorial-guiado";
+import { useTour } from "@/components/shared/TourGuiado";
 import { cn } from "@/lib/utils";
 import {
   CATEGORIAS_AJUDA,
@@ -511,8 +511,7 @@ function TutorialDetalhe({
 }
 
 function TutorialPromoCard() {
-  const navigate = useNavigate();
-  const { reabrir } = useTutorialGuiado();
+  const tour = useTour();
   return (
     <Card className="relative overflow-hidden bg-rail p-4 text-rail-foreground">
       <div className="pointer-events-none absolute -right-6 -top-8 h-24 w-24 rounded-full bg-white/10 blur-2xl" />
@@ -526,10 +525,7 @@ function TutorialPromoCard() {
       <Button
         size="sm"
         className="mt-3 w-full bg-white/15 text-white hover:bg-white/25"
-        onClick={() => {
-          reabrir();
-          navigate({ to: "/dashboard" });
-        }}
+        onClick={tour.iniciar}
       >
         Abrir tour
       </Button>
@@ -688,8 +684,7 @@ function CorpoArtigo({ corpo }: { corpo: BlocoAjuda[] }) {
 }
 
 function CardTutorial() {
-  const navigate = useNavigate();
-  const { reabrir } = useTutorialGuiado();
+  const tour = useTour();
   return (
     <Card className="glass p-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -698,22 +693,15 @@ function CardTutorial() {
             <GraduationCap className="h-5 w-5" />
           </div>
           <div>
-            <h3 className="font-medium">Tutorial guiado</h3>
+            <h3 className="font-medium">Tour guiado</h3>
             <p className="mt-1 max-w-xl text-sm text-muted-foreground">
               Um tour passo a passo pelo sistema usando a Sofia, a paciente modelo com a ficha
-              completa. Se você dispensou o tutorial, pode retomá-lo daqui.
+              completa. Uma janela explica cada tela antes de você ir até ela.
             </p>
           </div>
         </div>
-        <Button
-          variant="outline"
-          className="shrink-0"
-          onClick={() => {
-            reabrir();
-            navigate({ to: "/dashboard" });
-          }}
-        >
-          Retomar tutorial <ChevronRight className="ml-1 h-4 w-4" />
+        <Button variant="outline" className="shrink-0" onClick={tour.iniciar}>
+          Fazer o tour <ChevronRight className="ml-1 h-4 w-4" />
         </Button>
       </div>
     </Card>

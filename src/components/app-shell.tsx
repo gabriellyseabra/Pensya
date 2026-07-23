@@ -6,6 +6,7 @@ import { AppSidebar, MobileNav } from "@/components/app-sidebar";
 import { UserMenu } from "@/components/user-menu";
 import { QuickSearch } from "@/components/quick-search";
 import { GlobalFAB } from "@/components/shared/GlobalFAB";
+import { TourProvider } from "@/components/shared/TourGuiado";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { useRoles, setPreviewRole } from "@/hooks/use-role";
 import { useEffect } from "react";
@@ -162,50 +163,52 @@ export function AppShell({ children }: { children: ReactNode }) {
   const clinicaLogoHeader = clinicaLogoUrl(org?.logo_path);
   return (
     <TooltipProvider delayDuration={200}>
-      <div className="flex min-h-screen w-full gap-4 p-3 md:p-4">
-        <AppSidebar />
-        <div className="flex min-w-0 flex-1 flex-col">
-          <header className="sticky top-0 z-30 mb-4 flex h-16 items-center gap-3 rounded-full bg-card/80 px-3 shadow-[var(--shadow-soft)] backdrop-blur-xl">
-            <MobileNav />
-            <Link to="/dashboard" className="flex shrink-0 items-center gap-3 pl-1">
-              <img
-                src="/pensya-logo-horizontal.svg"
-                alt="Pensya"
-                className="h-8 w-auto object-contain"
-              />
-              {clinicaLogoHeader && (
-                <>
-                  <span className="hidden h-7 w-px bg-border/80 sm:block" />
-                  <img
-                    src={clinicaLogoHeader}
-                    alt="Logo da clínica"
-                    className="hidden h-9 w-auto max-w-[8rem] object-contain sm:block"
-                  />
-                </>
-              )}
-            </Link>
-            <div className="mx-1 hidden h-6 w-px bg-border md:block" />
-            <div className="min-w-0 flex-1 max-w-md">
-              <QuickSearch />
-            </div>
-            <div className="ml-auto flex items-center gap-1">
-              <Link
-                to="/central-de-ajuda"
-                title="Central de ajuda"
-                className="flex h-10 w-10 items-center justify-center rounded-full transition-colors hover:bg-accent"
-              >
-                <LifeBuoy className="h-5 w-5 text-muted-foreground" />
+      <TourProvider>
+        <div className="flex min-h-screen w-full gap-4 p-3 md:p-4">
+          <AppSidebar />
+          <div className="flex min-w-0 flex-1 flex-col">
+            <header className="sticky top-0 z-30 mb-4 flex h-16 items-center gap-3 rounded-full bg-card/80 px-3 shadow-[var(--shadow-soft)] backdrop-blur-xl">
+              <MobileNav />
+              <Link to="/dashboard" className="flex shrink-0 items-center gap-3 pl-1">
+                <img
+                  src="/pensya-logo-horizontal.svg"
+                  alt="Pensya"
+                  className="h-8 w-auto object-contain"
+                />
+                {clinicaLogoHeader && (
+                  <>
+                    <span className="hidden h-7 w-px bg-border/80 sm:block" />
+                    <img
+                      src={clinicaLogoHeader}
+                      alt="Logo da clínica"
+                      className="hidden h-9 w-auto max-w-[8rem] object-contain sm:block"
+                    />
+                  </>
+                )}
               </Link>
-              <CorTemaSwitcher org={org} />
-              <UserMenu />
-            </div>
-          </header>
-          <AdminVisaoBanner />
-          <PreviewBanner />
-          <main className="flex-1">{children}</main>
+              <div className="mx-1 hidden h-6 w-px bg-border md:block" />
+              <div className="min-w-0 flex-1 max-w-md">
+                <QuickSearch />
+              </div>
+              <div className="ml-auto flex items-center gap-1">
+                <Link
+                  to="/central-de-ajuda"
+                  title="Central de ajuda"
+                  className="flex h-10 w-10 items-center justify-center rounded-full transition-colors hover:bg-accent"
+                >
+                  <LifeBuoy className="h-5 w-5 text-muted-foreground" />
+                </Link>
+                <CorTemaSwitcher org={org} />
+                <UserMenu />
+              </div>
+            </header>
+            <AdminVisaoBanner />
+            <PreviewBanner />
+            <main className="flex-1">{children}</main>
+          </div>
+          <GlobalFAB />
         </div>
-        <GlobalFAB />
-      </div>
+      </TourProvider>
     </TooltipProvider>
   );
 }
