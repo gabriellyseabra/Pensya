@@ -25,7 +25,7 @@ import { RevisaoCicloDialog } from "./RevisaoCicloDialog";
 import { FormulacaoEditor } from "./FormulacaoEditor";
 import { FontesDocumentais } from "./FontesDocumentais";
 import { ObjetivosEditor, type Objetivo } from "./ObjetivosEditor";
-import { MetaSparkline, MetaProgressChart } from "@/components/paciente/MetaProgressChart";
+import { MetaSparkline } from "@/components/paciente/MetaProgressChart";
 import { SectionCard } from "@/components/shared/SectionCard";
 
 const FONTE_LABEL: Record<string, string> = {
@@ -63,7 +63,7 @@ const GAS_LABELS: Record<number, { label: string; cls: string }> = {
   [2]: { label: "+2 Generalização", cls: "bg-teal-100 text-teal-900 dark:bg-teal-950/40 dark:text-teal-200" },
 };
 
-export function PlanoTab({ pacienteId }: { pacienteId: string }) {
+export function PlanoTab({ pacienteId, onVerMonitoramento }: { pacienteId: string; onVerMonitoramento?: () => void }) {
   const qc = useQueryClient();
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
@@ -141,14 +141,14 @@ export function PlanoTab({ pacienteId }: { pacienteId: string }) {
             </CardContent>
           </Card>
 
-          {selectedId && <PlanoDetalhe pacienteId={pacienteId} planoId={selectedId} onDeleted={() => setSelectedId(null)} />}
+          {selectedId && <PlanoDetalhe pacienteId={pacienteId} planoId={selectedId} onDeleted={() => setSelectedId(null)} onVerMonitoramento={onVerMonitoramento} />}
         </div>
       )}
     </div>
   );
 }
 
-function PlanoDetalhe({ pacienteId, planoId, onDeleted }: { pacienteId: string; planoId: string; onDeleted: () => void }) {
+function PlanoDetalhe({ pacienteId, planoId, onDeleted, onVerMonitoramento }: { pacienteId: string; planoId: string; onDeleted: () => void; onVerMonitoramento?: () => void }) {
   const qc = useQueryClient();
   const gerarFn = useServerFn(gerarPlanoIA);
   const pubmedFn = useServerFn(buscarPubMed);
@@ -539,23 +539,15 @@ function PlanoDetalhe({ pacienteId, planoId, onDeleted }: { pacienteId: string; 
         </Card>
       )}
 
-      {metas.length > 0 && (
-        <SectionCard title="Evolução das metas" description="Desempenho (1-5) e nível GAS observados a cada sessão" icon={TrendingUp}>
-          {metasComProgresso.length === 0 ? (
-            <p className="text-sm text-muted-foreground text-center py-4">
-              Nenhum registro de sessão ainda. A evolução aparece aqui assim que as metas forem marcadas nas sessões.
-            </p>
-          ) : (
-            <div className="grid gap-4 md:grid-cols-2">
-              {metasComProgresso.map((m: any) => (
-                <div key={m.id} className="rounded-md border border-border/50 p-3">
-                  <p className="text-sm font-medium mb-1 line-clamp-1">{m.titulo_smart}</p>
-                  <MetaProgressChart points={pontosPorMeta.get(m.meta_terapeutica_id) ?? []} height={160} />
-                </div>
-              ))}
-            </div>
-          )}
-        </SectionCard>
+      {metas.length > 0 && onVerMonitoramento && (
+        <div className="flex items-center justify-between rounded-xl border bg-muted/30 px-4 py-3">
+          <p className="text-sm text-muted-foreground">
+            A evolução das metas (desempenho e GAS a cada sessão) vive no <strong className="text-foreground">Monitoramento</strong>.
+          </p>
+          <Button size="sm" variant="outline" onClick={onVerMonitoramento}>
+            <TrendingUp className="mr-1.5 h-3.5 w-3.5" />Ver evolução
+          </Button>
+        </div>
       )}
 
       <SectionCard title="Contexto clínico" description="Queixa, hipóteses, medicação e objetivo do ciclo" icon={Info}>
@@ -781,7 +773,7 @@ function GasExplicador() {
           <ol className="list-decimal space-y-1 pl-4 text-muted-foreground">
             <li><strong className="text-foreground">Ao criar a meta:</strong> escreva o nível 0 como o resultado esperado do ciclo (a IA já preenche a escada; ajuste o que seria observável em cada nível).</li>
             <li><strong className="text-foreground">A cada sessão:</strong> no registro da sessão, marque o nível GAS observado da meta trabalhada — leva segundos e alimenta os gráficos.</li>
-            <li><strong className="text-foreground">Durante o ciclo:</strong> acompanhe em “Evolução das metas”; média recente abaixo do esperado aparece em “Metas em risco”.</li>
+            <li><strong className="text-foreground">Durante o ciclo:</strong> acompanhe a evolução no Monitoramento; média recente abaixo do esperado aparece em “Metas em risco”.</li>
             <li><strong className="text-foreground">Na revisão do ciclo:</strong> defina o nível final atingido — 0 ou mais indica sucesso; ajuste ou gradue a meta.</li>
           </ol>
         </div>

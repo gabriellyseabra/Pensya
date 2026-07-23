@@ -5,31 +5,31 @@ import { Button } from "@/components/ui/button";
 import { ChevronLeft, ChevronRight, Check } from "lucide-react";
 import { AnamneseHub } from "@/components/paciente/anamnese/AnamneseHub";
 import { RaciocinioClinicoTab } from "@/components/paciente/RaciocinioClinicoTab";
-import { VisaoGeralAvaliacao } from "@/components/paciente/avaliacao/VisaoGeralAvaliacao";
 import { TestagemResultados } from "@/components/paciente/avaliacao/TestagemResultados";
 
 /**
- * Wizard de Avaliação — unifica em um fluxo único todas as etapas
- * que antes eram abas separadas.
- *
- * Reaproveita componentes existentes sem mudar lógica interna.
+ * Wizard de Avaliação em 2 passos: Anamnese → Testagem & Resultados.
+ * (O antigo passo "Visão Geral" era um painel só-leitura que repetia
+ * percentis e reuniões de outras telas; o raciocínio clínico agora vive
+ * junto da Testagem, onde é usado.)
  */
-export function AvaliacaoWizard({ pacienteId, onNavigateToTab }: { pacienteId: string; onNavigateToTab?: (tab: string, subTab?: string) => void }) {
+export function AvaliacaoWizard({ pacienteId }: { pacienteId: string; onNavigateToTab?: (tab: string, subTab?: string) => void }) {
   const steps = [
+    { key: "anamnese", label: "Anamnese", render: () => <AnamneseHub pacienteId={pacienteId} /> },
     {
-      key: "visao-geral", label: "Visão Geral & Raciocínio",
+      key: "testagem", label: "Testagem & Resultados",
       render: () => (
         <div className="space-y-8">
-          <VisaoGeralAvaliacao pacienteId={pacienteId} onNavigateToStep={(i) => setActive(i)} onNavigateToTab={onNavigateToTab} />
-          <div>
-            <h3 className="text-base font-semibold mb-3">Raciocínio clínico</h3>
-            <RaciocinioClinicoTab pacienteId={pacienteId} />
-          </div>
+          <TestagemResultados pacienteId={pacienteId} />
+          <details className="rounded-xl border bg-muted/30 px-4 py-3" open>
+            <summary className="cursor-pointer text-sm font-semibold">Raciocínio clínico</summary>
+            <div className="pt-3">
+              <RaciocinioClinicoTab pacienteId={pacienteId} />
+            </div>
+          </details>
         </div>
       ),
     },
-    { key: "anamnese", label: "Anamnese", render: () => <AnamneseHub pacienteId={pacienteId} /> },
-    { key: "testagem", label: "Testagem & Resultados", render: () => <TestagemResultados pacienteId={pacienteId} /> },
   ];
   const [active, setActive] = useState(0);
 

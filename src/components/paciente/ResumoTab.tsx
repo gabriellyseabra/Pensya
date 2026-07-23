@@ -4,10 +4,9 @@ import { toast } from "sonner";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Calendar, CheckCircle2, AlertTriangle, Activity, Target, FileText, School, RotateCcw, Home, XCircle, Clock } from "lucide-react";
+import { Calendar, CheckCircle2, AlertTriangle, Activity, Target, School, RotateCcw, Home, XCircle, Clock } from "lucide-react";
 import { format, parseISO, differenceInDays } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { PerfilVivoSummary } from "./PerfilVivoSummary";
 import { PacienteJornadaCard } from "./PacienteJornadaCard";
 import { TimelineUnificada } from "./TimelineUnificada";
 
@@ -202,55 +201,9 @@ export function ResumoTab({ pacienteId }: { pacienteId: string }) {
         />
       )}
 
-      <PerfilVivoSummary pacienteId={pacienteId} />
-
+      {/* Histórico cronológico — o coração do Resumo. Plano, sessões e perfil
+          vivem nas subabas do Clínico (sem espelhos duplicados aqui). */}
       <TimelineUnificada pacienteId={pacienteId} />
-
-      {data?.plano && (
-        <Card>
-          <CardHeader>
-            <SectionHeader icon={<Target className="h-4 w-4" />}>Plano terapêutico ativo</SectionHeader>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <div className="flex items-center justify-between flex-wrap gap-2">
-              <p className="font-medium">{data.plano.titulo}</p>
-              <Badge variant="secondary">
-                {data.plano.data_inicio ? format(parseISO(data.plano.data_inicio), "dd/MM/yyyy") : "—"}
-                {data.plano.data_revisao_prevista ? " → revisão " + format(parseISO(data.plano.data_revisao_prevista), "dd/MM/yyyy") : ""}
-              </Badge>
-            </div>
-            {data.plano.objetivo_participacao && (
-              <p className="text-sm text-muted-foreground italic">"{data.plano.objetivo_participacao}"</p>
-            )}
-            <div className="space-y-1">
-              {data.metas.slice(0, 5).map((m: any) => (
-                <div key={m.id} className="flex items-center justify-between text-sm rounded-lg border border-border/50 bg-background/40 px-3 py-2">
-                  <span className="truncate">{m.titulo_smart}</span>
-                  {m.dominio && <Badge variant="outline" className="shrink-0">{m.dominio}</Badge>}
-                </div>
-              ))}
-              {data.metas.length === 0 && <p className="text-sm text-muted-foreground">Nenhuma meta cadastrada.</p>}
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      <Card>
-        <CardHeader>
-          <SectionHeader icon={<FileText className="h-4 w-4" />}>Últimas sessões registradas</SectionHeader>
-        </CardHeader>
-        <CardContent>
-          {data?.sessoes.length === 0 && <p className="text-sm text-muted-foreground">Nenhuma sessão registrada.</p>}
-          <div className="space-y-2">
-            {data?.sessoes.map((s: any) => (
-              <div key={s.id} className="flex items-center justify-between rounded-lg border border-border/50 bg-background/40 px-3 py-2 text-sm">
-                <span>{s.data_sessao ? format(parseISO(s.data_sessao), "dd/MM/yyyy", { locale: ptBR }) : "—"}</span>
-                <Badge variant="outline">Sessão</Badge>
-              </div>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
     </div>
   );
 }

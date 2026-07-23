@@ -1,9 +1,10 @@
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ClipboardList, Target, FileText, CalendarCheck, TrendingUp, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 /**
  * Navegação da ficha do paciente: 5 áreas em vez de 10 abas.
- * A área "Clínico" agrupa o fluxo terapêutico em subabas.
+ * A área "Clínico" agrupa o fluxo terapêutico em subabas (capítulos).
  */
 export const AREAS = [
   { key: "resumo", label: "Resumo" },
@@ -14,12 +15,12 @@ export const AREAS = [
 ] as const;
 
 export const SUBS_CLINICO = [
-  { key: "avaliacao", label: "Avaliação" },
-  { key: "plano", label: "Plano" },
-  { key: "sessoes", label: "Sessões" },
-  { key: "frequencia", label: "Frequência" },
-  { key: "monitoramento", label: "Monitoramento" },
-  { key: "perfil", label: "Perfil" },
+  { key: "avaliacao", label: "Avaliação", icon: ClipboardList, desc: "Anamnese, testagem e raciocínio clínico" },
+  { key: "plano", label: "Plano", icon: Target, desc: "Plano terapêutico com metas SMART e GAS" },
+  { key: "sessoes", label: "Sessões", icon: FileText, desc: "Registro de cada atendimento — o prontuário" },
+  { key: "frequencia", label: "Frequência", icon: CalendarCheck, desc: "Presenças, faltas e reposições" },
+  { key: "monitoramento", label: "Monitoramento", icon: TrendingUp, desc: "Evolução das metas e dos domínios cognitivos" },
+  { key: "perfil", label: "Perfil", icon: Sparkles, desc: "Perfil clínico vivo: o que funciona com este paciente" },
 ] as const;
 
 /** Converte valores antigos de aba (links/urls legados) para o novo par área+sub. */
@@ -73,24 +74,33 @@ export function PacienteTabsNav({
         </TabsList>
       </div>
       {aba === "clinico" && (
-        <div className="overflow-x-auto no-scrollbar">
-          <div className="flex w-fit flex-nowrap gap-1 rounded-full bg-muted/40 p-1">
-            {SUBS_CLINICO.map((s) => (
-              <button
-                key={s.key}
-                type="button"
-                onClick={() => onNavigate("clinico", s.key)}
-                className={cn(
-                  "whitespace-nowrap rounded-full px-3 py-1 text-xs font-medium transition",
-                  sub === s.key
-                    ? "bg-background shadow-sm"
-                    : "text-muted-foreground hover:text-foreground",
-                )}
-              >
-                {s.label}
-              </button>
-            ))}
+        <div className="space-y-1.5">
+          {/* Capítulos do fluxo clínico — destaque maior que pills */}
+          <div className="grid grid-cols-3 gap-2 sm:grid-cols-6">
+            {SUBS_CLINICO.map((s) => {
+              const Icone = s.icon;
+              const ativo = sub === s.key;
+              return (
+                <button
+                  key={s.key}
+                  type="button"
+                  onClick={() => onNavigate("clinico", s.key)}
+                  className={cn(
+                    "flex min-h-[3.5rem] flex-col items-center justify-center gap-1 rounded-xl border p-2 text-xs font-medium transition",
+                    ativo
+                      ? "border-transparent bg-foreground text-background shadow-sm"
+                      : "bg-background/60 text-muted-foreground hover:border-brand/40 hover:text-foreground",
+                  )}
+                >
+                  <Icone className="h-4 w-4" />
+                  <span className="leading-none">{s.label}</span>
+                </button>
+              );
+            })}
           </div>
+          <p className="text-xs text-muted-foreground">
+            {SUBS_CLINICO.find((s) => s.key === sub)?.desc}
+          </p>
         </div>
       )}
     </div>

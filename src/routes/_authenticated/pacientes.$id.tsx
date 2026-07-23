@@ -370,7 +370,9 @@ function PacienteDetailPage() {
               }}
             />
           )}
-          {subClinico === "plano" && <PlanoTab pacienteId={id} />}
+          {subClinico === "plano" && (
+            <PlanoTab pacienteId={id} onVerMonitoramento={() => irParaAba("clinico", "monitoramento")} />
+          )}
           {subClinico === "sessoes" && (
             <div className="space-y-4">
               <ProntuarioTab pacienteId={id} />
