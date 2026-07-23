@@ -51,6 +51,7 @@ import {
 import { ptBR } from "date-fns/locale";
 import { SmartCard } from "@/components/shared/SmartCard";
 import { SetupChecklistCard } from "@/components/shared/SetupChecklistCard";
+import { TutorialGuiadoCard } from "@/components/shared/TutorialGuiadoCard";
 import { cn } from "@/lib/utils";
 import { listarMetasEstagnadas } from "@/lib/insights.functions";
 import { clinicaLogoUrl, getMinhaOrganizacao } from "@/lib/clinica-config";
@@ -671,6 +672,9 @@ function DashboardPage() {
             </div>
           </div>
         </div>
+
+        {/* Tour guiado pelo sistema usando a paciente modelo */}
+        <TutorialGuiadoCard />
 
         {/* Primeiros passos — some quando a clínica já está configurada */}
         <SetupChecklistCard />

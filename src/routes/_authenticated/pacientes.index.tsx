@@ -36,13 +36,7 @@ import {
   Archive,
 } from "lucide-react";
 import { PageHero } from "@/components/shared/PageHero";
-import {
-  TwoColumn,
-  PanelCard,
-  BigStatCard,
-  StatTile,
-  NotifRow,
-} from "@/components/shared/panels";
+import { TwoColumn, PanelCard, BigStatCard, StatTile, NotifRow } from "@/components/shared/panels";
 import { UserPlus, ArrowUpRight } from "lucide-react";
 import { toast } from "sonner";
 import { format, parseISO } from "date-fns";
@@ -52,6 +46,7 @@ import { ImportarPacientesDialog } from "@/components/paciente/ImportarPacientes
 import { criarPacienteRapido } from "@/lib/cadastro.functions";
 import { PACIENTE_STATUS_LABEL } from "@/lib/paciente-status";
 import { useRoles } from "@/hooks/use-role";
+import { getMinhaOrganizacao } from "@/lib/clinica-config";
 
 export const Route = createFileRoute("/_authenticated/pacientes/")({
   component: PacientesPage,
@@ -87,6 +82,30 @@ function PacientesPage() {
   });
   const restringirPorProf = isTerapeutaRestrito ? (meuProfId ?? "__none__") : null;
 
+  // Preferência da clínica: mostrar ou ocultar o paciente modelo (tutorial).
+  const { data: org } = useQuery({
+    queryKey: ["minha-organizacao"],
+    queryFn: getMinhaOrganizacao,
+  });
+  const mostrarModelo = org?.mostrar_paciente_modelo ?? true;
+  const alternarModelo = useMutation({
+    mutationFn: async (visivel: boolean) => {
+      const { error } = await supabase.rpc("definir_paciente_modelo_visivel", {
+        _visivel: visivel,
+      });
+      if (error) throw error;
+    },
+    onSuccess: (_d, visivel) => {
+      qc.invalidateQueries({ queryKey: ["minha-organizacao"] });
+      toast.success(
+        visivel
+          ? "Paciente modelo visível novamente"
+          : "Paciente modelo oculto da lista (você pode reexibi-lo quando quiser)",
+      );
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
   const { data: pacIdsPorDiagnostico } = useQuery({
     queryKey: ["pac-por-diag", filterDiagnostico],
     queryFn: async () => {
@@ -117,7 +136,7 @@ function PacientesPage() {
         .from("pacientes")
         .select(
           `
-          id, nome, data_nascimento, status, foto_url, hipotese_diagnostica, queixa_principal, arquivado, created_at,
+          id, nome, data_nascimento, status, foto_url, hipotese_diagnostica, queixa_principal, arquivado, is_modelo, created_at,
           modalidade:modalidades!pacientes_modalidade_id_fkey(nome, cor),
           escola:escolas!pacientes_escola_id_fkey(nome),
           profissional_responsavel:profissionais_consultorio!pacientes_profissional_responsavel_id_fkey(nome, cor),
@@ -130,7 +149,10 @@ function PacientesPage() {
       if (filterModalidade !== "all") q = q.eq("modalidade_id", filterModalidade);
       if (filterStatus !== "all" && !mostrarArquivados) q = q.eq("status", filterStatus);
       if (filterTerapeuta !== "all") q = q.eq("profissional_responsavel_id", filterTerapeuta);
-      if (restringirPorProf) q = q.eq("profissional_responsavel_id", restringirPorProf);
+      // Terapeuta restrito vê os próprios pacientes + o paciente modelo
+      // (tutorial disponível para toda a equipe).
+      if (restringirPorProf)
+        q = q.or(`profissional_responsavel_id.eq.${restringirPorProf},is_modelo.eq.true`);
       if (filterDiagnostico !== "all") {
         const ids = pacIdsPorDiagnostico ?? [];
         if (ids.length === 0) return [];
@@ -164,8 +186,15 @@ function PacientesPage() {
       (await supabase.from("diagnosticos").select("id, nome").order("nome")).data ?? [],
   });
 
+  // Aplica a preferência da clínica: modelo oculto some da lista e dos números.
+  const temModelo = (pacientes ?? []).some((p) => p.is_modelo);
+  const pacientesVisiveis = useMemo(
+    () => (pacientes ?? []).filter((p) => mostrarModelo || !p.is_modelo),
+    [pacientes, mostrarModelo],
+  );
+
   const stats = useMemo(() => {
-    const list = pacientes ?? [];
+    const list = pacientesVisiveis;
     const comHipoteseList = list.filter(
       (p) => p.hipotese_diagnostica && !p.paciente_diagnosticos?.length,
     );
@@ -190,7 +219,7 @@ function PacientesPage() {
       recentes,
       porModalidade,
     };
-  }, [pacientes]);
+  }, [pacientesVisiveis]);
 
   const invalidate = () => qc.invalidateQueries({ queryKey: ["pacientes"] });
 
@@ -267,142 +296,158 @@ function PacientesPage() {
         </div>
 
         <Card className="glass p-3">
-        <div className="flex flex-wrap gap-2 items-center">
-          <div className="relative flex-1 min-w-[220px]">
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <Input
-              placeholder="Buscar por nome..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="pl-9"
-            />
-          </div>
-          <Select value={filterStatus} onValueChange={setFilterStatus} disabled={mostrarArquivados}>
-            <SelectTrigger className="w-[140px]">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="ativo">Ativos</SelectItem>
-              <SelectItem value="pausado">Pausados</SelectItem>
-              <SelectItem value="alta">Alta</SelectItem>
-              <SelectItem value="interrompido">Interrompidos</SelectItem>
-              <SelectItem value="all">Todos</SelectItem>
-            </SelectContent>
-          </Select>
-          <Select value={filterModalidade} onValueChange={setFilterModalidade}>
-            <SelectTrigger className="w-[180px]">
-              <SelectValue placeholder="Modalidade" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Todas modalidades</SelectItem>
-              {modalidades?.map((m) => (
-                <SelectItem key={m.id} value={m.id}>
-                  {m.nome}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <Select value={filterTerapeuta} onValueChange={setFilterTerapeuta}>
-            <SelectTrigger className="w-[180px]">
-              <SelectValue placeholder="Terapeuta" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Todos terapeutas</SelectItem>
-              {terapeutas?.map((t) => (
-                <SelectItem key={t.id} value={t.id}>
-                  {t.nome}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <Select value={filterDiagnostico} onValueChange={setFilterDiagnostico}>
-            <SelectTrigger className="w-[180px]">
-              <SelectValue placeholder="Diagnóstico" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Todos diagnósticos</SelectItem>
-              {diagnosticos?.map((d) => (
-                <SelectItem key={d.id} value={d.id}>
-                  {d.nome}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <Button
-            variant={mostrarArquivados ? "default" : "outline"}
-            size="sm"
-            onClick={() => setMostrarArquivados((v) => !v)}
-          >
-            <Archive className="mr-1.5 h-3.5 w-3.5" />
-            {mostrarArquivados ? "Ocultar arquivados" : "Ver arquivados"}
-          </Button>
-          {(filterModalidade !== "all" ||
-            filterTerapeuta !== "all" ||
-            filterDiagnostico !== "all" ||
-            filterStatus !== "ativo" ||
-            search) && (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => {
-                setSearch("");
-                setFilterModalidade("all");
-                setFilterTerapeuta("all");
-                setFilterDiagnostico("all");
-                setFilterStatus("ativo");
-              }}
-            >
-              Limpar
-            </Button>
-          )}
-          <div className="flex rounded-lg border bg-background/40 p-0.5">
-            <button
-              onClick={() => setLayout("grid")}
-              className={`p-1.5 rounded-md transition-all ${layout === "grid" ? "bg-brand text-white" : "text-muted-foreground"}`}
-            >
-              <LayoutGrid className="h-4 w-4" />
-            </button>
-            <button
-              onClick={() => setLayout("lista")}
-              className={`p-1.5 rounded-md transition-all ${layout === "lista" ? "bg-brand text-white" : "text-muted-foreground"}`}
-            >
-              <List className="h-4 w-4" />
-            </button>
-          </div>
-        </div>
-      </Card>
-
-      {layout === "grid" ? (
-        <div className="grid gap-3 sm:grid-cols-2 2xl:grid-cols-3">
-          {pacientes?.map((p, i) => (
-            <div
-              key={p.id}
-              className="animate-fade-up"
-              style={{ animationDelay: `${Math.min(i * 45, 360)}ms` }}
-            >
-              <PacienteCard p={p} />
+          <div className="flex flex-wrap gap-2 items-center">
+            <div className="relative flex-1 min-w-[220px]">
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                placeholder="Buscar por nome..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="pl-9"
+              />
             </div>
-          ))}
-          {pacientes?.length === 0 && (
-            <Card className="glass p-8 col-span-full text-center text-sm text-muted-foreground">
-              Nenhum paciente encontrado.
-            </Card>
-          )}
-        </div>
-      ) : (
-        <Card className="glass overflow-hidden">
-          <div className="divide-y">
-            {pacientes?.map((p) => (
-              <PacienteRow key={p.id} p={p} />
-            ))}
-            {pacientes?.length === 0 && (
-              <div className="p-8 text-center text-sm text-muted-foreground">
-                Nenhum paciente encontrado.
-              </div>
+            <Select
+              value={filterStatus}
+              onValueChange={setFilterStatus}
+              disabled={mostrarArquivados}
+            >
+              <SelectTrigger className="w-[140px]">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="ativo">Ativos</SelectItem>
+                <SelectItem value="pausado">Pausados</SelectItem>
+                <SelectItem value="alta">Alta</SelectItem>
+                <SelectItem value="interrompido">Interrompidos</SelectItem>
+                <SelectItem value="all">Todos</SelectItem>
+              </SelectContent>
+            </Select>
+            <Select value={filterModalidade} onValueChange={setFilterModalidade}>
+              <SelectTrigger className="w-[180px]">
+                <SelectValue placeholder="Modalidade" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todas modalidades</SelectItem>
+                {modalidades?.map((m) => (
+                  <SelectItem key={m.id} value={m.id}>
+                    {m.nome}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Select value={filterTerapeuta} onValueChange={setFilterTerapeuta}>
+              <SelectTrigger className="w-[180px]">
+                <SelectValue placeholder="Terapeuta" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos terapeutas</SelectItem>
+                {terapeutas?.map((t) => (
+                  <SelectItem key={t.id} value={t.id}>
+                    {t.nome}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Select value={filterDiagnostico} onValueChange={setFilterDiagnostico}>
+              <SelectTrigger className="w-[180px]">
+                <SelectValue placeholder="Diagnóstico" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos diagnósticos</SelectItem>
+                {diagnosticos?.map((d) => (
+                  <SelectItem key={d.id} value={d.id}>
+                    {d.nome}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Button
+              variant={mostrarArquivados ? "default" : "outline"}
+              size="sm"
+              onClick={() => setMostrarArquivados((v) => !v)}
+            >
+              <Archive className="mr-1.5 h-3.5 w-3.5" />
+              {mostrarArquivados ? "Ocultar arquivados" : "Ver arquivados"}
+            </Button>
+            {(temModelo || !mostrarModelo) && (
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={alternarModelo.isPending}
+                onClick={() => alternarModelo.mutate(!mostrarModelo)}
+                title="O paciente modelo é um tutorial vivo com a ficha completa preenchida. Oculte quando não precisar mais dele."
+              >
+                <GraduationCap className="mr-1.5 h-3.5 w-3.5" />
+                {mostrarModelo ? "Ocultar paciente modelo" : "Mostrar paciente modelo"}
+              </Button>
             )}
+            {(filterModalidade !== "all" ||
+              filterTerapeuta !== "all" ||
+              filterDiagnostico !== "all" ||
+              filterStatus !== "ativo" ||
+              search) && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  setSearch("");
+                  setFilterModalidade("all");
+                  setFilterTerapeuta("all");
+                  setFilterDiagnostico("all");
+                  setFilterStatus("ativo");
+                }}
+              >
+                Limpar
+              </Button>
+            )}
+            <div className="flex rounded-lg border bg-background/40 p-0.5">
+              <button
+                onClick={() => setLayout("grid")}
+                className={`p-1.5 rounded-md transition-all ${layout === "grid" ? "bg-brand text-white" : "text-muted-foreground"}`}
+              >
+                <LayoutGrid className="h-4 w-4" />
+              </button>
+              <button
+                onClick={() => setLayout("lista")}
+                className={`p-1.5 rounded-md transition-all ${layout === "lista" ? "bg-brand text-white" : "text-muted-foreground"}`}
+              >
+                <List className="h-4 w-4" />
+              </button>
+            </div>
           </div>
         </Card>
-      )}
+
+        {layout === "grid" ? (
+          <div className="grid gap-3 sm:grid-cols-2 2xl:grid-cols-3">
+            {pacientesVisiveis.map((p, i) => (
+              <div
+                key={p.id}
+                className="animate-fade-up"
+                style={{ animationDelay: `${Math.min(i * 45, 360)}ms` }}
+              >
+                <PacienteCard p={p} />
+              </div>
+            ))}
+            {pacientesVisiveis.length === 0 && (
+              <Card className="glass p-8 col-span-full text-center text-sm text-muted-foreground">
+                Nenhum paciente encontrado.
+              </Card>
+            )}
+          </div>
+        ) : (
+          <Card className="glass overflow-hidden">
+            <div className="divide-y">
+              {pacientesVisiveis.map((p) => (
+                <PacienteRow key={p.id} p={p} />
+              ))}
+              {pacientesVisiveis.length === 0 && (
+                <div className="p-8 text-center text-sm text-muted-foreground">
+                  Nenhum paciente encontrado.
+                </div>
+              )}
+            </div>
+          </Card>
+        )}
       </TwoColumn>
     </div>
   );
@@ -449,7 +494,10 @@ function PacientesSidePanel({ stats }: { stats: any }) {
                   title={p.nome}
                   subtitle={p.queixa_principal ?? "Investigação inicial"}
                   trailing={
-                    <Badge variant="outline" className="shrink-0 border-amber-500/50 text-amber-600">
+                    <Badge
+                      variant="outline"
+                      className="shrink-0 border-amber-500/50 text-amber-600"
+                    >
                       hipótese
                     </Badge>
                   }
@@ -502,6 +550,11 @@ function PacienteCard({ p }: { p: any }) {
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2">
               <p className="font-semibold truncate">{p.nome}</p>
+              {p.is_modelo && (
+                <Badge className="text-[9px] bg-brand/15 text-brand hover:bg-brand/15">
+                  modelo
+                </Badge>
+              )}
               {p.arquivado && (
                 <Badge variant="outline" className="text-[9px]">
                   arquivado
@@ -608,7 +661,14 @@ function PacienteRow({ p }: { p: any }) {
         <Avatar foto={p.foto_url} nome={p.nome} size={40} />
         <div className="flex-1 min-w-0 grid grid-cols-12 gap-3 items-center">
           <div className="col-span-12 md:col-span-3 min-w-0">
-            <p className="font-medium truncate">{p.nome}</p>
+            <p className="font-medium truncate">
+              {p.nome}
+              {p.is_modelo && (
+                <Badge className="ml-1.5 text-[9px] bg-brand/15 text-brand hover:bg-brand/15">
+                  modelo
+                </Badge>
+              )}
+            </p>
             <p className="text-[11px] text-muted-foreground">
               {p.data_nascimento ? `${calcAge(p.data_nascimento)} anos` : "Idade —"}
               {p.escola?.nome ? ` · ${p.escola.nome}` : ""}
@@ -721,7 +781,9 @@ function NovoPacienteDialog({ onCreated }: { onCreated: () => void }) {
 
   const { data: canaisOrigem } = useQuery({
     queryKey: ["canais-origem-mini"],
-    queryFn: async () => ((await supabase.from("canais_marketing").select("id, nome").eq("ativo", true).order("nome")).data ?? []) as { id: string; nome: string }[],
+    queryFn: async () =>
+      ((await supabase.from("canais_marketing").select("id, nome").eq("ativo", true).order("nome"))
+        .data ?? []) as { id: string; nome: string }[],
   });
 
   const mutation = useMutation({
@@ -747,7 +809,11 @@ function NovoPacienteDialog({ onCreated }: { onCreated: () => void }) {
       });
       setOpen(false);
       if (res?.pacienteId) {
-        navigate({ to: "/pacientes/$id", params: { id: res.pacienteId }, search: { aba: "cadastro" } as any });
+        navigate({
+          to: "/pacientes/$id",
+          params: { id: res.pacienteId },
+          search: { aba: "cadastro" } as any,
+        });
       }
       setForm({
         nome: "",
@@ -827,7 +893,9 @@ function NovoPacienteDialog({ onCreated }: { onCreated: () => void }) {
           </div>
 
           <div className="pt-2 border-t border-border/30">
-            <Label className="text-xs uppercase tracking-wide font-semibold text-lilac">Escola</Label>
+            <Label className="text-xs uppercase tracking-wide font-semibold text-lilac">
+              Escola
+            </Label>
             <div className="grid gap-3 mt-2">
               <EscolaCombobox
                 value={form.escola_id || null}
@@ -852,12 +920,20 @@ function NovoPacienteDialog({ onCreated }: { onCreated: () => void }) {
               <Label className="text-xs">Como chegou até a Nave?</Label>
               <Select
                 value={form.canal_origem_id || "__none"}
-                onValueChange={(v) => setForm({ ...form, canal_origem_id: v === "__none" ? "" : v })}
+                onValueChange={(v) =>
+                  setForm({ ...form, canal_origem_id: v === "__none" ? "" : v })
+                }
               >
-                <SelectTrigger><SelectValue placeholder="Selecionar canal" /></SelectTrigger>
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecionar canal" />
+                </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="__none">Não informado</SelectItem>
-                  {canaisOrigem?.map((c) => <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>)}
+                  {canaisOrigem?.map((c) => (
+                    <SelectItem key={c.id} value={c.id}>
+                      {c.nome}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>

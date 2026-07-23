@@ -3191,6 +3191,7 @@ export type Database = {
           endereco: string | null
           id: string
           logo_path: string | null
+          mostrar_paciente_modelo: boolean
           nome: string
           plano: string
           razao_social: string | null
@@ -3213,6 +3214,7 @@ export type Database = {
           endereco?: string | null
           id?: string
           logo_path?: string | null
+          mostrar_paciente_modelo?: boolean
           nome: string
           plano?: string
           razao_social?: string | null
@@ -3235,6 +3237,7 @@ export type Database = {
           endereco?: string | null
           id?: string
           logo_path?: string | null
+          mostrar_paciente_modelo?: boolean
           nome?: string
           plano?: string
           razao_social?: string | null
@@ -3542,6 +3545,7 @@ export type Database = {
           id: string
           insight_cache: Json | null
           insight_gerado_em: string | null
+          is_modelo: boolean
           lead_origem_id: string | null
           modalidade_id: string | null
           modelo_pagamento: string | null
@@ -3589,6 +3593,7 @@ export type Database = {
           id?: string
           insight_cache?: Json | null
           insight_gerado_em?: string | null
+          is_modelo?: boolean
           lead_origem_id?: string | null
           modalidade_id?: string | null
           modelo_pagamento?: string | null
@@ -3636,6 +3641,7 @@ export type Database = {
           id?: string
           insight_cache?: Json | null
           insight_gerado_em?: string | null
+          is_modelo?: boolean
           lead_origem_id?: string | null
           modalidade_id?: string | null
           modelo_pagamento?: string | null
@@ -6413,6 +6419,33 @@ export type Database = {
           },
         ]
       }
+      tutorial_progresso: {
+        Row: {
+          created_at: string
+          dispensado_em: string | null
+          org_id: string | null
+          passos_concluidos: string[]
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          dispensado_em?: string | null
+          org_id?: string | null
+          passos_concluidos?: string[]
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          dispensado_em?: string | null
+          org_id?: string | null
+          passos_concluidos?: string[]
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           created_at: string
@@ -6512,6 +6545,7 @@ export type Database = {
         }[]
       }
       criar_organizacao: { Args: { _nome: string }; Returns: string }
+      definir_paciente_modelo_visivel: { Args: { _visivel: boolean }; Returns: undefined }
       equipe_aceitar_convite: { Args: { _token: string }; Returns: undefined }
       equipe_convite_info: {
         Args: { _token: string }

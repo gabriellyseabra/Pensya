@@ -8,6 +8,7 @@ import {
   Mail,
   Lightbulb,
   ShieldCheck,
+  GraduationCap,
 } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -21,6 +22,7 @@ import {
 } from "@/components/ui/accordion";
 import { PageHero } from "@/components/shared/PageHero";
 import { useRoles } from "@/hooks/use-role";
+import { useTutorialGuiado } from "@/lib/tutorial-guiado";
 import { cn } from "@/lib/utils";
 import {
   CATEGORIAS_AJUDA,
@@ -115,6 +117,7 @@ function CentralAjudaPage() {
         <GradeCategorias categorias={categorias} onAbrirCategoria={abrirCategoria} />
       )}
 
+      <CardTutorial />
       <CardContato restrito={isTerapeutaRestrito} />
     </div>
   );
@@ -326,6 +329,39 @@ function CorpoArtigo({ corpo }: { corpo: BlocoAjuda[] }) {
         return <p key={i}>{b.texto}</p>;
       })}
     </div>
+  );
+}
+
+function CardTutorial() {
+  const navigate = useNavigate();
+  const { reabrir } = useTutorialGuiado();
+  return (
+    <Card className="glass p-6">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex items-start gap-3">
+          <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl gradient-brand text-brand-foreground shadow-soft">
+            <GraduationCap className="h-5 w-5" />
+          </div>
+          <div>
+            <h3 className="font-medium">Tutorial guiado</h3>
+            <p className="mt-1 max-w-xl text-sm text-muted-foreground">
+              Um tour passo a passo pelo sistema usando a Sofia, a paciente modelo com a ficha
+              completa. Se você dispensou o tutorial, pode retomá-lo daqui.
+            </p>
+          </div>
+        </div>
+        <Button
+          variant="outline"
+          className="shrink-0"
+          onClick={() => {
+            reabrir();
+            navigate({ to: "/dashboard" });
+          }}
+        >
+          Retomar tutorial <ChevronRight className="ml-1 h-4 w-4" />
+        </Button>
+      </div>
+    </Card>
   );
 }
 

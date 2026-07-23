@@ -52,6 +52,13 @@ export function useSetupChecklist() {
     enabled: !dismissed,
     staleTime: 5 * 60 * 1000,
     queryFn: async () => {
+      // A paciente modelo (Sofia) vem com agenda e sessões preenchidas — não
+      // conta como "primeiro paciente/atendimento/sessão" da clínica.
+      const { data: modelos } = await supabase.from("pacientes").select("id").eq("is_modelo", true);
+      const modeloIds = (modelos ?? []).map((m) => m.id);
+      const semModelo = (q: any) =>
+        modeloIds.length ? q.not("paciente_id", "in", `(${modeloIds.join(",")})`) : q;
+
       const [profissionais, servicosComValor, identidade, pacientes, atendimentos, sessoes] =
         await Promise.all([
           contar("profissionais_consultorio"),
@@ -59,9 +66,9 @@ export function useSetupChecklist() {
           // Identidade: logo ou cor personalizada na organização (Pensya).
           // Na Nave a tabela não existe → contar() devolve 1 (concluído).
           contar("organizacoes", (q) => q.not("logo_path", "is", null)),
-          contar("pacientes"),
-          contar("atendimentos"),
-          contar("prontuario_sessoes"),
+          contar("pacientes", (q) => q.eq("is_modelo", false)),
+          contar("atendimentos", semModelo),
+          contar("prontuario_sessoes", semModelo),
         ]);
       return { profissionais, servicosComValor, identidade, pacientes, atendimentos, sessoes };
     },
