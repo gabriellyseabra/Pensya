@@ -24,6 +24,7 @@ import { Route as PortalRelatoriosRouteImport } from './routes/portal.relatorios
 import { Route as PortalFinanceiroRouteImport } from './routes/portal.financeiro'
 import { Route as PortalEvolucaoRouteImport } from './routes/portal.evolucao'
 import { Route as PortalDiarioRouteImport } from './routes/portal.diario'
+import { Route as FotoTokenRouteImport } from './routes/foto.$token'
 import { Route as CadastroTokenRouteImport } from './routes/cadastro.$token'
 import { Route as AssinarTokenRouteImport } from './routes/assinar.$token'
 import { Route as AuthenticatedTarefasRouteImport } from './routes/_authenticated/tarefas'
@@ -131,6 +132,11 @@ const PortalDiarioRoute = PortalDiarioRouteImport.update({
   id: '/diario',
   path: '/diario',
   getParentRoute: () => PortalRoute,
+} as any)
+const FotoTokenRoute = FotoTokenRouteImport.update({
+  id: '/foto/$token',
+  path: '/foto/$token',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const CadastroTokenRoute = CadastroTokenRouteImport.update({
   id: '/cadastro/$token',
@@ -341,6 +347,7 @@ export interface FileRoutesByFullPath {
   '/tarefas': typeof AuthenticatedTarefasRoute
   '/assinar/$token': typeof AssinarTokenRoute
   '/cadastro/$token': typeof CadastroTokenRoute
+  '/foto/$token': typeof FotoTokenRoute
   '/portal/diario': typeof PortalDiarioRoute
   '/portal/evolucao': typeof PortalEvolucaoRoute
   '/portal/financeiro': typeof PortalFinanceiroRoute
@@ -388,6 +395,7 @@ export interface FileRoutesByTo {
   '/tarefas': typeof AuthenticatedTarefasRoute
   '/assinar/$token': typeof AssinarTokenRoute
   '/cadastro/$token': typeof CadastroTokenRoute
+  '/foto/$token': typeof FotoTokenRoute
   '/portal/diario': typeof PortalDiarioRoute
   '/portal/evolucao': typeof PortalEvolucaoRoute
   '/portal/financeiro': typeof PortalFinanceiroRoute
@@ -439,6 +447,7 @@ export interface FileRoutesById {
   '/_authenticated/tarefas': typeof AuthenticatedTarefasRoute
   '/assinar/$token': typeof AssinarTokenRoute
   '/cadastro/$token': typeof CadastroTokenRoute
+  '/foto/$token': typeof FotoTokenRoute
   '/portal/diario': typeof PortalDiarioRoute
   '/portal/evolucao': typeof PortalEvolucaoRoute
   '/portal/financeiro': typeof PortalFinanceiroRoute
@@ -490,6 +499,7 @@ export interface FileRouteTypes {
     | '/tarefas'
     | '/assinar/$token'
     | '/cadastro/$token'
+    | '/foto/$token'
     | '/portal/diario'
     | '/portal/evolucao'
     | '/portal/financeiro'
@@ -537,6 +547,7 @@ export interface FileRouteTypes {
     | '/tarefas'
     | '/assinar/$token'
     | '/cadastro/$token'
+    | '/foto/$token'
     | '/portal/diario'
     | '/portal/evolucao'
     | '/portal/financeiro'
@@ -587,6 +598,7 @@ export interface FileRouteTypes {
     | '/_authenticated/tarefas'
     | '/assinar/$token'
     | '/cadastro/$token'
+    | '/foto/$token'
     | '/portal/diario'
     | '/portal/evolucao'
     | '/portal/financeiro'
@@ -622,6 +634,7 @@ export interface RootRouteChildren {
   SalasRoute: typeof SalasRouteWithChildren
   AssinarTokenRoute: typeof AssinarTokenRoute
   CadastroTokenRoute: typeof CadastroTokenRoute
+  FotoTokenRoute: typeof FotoTokenRoute
   ProcessoPublicoTokenRoute: typeof ProcessoPublicoTokenRoute
   EquipeConviteTokenRoute: typeof EquipeConviteTokenRoute
   PortalConviteTokenRoute: typeof PortalConviteTokenRoute
@@ -734,6 +747,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/portal/diario'
       preLoaderRoute: typeof PortalDiarioRouteImport
       parentRoute: typeof PortalRoute
+    }
+    '/foto/$token': {
+      id: '/foto/$token'
+      path: '/foto/$token'
+      fullPath: '/foto/$token'
+      preLoaderRoute: typeof FotoTokenRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/cadastro/$token': {
       id: '/cadastro/$token'
@@ -1091,6 +1111,7 @@ const rootRouteChildren: RootRouteChildren = {
   SalasRoute: SalasRouteWithChildren,
   AssinarTokenRoute: AssinarTokenRoute,
   CadastroTokenRoute: CadastroTokenRoute,
+  FotoTokenRoute: FotoTokenRoute,
   ProcessoPublicoTokenRoute: ProcessoPublicoTokenRoute,
   EquipeConviteTokenRoute: EquipeConviteTokenRoute,
   PortalConviteTokenRoute: PortalConviteTokenRoute,

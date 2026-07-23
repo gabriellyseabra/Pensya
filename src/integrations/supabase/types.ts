@@ -2009,6 +2009,41 @@ export type Database = {
           },
         ]
       }
+      foto_upload_tokens: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          expires_at: string
+          org_id: string
+          paciente_id: string
+          token: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          expires_at?: string
+          org_id?: string
+          paciente_id: string
+          token: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          expires_at?: string
+          org_id?: string
+          paciente_id?: string
+          token?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "foto_upload_tokens_paciente_id_fkey"
+            columns: ["paciente_id"]
+            isOneToOne: false
+            referencedRelation: "pacientes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       frequencia: {
         Row: {
           atendimento_id: string | null
@@ -3264,6 +3299,7 @@ export type Database = {
           cor_primaria: string | null
           cor_tema: string
           created_at: string
+          declaracao_modelo: string | null
           email: string | null
           emite_nf: boolean
           endereco: string | null
@@ -3287,6 +3323,7 @@ export type Database = {
           cor_primaria?: string | null
           cor_tema?: string
           created_at?: string
+          declaracao_modelo?: string | null
           email?: string | null
           emite_nf?: boolean
           endereco?: string | null
@@ -3310,6 +3347,7 @@ export type Database = {
           cor_primaria?: string | null
           cor_tema?: string
           created_at?: string
+          declaracao_modelo?: string | null
           email?: string | null
           emite_nf?: boolean
           endereco?: string | null
@@ -6678,6 +6716,24 @@ export type Database = {
           previsto: number
           realizado: number
         }[]
+      }
+      foto_token_info: {
+        Args: { _token: string }
+        Returns: {
+          clinica_nome: string
+          logo_path: string
+          paciente_id: string
+          paciente_nome: string
+        }[]
+      }
+      galeria_publica_add: {
+        Args: {
+          _mime: string
+          _storage_path: string
+          _titulo: string
+          _token: string
+        }
+        Returns: undefined
       }
       gerar_contas_fixas: {
         Args: { _ano: number; _mes: number }
