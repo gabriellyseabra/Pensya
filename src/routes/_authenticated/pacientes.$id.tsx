@@ -37,11 +37,17 @@ import { AdministrativoTab } from "@/components/paciente/AdministrativoTab";
 import { DataDrawer } from "@/components/shared/DataDrawer";
 import { ArquivosTab } from "@/components/paciente/ArquivosTab";
 import { FichaCadastralTab } from "@/components/paciente/FichaCadastralTab";
+import { PacienteTabsNav, resolverAba } from "@/components/paciente/PacienteTabsNav";
+import { ImportarProntuarioTab } from "@/components/paciente/ImportarProntuarioTab";
 import { BrainStateCard } from "@/components/paciente/BrainStateCard";
 import { PACIENTE_STATUS, PACIENTE_STATUS_LABEL } from "@/lib/paciente-status";
 import { useRoles } from "@/hooks/use-role";
 
 export const Route = createFileRoute("/_authenticated/pacientes/$id")({
+  validateSearch: (s: Record<string, unknown>): { aba?: string; sub?: string } => ({
+    aba: typeof s.aba === "string" ? s.aba : undefined,
+    sub: typeof s.sub === "string" ? s.sub : undefined,
+  }),
   component: PacienteDetailPage,
 });
 
@@ -52,7 +58,11 @@ function PacienteDetailPage() {
   const { id } = Route.useParams();
   const navigate = useNavigate();
   const qc = useQueryClient();
-  const [abaAtiva, setAbaAtiva] = useState("resumo");
+  // Aba ativa na URL (?aba=&sub=) — permite deep-link e aceita valores legados.
+  const search = Route.useSearch();
+  const { aba: abaAtiva, sub: subClinico } = resolverAba(search.aba, search.sub);
+  const irParaAba = (aba: string, sub?: string) =>
+    navigate({ to: "/pacientes/$id", params: { id }, search: sub ? { aba, sub } : { aba } });
   const [adminSubTab, setAdminSubTab] = useState("financeiro");
   // Terapeuta não vê a aba Administrativo (dados financeiros do paciente).
   const { isTerapeutaRestrito: ehTerapeuta } = useRoles();
@@ -331,66 +341,52 @@ function PacienteDetailPage() {
       <PacienteWorkflowActions pacienteId={id} variant="fab" />
 
       {/* ABAS */}
-      <Tabs value={abaAtiva} onValueChange={setAbaAtiva} className="space-y-4">
-        <div className="overflow-x-auto no-scrollbar">
-          <TabsList className="h-auto flex-nowrap gap-1 rounded-full bg-muted/70 p-1">
-            {[
-              ["resumo", "Resumo"],
-              ["ficha", "Ficha"],
-              ["perfil-vivo", "Perfil"],
-              ["avaliacao", "Avaliação"],
-              ["plano", "Plano"],
-              ["sessoes", "Sessões"],
-              ["frequencia", "Frequência"],
-              ["monitoramento", "Monitoramento"],
-              ["arquivos", "Arquivos"],
-              ...(ehTerapeuta ? [] : [["administrativo", "Administrativo"]]),
-            ].map(([v, label]) => (
-              <TabsTrigger
-                key={v}
-                value={v}
-                className="whitespace-nowrap rounded-full px-4 py-1.5 text-sm data-[state=active]:bg-foreground data-[state=active]:text-background data-[state=active]:shadow-sm"
-              >
-                {label}
-              </TabsTrigger>
-            ))}
-          </TabsList>
-        </div>
+      <Tabs value={abaAtiva} className="space-y-4">
+        <PacienteTabsNav
+          aba={abaAtiva}
+          sub={subClinico}
+          onNavigate={irParaAba}
+          hideAdministrativo={ehTerapeuta}
+        />
 
         <TabsContent value="resumo" className="space-y-6">
           <BrainStateCard pacienteId={id} />
           <ResumoTab pacienteId={id} />
         </TabsContent>
 
-        <TabsContent value="ficha">
+        <TabsContent value="cadastro">
           <FichaCadastralTab paciente={paciente} onEditar={() => setEditOpen(true)} />
         </TabsContent>
 
-        <TabsContent value="perfil-vivo">
-          <PerfilClinicoVivoTab pacienteId={id} />
-        </TabsContent>
-
-        <TabsContent value="avaliacao">
-          <AvaliacaoWizard
-            pacienteId={id}
-            onNavigateToTab={(tab, subTab) => { setAbaAtiva(tab); if (subTab) setAdminSubTab(subTab); }}
-          />
-        </TabsContent>
-
-        <TabsContent value="plano">
-          <PlanoTab pacienteId={id} />
-        </TabsContent>
-
-        <TabsContent value="sessoes">
-          <ProntuarioTab pacienteId={id} />
-        </TabsContent>
-
-        <TabsContent value="frequencia">
-          <FrequenciaTab pacienteId={id} />
-        </TabsContent>
-
-        <TabsContent value="monitoramento">
-          <EvolucaoTab pacienteId={id} />
+        {/* Área Clínico: fluxo terapêutico em subabas */}
+        <TabsContent value="clinico">
+          {subClinico === "avaliacao" && (
+            <AvaliacaoWizard
+              pacienteId={id}
+              onNavigateToTab={(tab, subTab) => {
+                const destino = resolverAba(tab);
+                if (subTab) setAdminSubTab(subTab);
+                irParaAba(destino.aba, destino.sub);
+              }}
+            />
+          )}
+          {subClinico === "plano" && <PlanoTab pacienteId={id} />}
+          {subClinico === "sessoes" && (
+            <div className="space-y-4">
+              <ProntuarioTab pacienteId={id} />
+              <details className="rounded-xl border bg-muted/30 px-4 py-3">
+                <summary className="cursor-pointer text-sm font-medium text-muted-foreground">
+                  Importar prontuário antigo (de outro sistema ou papel)
+                </summary>
+                <div className="pt-3">
+                  <ImportarProntuarioTab pacienteId={id} />
+                </div>
+              </details>
+            </div>
+          )}
+          {subClinico === "frequencia" && <FrequenciaTab pacienteId={id} />}
+          {subClinico === "monitoramento" && <EvolucaoTab pacienteId={id} />}
+          {subClinico === "perfil" && <PerfilClinicoVivoTab pacienteId={id} />}
         </TabsContent>
 
         <TabsContent value="arquivos">
