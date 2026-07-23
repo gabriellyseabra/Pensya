@@ -9,10 +9,12 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { format, startOfMonth, endOfMonth, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
-import { Calculator, Settings2, Lock, Printer, AlertTriangle, CheckCircle2, Eye, ChevronLeft, ChevronRight, CalendarRange, LayoutList } from "lucide-react";
+import { Calculator, Settings2, Lock, Printer, AlertTriangle, CheckCircle2, Eye, ChevronLeft, ChevronRight, CalendarRange, LayoutList, Wallet, Clock, Landmark, MoreHorizontal } from "lucide-react";
 import { toast } from "sonner";
 import { invalidarFinanceiro } from "@/lib/financeiro-cache";
 
@@ -251,88 +253,41 @@ export function Folha() {
           onChange={(e) => setRefMonth(e.target.value)}
           className="h-9 rounded-md border border-input bg-transparent px-3 text-sm"
         />
-        <div className="flex-1" />
-        <Badge variant="outline">Líquido total: {currency(totalLiquido)}</Badge>
-        <Badge variant="outline">Encargos: {currency(totalEncargos)}</Badge>
-        <Badge className="bg-emerald-100 text-emerald-700">Pago: {currency(totalPago)}</Badge>
       </div>
 
-      <Card className="glass">
-        <CardContent className="p-0 overflow-x-auto">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Colaborador</TableHead>
-                <TableHead>Vínculo</TableHead>
-                <TableHead className="text-right">Salário</TableHead>
-                <TableHead className="text-right">Comissões</TableHead>
-                <TableHead className="text-right">Líquido</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead className="w-72 text-right">Ações</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {(profs ?? []).map((p) => {
-                const cfg = configByProf(p.id);
-                const f = folhaByProf(p.id);
-                return (
-                  <TableRow key={p.id}>
-                    <TableCell className="font-medium">{p.nome}</TableCell>
-                    <TableCell><Badge variant="outline">{cfg?.vinculo ?? "—"}</Badge></TableCell>
-                    <TableCell className="text-right">{currency(Number(cfg?.salario_base || 0))}</TableCell>
-                    <TableCell className="text-right">{f ? currency(Number(f.comissoes)) : "—"}</TableCell>
-                    <TableCell className="text-right font-semibold">{f ? currency(Number(f.liquido)) : "—"}</TableCell>
-                    <TableCell>
-                      {f ? (
-                        f.status === "paga" ? (
-                          <Badge className="bg-emerald-100 text-emerald-700">paga{f.paga_em ? ` · ${format(parseISO(f.paga_em), "dd/MM")}` : ""}</Badge>
-                        ) : (
-                          <Badge variant={f.status === "fechada" ? "default" : "secondary"}>{f.status}</Badge>
-                        )
-                      ) : <span className="text-xs text-muted-foreground">não gerada</span>}
-                    </TableCell>
-                    <TableCell className="text-right space-x-1">
-                      <Button size="sm" variant="ghost" onClick={() => { setConfigProf(p); setConfigOpen(true); }}>
-                        <Settings2 className="w-3 h-3 mr-1" />Configurar
-                      </Button>
-                      <Button size="sm" variant="outline" onClick={() => gerar.mutate(p.id)} disabled={!cfg}>
-                        <Calculator className="w-3 h-3 mr-1" />Calcular
-                      </Button>
-                      <Button size="sm" variant="ghost" onClick={() => setDetalhe({ prof: p, cfg })}>
-                        <Eye className="w-3 h-3 mr-1" />Detalhes
-                      </Button>
-                      {f && f.status !== "fechada" && f.status !== "paga" && (
-                        <Button size="sm" onClick={() => fechar.mutate(f)}>
-                          <Lock className="w-3 h-3 mr-1" />Fechar
-                        </Button>
-                      )}
-                      {f && (
-                        f.status === "paga" ? (
-                          <Button size="sm" variant="outline" onClick={() => marcarPago.mutate(f)}>
-                            <AlertTriangle className="w-3 h-3 mr-1" />Marcar não pago
-                          </Button>
-                        ) : (
-                          <Button size="sm" className="bg-emerald-600 hover:bg-emerald-700 text-white" onClick={() => marcarPago.mutate(f)}>
-                            <CheckCircle2 className="w-3 h-3 mr-1" />Marcar pago
-                          </Button>
-                        )
-                      )}
-                      {f && (
-                        <Button size="sm" variant="ghost" onClick={() => setHolerite({ ...f, profissional: p })}>
-                          <Printer className="w-3 h-3 mr-1" />Holerite
-                        </Button>
-                      )}
-                    </TableCell>
-                  </TableRow>
-                );
-              })}
-              {(!profs || profs.length === 0) && (
-                <TableRow><TableCell colSpan={7} className="text-center text-sm text-muted-foreground py-8">Nenhum colaborador cadastrado.</TableCell></TableRow>
-              )}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
+      {/* Resumo do mês */}
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+        <KpiCard icon={Wallet} label="Líquido total" value={currency(totalLiquido)} />
+        <KpiCard icon={CheckCircle2} label="Pago" value={currency(totalPago)} tone="success" />
+        <KpiCard icon={Clock} label="A pagar" value={currency(Math.max(totalLiquido - totalPago, 0))} tone="warn" />
+        <KpiCard icon={Landmark} label="Encargos (empresa)" value={currency(totalEncargos)} />
+      </div>
+
+      {/* Colaboradores */}
+      {(!profs || profs.length === 0) ? (
+        <Card className="glass">
+          <CardContent className="py-12 text-center text-sm text-muted-foreground">
+            Nenhum colaborador cadastrado.
+          </CardContent>
+        </Card>
+      ) : (
+        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+          {(profs ?? []).map((p) => (
+            <ColaboradorCard
+              key={p.id}
+              p={p}
+              cfg={configByProf(p.id)}
+              f={folhaByProf(p.id)}
+              onConfigurar={() => { setConfigProf(p); setConfigOpen(true); }}
+              onCalcular={() => gerar.mutate(p.id)}
+              onFechar={(folha: any) => fechar.mutate(folha)}
+              onMarcarPago={(folha: any) => marcarPago.mutate(folha)}
+              onHolerite={(folha: any) => setHolerite({ ...folha, profissional: p })}
+              onDetalhes={(cfg: any) => setDetalhe({ prof: p, cfg })}
+            />
+          ))}
+        </div>
+      )}
       </>
       )}
 
@@ -840,5 +795,116 @@ function Linha({ label, v }: { label: string; v: number }) {
       <span>{label}</span>
       <span className={v < 0 ? "text-destructive" : ""}>{currency(v)}</span>
     </div>
+  );
+}
+
+// Card de KPI do resumo mensal.
+function KpiCard({ icon: Icon, label, value, tone }: { icon: any; label: string; value: string; tone?: "success" | "warn" }) {
+  const toneCls =
+    tone === "success" ? "bg-emerald-500/10 text-emerald-600"
+    : tone === "warn" ? "bg-amber-500/10 text-amber-600"
+    : "bg-brand/10 text-brand";
+  return (
+    <Card className="glass">
+      <CardContent className="flex items-center gap-3 p-4">
+        <div className={`grid h-10 w-10 shrink-0 place-items-center rounded-xl ${toneCls}`}>
+          <Icon className="h-5 w-5" />
+        </div>
+        <div className="min-w-0">
+          <p className="truncate text-[11px] uppercase tracking-wider text-muted-foreground">{label}</p>
+          <p className="truncate text-lg font-semibold">{value}</p>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+// Pill de status da folha do colaborador.
+function StatusPill({ f }: { f: any }) {
+  if (!f)
+    return <span className="shrink-0 rounded-full bg-muted px-2 py-0.5 text-[10px] font-medium text-muted-foreground">Não gerada</span>;
+  if (f.status === "paga")
+    return <span className="shrink-0 rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-medium text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300">Pago{f.paga_em ? ` · ${format(parseISO(f.paga_em), "dd/MM")}` : ""}</span>;
+  if (f.status === "fechada")
+    return <span className="shrink-0 rounded-full bg-indigo-100 px-2 py-0.5 text-[10px] font-medium text-indigo-700 dark:bg-indigo-500/15 dark:text-indigo-300">Fechada</span>;
+  return <span className="shrink-0 rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-medium text-amber-700 dark:bg-amber-500/15 dark:text-amber-300">Em aberto</span>;
+}
+
+// Card de um colaborador na folha (substitui a linha da tabela).
+function ColaboradorCard({ p, cfg, f, onConfigurar, onCalcular, onFechar, onMarcarPago, onHolerite, onDetalhes }: any) {
+  const iniciais = String(p.nome ?? "").split(" ").map((s: string) => s[0]).slice(0, 2).join("").toUpperCase();
+  const formaLabel = FORMAS_REPASSE.find((x) => x.value === cfg?.forma_repasse)?.label ?? "Não configurado";
+
+  const primary = !cfg
+    ? { label: "Configurar", Icon: Settings2, onClick: onConfigurar, className: "flex-1 gradient-brand text-brand-foreground", variant: "default" as const }
+    : !f
+    ? { label: "Calcular", Icon: Calculator, onClick: onCalcular, className: "flex-1 gradient-brand text-brand-foreground", variant: "default" as const }
+    : f.status !== "paga"
+    ? { label: "Marcar pago", Icon: CheckCircle2, onClick: () => onMarcarPago(f), className: "flex-1 bg-emerald-600 text-white hover:bg-emerald-700", variant: "default" as const }
+    : { label: "Holerite", Icon: Printer, onClick: () => onHolerite(f), className: "flex-1", variant: "outline" as const };
+
+  return (
+    <Card className="glass flex flex-col gap-3 p-4 transition hover:shadow-elegant">
+      <div className="flex items-start gap-3">
+        <Avatar className="h-11 w-11">
+          <AvatarFallback className="gradient-brand text-sm text-brand-foreground">{iniciais}</AvatarFallback>
+        </Avatar>
+        <div className="min-w-0 flex-1">
+          <p className="truncate font-semibold leading-tight">{p.nome}</p>
+          <div className="mt-1 flex flex-wrap items-center gap-1.5">
+            <Badge variant="outline" className="text-[10px] uppercase">{cfg?.vinculo ?? "sem vínculo"}</Badge>
+            <span className="truncate text-xs text-muted-foreground">{formaLabel}</span>
+          </div>
+        </div>
+        <StatusPill f={f} />
+      </div>
+
+      <div className="rounded-xl bg-muted/40 p-3">
+        <div className="flex items-end justify-between gap-2">
+          <div>
+            <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Líquido no mês</p>
+            <p className="text-2xl font-semibold leading-tight">{f ? currency(Number(f.liquido)) : "—"}</p>
+          </div>
+          {f && (
+            <div className="text-right text-[11px] leading-snug text-muted-foreground">
+              {Number(f.salario_base) > 0 && <div>Salário {currency(Number(f.salario_base))}</div>}
+              {Number(f.comissoes) > 0 && <div>Comissões {currency(Number(f.comissoes))}</div>}
+              {Number(f.qtd_sessoes) > 0 && <div>{f.qtd_sessoes} sessões</div>}
+            </div>
+          )}
+        </div>
+      </div>
+
+      <div className="mt-auto flex items-center gap-2">
+        <Button size="sm" variant={primary.variant} className={primary.className} onClick={primary.onClick}>
+          <primary.Icon className="mr-1.5 h-3.5 w-3.5" />{primary.label}
+        </Button>
+        <Button size="sm" variant="outline" onClick={() => onDetalhes(cfg)} title="Detalhe por paciente">
+          <Eye className="h-3.5 w-3.5" />
+        </Button>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button size="icon" variant="ghost" className="h-9 w-9 shrink-0"><MoreHorizontal className="h-4 w-4" /></Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-48">
+            <DropdownMenuItem onClick={onConfigurar}><Settings2 className="mr-2 h-4 w-4" />Configurar</DropdownMenuItem>
+            {cfg && <DropdownMenuItem onClick={onCalcular}><Calculator className="mr-2 h-4 w-4" />Recalcular</DropdownMenuItem>}
+            <DropdownMenuItem onClick={() => onDetalhes(cfg)}><Eye className="mr-2 h-4 w-4" />Detalhe por paciente</DropdownMenuItem>
+            {f && f.status !== "fechada" && f.status !== "paga" && (
+              <DropdownMenuItem onClick={() => onFechar(f)}><Lock className="mr-2 h-4 w-4" />Fechar folha</DropdownMenuItem>
+            )}
+            {f && (
+              <DropdownMenuItem onClick={() => onMarcarPago(f)}>
+                {f.status === "paga"
+                  ? <><AlertTriangle className="mr-2 h-4 w-4" />Marcar não pago</>
+                  : <><CheckCircle2 className="mr-2 h-4 w-4" />Marcar pago</>}
+              </DropdownMenuItem>
+            )}
+            {f && <DropdownMenuSeparator />}
+            {f && <DropdownMenuItem onClick={() => onHolerite(f)}><Printer className="mr-2 h-4 w-4" />Holerite</DropdownMenuItem>}
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
+    </Card>
   );
 }
