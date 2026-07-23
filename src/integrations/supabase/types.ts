@@ -967,8 +967,11 @@ export type Database = {
       contas_financeiras: {
         Row: {
           ativo: boolean
+          banco: string | null
+          banco_cor: string | null
           created_at: string
           id: string
+          logo_path: string | null
           nome: string
           observacoes: string | null
           ordem: number
@@ -979,8 +982,11 @@ export type Database = {
         }
         Insert: {
           ativo?: boolean
+          banco?: string | null
+          banco_cor?: string | null
           created_at?: string
           id?: string
+          logo_path?: string | null
           nome: string
           observacoes?: string | null
           ordem?: number
@@ -991,8 +997,11 @@ export type Database = {
         }
         Update: {
           ativo?: boolean
+          banco?: string | null
+          banco_cor?: string | null
           created_at?: string
           id?: string
+          logo_path?: string | null
           nome?: string
           observacoes?: string | null
           ordem?: number
@@ -1890,6 +1899,59 @@ export type Database = {
           },
         ]
       }
+      formas_recebimento: {
+        Row: {
+          ativo: boolean
+          conta_padrao_id: string | null
+          created_at: string
+          id: string
+          nome: string
+          ordem: number
+          org_id: string
+          prazo_dias: number
+          taxa_fixa: number
+          taxa_percentual: number
+          tipo: string
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean
+          conta_padrao_id?: string | null
+          created_at?: string
+          id?: string
+          nome: string
+          ordem?: number
+          org_id?: string
+          prazo_dias?: number
+          taxa_fixa?: number
+          taxa_percentual?: number
+          tipo?: string
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean
+          conta_padrao_id?: string | null
+          created_at?: string
+          id?: string
+          nome?: string
+          ordem?: number
+          org_id?: string
+          prazo_dias?: number
+          taxa_fixa?: number
+          taxa_percentual?: number
+          tipo?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "formas_recebimento_conta_padrao_id_fkey"
+            columns: ["conta_padrao_id"]
+            isOneToOne: false
+            referencedRelation: "contas_financeiras"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       fornecedores: {
         Row: {
           ativo: boolean
@@ -2283,6 +2345,7 @@ export type Database = {
           created_by: string | null
           descricao: string
           forma_pagamento: string | null
+          forma_recebimento_id: string | null
           fornecedor_id: string | null
           id: string
           observacoes: string | null
@@ -2293,10 +2356,12 @@ export type Database = {
           plano_conta_id: string | null
           recorrencia_grupo: string | null
           status: string
+          taxa: number
           tipo: string
           tipo_servico_id: string | null
           updated_at: string
           valor: number
+          valor_liquido: number | null
           vencimento: string
         }
         Insert: {
@@ -2309,6 +2374,7 @@ export type Database = {
           created_by?: string | null
           descricao: string
           forma_pagamento?: string | null
+          forma_recebimento_id?: string | null
           fornecedor_id?: string | null
           id?: string
           observacoes?: string | null
@@ -2319,10 +2385,12 @@ export type Database = {
           plano_conta_id?: string | null
           recorrencia_grupo?: string | null
           status?: string
+          taxa?: number
           tipo: string
           tipo_servico_id?: string | null
           updated_at?: string
           valor: number
+          valor_liquido?: number | null
           vencimento: string
         }
         Update: {
@@ -2335,6 +2403,7 @@ export type Database = {
           created_by?: string | null
           descricao?: string
           forma_pagamento?: string | null
+          forma_recebimento_id?: string | null
           fornecedor_id?: string | null
           id?: string
           observacoes?: string | null
@@ -2345,10 +2414,12 @@ export type Database = {
           plano_conta_id?: string | null
           recorrencia_grupo?: string | null
           status?: string
+          taxa?: number
           tipo?: string
           tipo_servico_id?: string | null
           updated_at?: string
           valor?: number
+          valor_liquido?: number | null
           vencimento?: string
         }
         Relationships: [
@@ -2371,6 +2442,13 @@ export type Database = {
             columns: ["conta_id"]
             isOneToOne: false
             referencedRelation: "contas_financeiras"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lancamentos_financeiros_forma_recebimento_id_fkey"
+            columns: ["forma_recebimento_id"]
+            isOneToOne: false
+            referencedRelation: "formas_recebimento"
             referencedColumns: ["id"]
           },
           {
@@ -3716,8 +3794,10 @@ export type Database = {
       pagamentos: {
         Row: {
           competencia: string
+          conta_id: string | null
           created_at: string
           forma_pagamento: string | null
+          forma_recebimento_id: string | null
           id: string
           infinitepay_checkout_url: string | null
           infinitepay_invoice_id: string | null
@@ -3729,6 +3809,7 @@ export type Database = {
           paciente_id: string
           pago_em: string | null
           status: string
+          taxa: number
           taxa_infinitepay: number | null
           updated_at: string
           valor: number
@@ -3737,8 +3818,10 @@ export type Database = {
         }
         Insert: {
           competencia: string
+          conta_id?: string | null
           created_at?: string
           forma_pagamento?: string | null
+          forma_recebimento_id?: string | null
           id?: string
           infinitepay_checkout_url?: string | null
           infinitepay_invoice_id?: string | null
@@ -3750,6 +3833,7 @@ export type Database = {
           paciente_id: string
           pago_em?: string | null
           status?: string
+          taxa?: number
           taxa_infinitepay?: number | null
           updated_at?: string
           valor: number
@@ -3758,8 +3842,10 @@ export type Database = {
         }
         Update: {
           competencia?: string
+          conta_id?: string | null
           created_at?: string
           forma_pagamento?: string | null
+          forma_recebimento_id?: string | null
           id?: string
           infinitepay_checkout_url?: string | null
           infinitepay_invoice_id?: string | null
@@ -3771,6 +3857,7 @@ export type Database = {
           paciente_id?: string
           pago_em?: string | null
           status?: string
+          taxa?: number
           taxa_infinitepay?: number | null
           updated_at?: string
           valor?: number
@@ -3778,6 +3865,20 @@ export type Database = {
           vencimento?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "pagamentos_conta_id_fkey"
+            columns: ["conta_id"]
+            isOneToOne: false
+            referencedRelation: "contas_financeiras"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pagamentos_forma_recebimento_id_fkey"
+            columns: ["forma_recebimento_id"]
+            isOneToOne: false
+            referencedRelation: "formas_recebimento"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "pagamentos_org_id_fkey"
             columns: ["org_id"]
@@ -6444,7 +6545,15 @@ export type Database = {
           updated_at?: string
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "tutorial_progresso_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizacoes"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       user_roles: {
         Row: {
@@ -6545,7 +6654,10 @@ export type Database = {
         }[]
       }
       criar_organizacao: { Args: { _nome: string }; Returns: string }
-      definir_paciente_modelo_visivel: { Args: { _visivel: boolean }; Returns: undefined }
+      definir_paciente_modelo_visivel: {
+        Args: { _visivel: boolean }
+        Returns: undefined
+      }
       equipe_aceitar_convite: { Args: { _token: string }; Returns: undefined }
       equipe_convite_info: {
         Args: { _token: string }
@@ -6750,6 +6862,8 @@ export type Database = {
         Args: { _ate: string; _de: string }
         Returns: Json
       }
+      seed_catalogos_padrao: { Args: { _org_id: string }; Returns: undefined }
+      seed_paciente_modelo: { Args: { _org_id: string }; Returns: undefined }
       storage_object_paciente_assigned: {
         Args: { _bucket: string; _name: string }
         Returns: boolean

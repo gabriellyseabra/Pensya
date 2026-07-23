@@ -61,11 +61,7 @@ const GROUPS: { key: string; label: string; icon: React.ComponentType<{ classNam
   {
     key: "financeiro", label: "Financeiro", icon: Wallet,
     tabs: [
-      { key: "__plano_contas", label: "Plano de contas", fields: [] },
-      { key: "contas_financeiras", label: "Contas / caixas", fields: ["nome", "tipo", "saldo_inicial"] },
-      { key: "tipos_servico", label: "Tipos de serviço", fields: ["nome", "valor_padrao"] },
-      { key: "centros_custo", label: "Centros de custo", fields: ["nome"] },
-      { key: "fornecedores", label: "Fornecedores", fields: ["nome", "documento", "email", "telefone"] },
+      { key: "__financeiro_link", label: "Configurações financeiras", fields: [] },
     ],
   },
 ];
@@ -135,6 +131,21 @@ function ConfigPage() {
                           <ClinicaIdentidadeConfig />
                         ) : t.key === "__plano_contas" ? (
                           <PlanoContasTable />
+                        ) : t.key === "__financeiro_link" ? (
+                          <Card className="glass p-6 space-y-3">
+                            <div className="flex items-center gap-3">
+                              <Wallet className="w-5 h-5 text-brand" />
+                              <div>
+                                <h3 className="font-medium">Configurações financeiras</h3>
+                                <p className="text-sm text-muted-foreground">Contas e bancos, formas de recebimento, plano de contas, tipos de serviço, centros de custo e fornecedores agora ficam dentro do Financeiro.</p>
+                              </div>
+                            </div>
+                            <Link to="/financeiro" search={{ tab: "configurar" }}>
+                              <Button className="gradient-brand text-brand-foreground">
+                                Abrir Financeiro · Configurar <ArrowRight className="w-4 h-4 ml-2" />
+                              </Button>
+                            </Link>
+                          </Card>
                         ) : t.key === "__baterias_link" ? (
                           <Card className="glass p-6 space-y-3">
                             <div className="flex items-center gap-3">
@@ -200,7 +211,7 @@ function ConfigPage() {
 
 type Row = Record<string, unknown> & { id: string };
 
-function CrudTable({ tableName, label, fields }: { tableName: string; label: string; fields: readonly string[] }) {
+export function CrudTable({ tableName, label, fields }: { tableName: string; label: string; fields: readonly string[] }) {
   const qc = useQueryClient();
   const [editing, setEditing] = useState<Row | null>(null);
   const [open, setOpen] = useState(false);
@@ -336,7 +347,7 @@ function CrudForm({
 
 type PlanoConta = { id: string; codigo: string | null; nome: string; tipo: "receita" | "despesa"; parent_id: string | null; ativo: boolean; ordem: number };
 
-function PlanoContasTable() {
+export function PlanoContasTable() {
   const qc = useQueryClient();
   const [editing, setEditing] = useState<PlanoConta | null>(null);
   const [novoTipo, setNovoTipo] = useState<"receita" | "despesa">("despesa");
