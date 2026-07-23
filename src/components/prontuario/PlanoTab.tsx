@@ -18,8 +18,17 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSepara
 import {
   Sparkles, Search, Plus, FileText, Trash2, CheckCircle2, BookOpen, Upload, Printer, Target, RotateCw,
   Info, Network, Lightbulb, FlaskConical, ListPlus, TrendingUp,
-  Layers, Compass, ListOrdered, Brain, Waypoints, Archive, MoreHorizontal, Wand2,
+  Layers, Compass, ListOrdered, Brain, Waypoints, Archive, MoreHorizontal, Wand2, GraduationCap,
 } from "lucide-react";
+
+const SECOES_PLANO = [
+  { key: "metas", label: "Metas", icon: Compass },
+  { key: "fontes", label: "Fontes", icon: FileText },
+  { key: "formulacao", label: "Formulação do caso", icon: Network },
+  { key: "orientacoes", label: "Orientações", icon: Lightbulb },
+  { key: "evidencias", label: "Evidências", icon: FlaskConical },
+  { key: "tutorial", label: "Como funciona", icon: GraduationCap },
+] as const;
 import { gerarPlanoIA, buscarPubMed, extrairPdfAvaliacao, adicionarMetasIA } from "@/lib/plano.functions";
 import { imprimirPlano } from "@/lib/plano-documento";
 import { RevisaoCicloDialog } from "./RevisaoCicloDialog";
@@ -28,6 +37,7 @@ import { FontesDocumentais } from "./FontesDocumentais";
 import { ObjetivosEditor, type Objetivo } from "./ObjetivosEditor";
 import { MetaSparkline } from "@/components/paciente/MetaProgressChart";
 import { SectionCard } from "@/components/shared/SectionCard";
+import { cn } from "@/lib/utils";
 
 const FONTE_LABEL: Record<string, string> = {
   anamnese: "Anamnese", entrevista_familiar: "Entrevista familiar", avaliacao: "Avaliação",
@@ -108,7 +118,7 @@ export function PlanoTab({ pacienteId, onVerMonitoramento }: { pacienteId: strin
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-lg font-semibold">Plano Terapêutico</h2>
-          <p className="text-xs text-muted-foreground">CIF · GAS · Metas SMART funcionais</p>
+          <p className="text-xs text-muted-foreground">Formulação do caso · metas funcionais · escala GAS</p>
         </div>
         <Button onClick={criarPlano}><Plus className="mr-2 h-4 w-4" />Novo plano</Button>
       </div>
@@ -278,6 +288,7 @@ function PlanoDetalhe({ pacienteId, planoId, onDeleted, onVerMonitoramento }: { 
   const [contextoExtra, setContextoExtra] = useState("");
   const [iaLoading, setIaLoading] = useState(false);
   const [showIaDialog, setShowIaDialog] = useState(false);
+  const [secao, setSecao] = useState<string>("metas");
   const [showRevisaoDialog, setShowRevisaoDialog] = useState(false);
   const [pdfUploading, setPdfUploading] = useState(false);
   const [showAddMetasDialog, setShowAddMetasDialog] = useState(false);
@@ -525,34 +536,6 @@ function PlanoDetalhe({ pacienteId, planoId, onDeleted, onVerMonitoramento }: { 
         </CardContent>
       </Card>
 
-      {/* Destaque: não comece do zero — importe fontes e gere com IA */}
-      <Card className="glass overflow-hidden border-brand/30">
-        <div className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center">
-          <div className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl gradient-brand text-brand-foreground">
-            <Wand2 className="h-5 w-5" />
-          </div>
-          <div className="min-w-0 flex-1">
-            <p className="font-semibold leading-tight">Não precisa escrever do zero</p>
-            <p className="mt-0.5 text-sm text-muted-foreground">
-              A IA cruza o que já existe no sistema (anamnese, avaliações e testes) com os documentos
-              que você anexar (laudos, relatórios, registros antigos) e monta a formulação e as metas.
-              Revise e ajuste — o trabalho braçal é da IA.
-            </p>
-          </div>
-          <div className="flex shrink-0 gap-2">
-            <label className="cursor-pointer">
-              <input type="file" accept="application/pdf" className="hidden" onChange={handlePdfUpload} disabled={pdfUploading} />
-              <Button variant="outline" size="sm" asChild>
-                <span><Upload className="mr-2 h-4 w-4" />{pdfUploading ? "Processando…" : "Anexar laudo"}</span>
-              </Button>
-            </label>
-            <Button onClick={() => setShowIaDialog(true)} size="sm" className="gradient-brand text-brand-foreground">
-              <Sparkles className="mr-2 h-4 w-4" />Gerar com IA
-            </Button>
-          </div>
-        </div>
-      </Card>
-
       {/* Header de progresso */}
       {plano.status === "em_andamento" && metas.length > 0 && (
         <Card className="glass border-brand/30">
@@ -577,113 +560,159 @@ function PlanoDetalhe({ pacienteId, planoId, onDeleted, onVerMonitoramento }: { 
         </Card>
       )}
 
-      {metas.length > 0 && onVerMonitoramento && (
-        <div className="flex items-center justify-between rounded-xl border bg-muted/30 px-4 py-3">
-          <p className="text-sm text-muted-foreground">
-            A evolução das metas (desempenho e GAS a cada sessão) vive no <strong className="text-foreground">Monitoramento</strong>.
-          </p>
-          <Button size="sm" variant="outline" onClick={onVerMonitoramento}>
-            <TrendingUp className="mr-1.5 h-3.5 w-3.5" />Ver evolução
-          </Button>
-        </div>
-      )}
+      {/* Menu lateral + seção ativa (uma coisa por vez, sem parede de conteúdo) */}
+      <div className="grid gap-4 lg:grid-cols-[190px_minmax(0,1fr)]">
+        <nav className="flex gap-1 overflow-x-auto no-scrollbar lg:flex-col lg:overflow-visible">
+          {SECOES_PLANO.map((s) => {
+            const Icone = s.icon;
+            return (
+              <button
+                key={s.key}
+                type="button"
+                onClick={() => setSecao(s.key)}
+                className={cn(
+                  "flex shrink-0 items-center gap-2 rounded-xl px-3 py-2 text-sm transition lg:w-full",
+                  secao === s.key ? "bg-foreground text-background shadow-sm" : "text-muted-foreground hover:bg-accent/50",
+                )}
+              >
+                <Icone className="h-4 w-4 shrink-0" />
+                <span className="whitespace-nowrap">{s.label}</span>
+              </button>
+            );
+          })}
+        </nav>
 
-      <SectionCard title="Contexto clínico" description="Queixa, hipóteses, medicação e objetivo do ciclo" icon={Info} defaultOpen={false}>
-        <div className="grid gap-3 md:grid-cols-2">
-          <Field label="Queixa principal"><Textarea rows={2} value={form.queixa_principal ?? ""} onChange={(e) => setForm({ ...form, queixa_principal: e.target.value })} /></Field>
-          <Field label="Hipótese diagnóstica"><Textarea rows={2} value={form.diagnostico_resumo ?? ""} onChange={(e) => setForm({ ...form, diagnostico_resumo: e.target.value })} /></Field>
-          <Field label="Medicação"><Input value={form.medicacao ?? ""} onChange={(e) => setForm({ ...form, medicacao: e.target.value })} /></Field>
-          <Field label="Frequência de sessões"><Input placeholder="ex: 1x/semana, 50min" value={form.frequencia_sessoes ?? ""} onChange={(e) => setForm({ ...form, frequencia_sessoes: e.target.value })} /></Field>
-          <Field label="Data início"><Input type="date" value={form.data_inicio ?? ""} onChange={(e) => setForm({ ...form, data_inicio: e.target.value })} /></Field>
-          <Field label="Revisão prevista"><Input type="date" value={form.data_revisao_prevista ?? ""} onChange={(e) => setForm({ ...form, data_revisao_prevista: e.target.value })} /></Field>
-          <Field className="md:col-span-2" label="Objetivo de participação (o que muda na vida real ao final do ciclo)">
-            <Textarea rows={3} value={form.objetivo_participacao ?? ""} onChange={(e) => setForm({ ...form, objetivo_participacao: e.target.value })} />
-          </Field>
-        </div>
-      </SectionCard>
-
-      <FontesDocumentais pacienteId={pacienteId} />
-
-      <FontesIntegradas raciocinio={plano.raciocinio_clinico} />
-
-      <SectionCard title="Formulação Clínica" description="ETAPA 2 · Restrições, limitações, funções (hipóteses) e fatores — CIF estruturada e priorizável" icon={Network} defaultOpen={false}>
-        <FormulacaoEditor planoId={planoId} />
-        <LegadoCif form={form} setForm={setForm} onSalvar={salvar} />
-      </SectionCard>
-
-      <RaciocinioSecao planoId={planoId} raciocinio={plano.raciocinio_clinico} onSaved={() => qc.invalidateQueries({ queryKey: ["plano", planoId] })} />
-
-      <PriorizacaoSecao raciocinio={plano.raciocinio_clinico} />
-
-      <SectionCard title={`Objetivos & Metas (${objetivos.length} obj · ${metas.length} metas)`} description="ETAPA 5-8 · Poucos objetivos funcionais; cada meta traz seu Mapa (componentes, fontes, confiança) e plano" icon={Compass}>
-        <GasExplicador />
-        {objetivos.length === 0 && metas.length === 0 ? (
-          <div className="text-center text-sm text-muted-foreground py-4">
-            Nenhum objetivo ou meta. Use <strong>Gerar com IA</strong> ou adicione manualmente.
-            <div className="mt-3 flex justify-center gap-2">
-              <NovaMetaButton planoId={planoId} objetivoId={null} onSaved={() => qc.invalidateQueries({ queryKey: ["plano-metas", planoId] })} />
-            </div>
-          </div>
-        ) : (
-          <ObjetivosEditor
-            planoId={planoId}
-            objetivos={objetivos}
-            renderMetas={(objetivoId) =>
-              metas.filter((m: any) => m.objetivo_id === objetivoId).map((m: any) => (
-                <MetaCard key={m.id} planoId={planoId} meta={m} pubmedFn={pubmedFn} objetivos={objetivos} pontos={pontosPorMeta.get(m.meta_terapeutica_id) ?? []} />
-              ))
-            }
-            novaMetaSlot={(objetivoId) => (
-              <NovaMetaButton planoId={planoId} objetivoId={objetivoId} onSaved={() => qc.invalidateQueries({ queryKey: ["plano-metas", planoId] })} />
-            )}
-            metasSemObjetivo={(() => {
-              const semObj = metas.filter((m: any) => !m.objetivo_id);
-              if (semObj.length === 0) return null;
-              return (
-                <div className="rounded-lg border border-dashed border-border/60 p-3">
-                  <p className="mb-2 text-xs font-medium text-muted-foreground">Metas sem objetivo</p>
-                  <div className="space-y-3">
-                    {semObj.map((m: any) => (
-                      <MetaCard key={m.id} planoId={planoId} meta={m} pubmedFn={pubmedFn} objetivos={objetivos} pontos={pontosPorMeta.get(m.meta_terapeutica_id) ?? []} />
-                    ))}
+        <div className="min-w-0 space-y-4">
+          {secao === "metas" && (
+            <>
+              {metas.length > 0 && onVerMonitoramento && (
+                <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border bg-muted/30 px-4 py-3">
+                  <p className="text-sm text-muted-foreground">
+                    A evolução (desempenho e GAS a cada sessão) vive no <strong className="text-foreground">Monitoramento</strong>.
+                  </p>
+                  <Button size="sm" variant="outline" onClick={onVerMonitoramento}>
+                    <TrendingUp className="mr-1.5 h-3.5 w-3.5" />Ver evolução
+                  </Button>
+                </div>
+              )}
+              {objetivos.length === 0 && metas.length === 0 ? (
+                <Card className="glass p-6 text-center text-sm text-muted-foreground">
+                  <p>Nenhuma meta ainda. O jeito rápido é <strong>Gerar com IA</strong> a partir das fontes; ou adicione manualmente.</p>
+                  <div className="mt-3 flex flex-wrap justify-center gap-2">
+                    <Button size="sm" className="gradient-brand text-brand-foreground" onClick={() => setShowIaDialog(true)}>
+                      <Sparkles className="mr-2 h-4 w-4" />Gerar com IA
+                    </Button>
+                    <NovaMetaButton planoId={planoId} objetivoId={null} onSaved={() => qc.invalidateQueries({ queryKey: ["plano-metas", planoId] })} />
+                    <Button size="sm" variant="ghost" onClick={() => setSecao("tutorial")}>Como estruturar?</Button>
                   </div>
-                </div>
-              );
-            })()}
-          />
-        )}
-      </SectionCard>
+                </Card>
+              ) : (
+                <ObjetivosEditor
+                  planoId={planoId}
+                  objetivos={objetivos}
+                  renderMetas={(objetivoId) =>
+                    metas.filter((m: any) => m.objetivo_id === objetivoId).map((m: any) => (
+                      <MetaCard key={m.id} planoId={planoId} meta={m} pubmedFn={pubmedFn} objetivos={objetivos} pontos={pontosPorMeta.get(m.meta_terapeutica_id) ?? []} />
+                    ))
+                  }
+                  novaMetaSlot={(objetivoId) => (
+                    <NovaMetaButton planoId={planoId} objetivoId={objetivoId} onSaved={() => qc.invalidateQueries({ queryKey: ["plano-metas", planoId] })} />
+                  )}
+                  metasSemObjetivo={(() => {
+                    const semObj = metas.filter((m: any) => !m.objetivo_id);
+                    if (semObj.length === 0) return null;
+                    return (
+                      <div className="rounded-lg border border-dashed border-border/60 p-3">
+                        <p className="mb-2 text-xs font-medium text-muted-foreground">Metas sem objetivo</p>
+                        <div className="space-y-3">
+                          {semObj.map((m: any) => (
+                            <MetaCard key={m.id} planoId={planoId} meta={m} pubmedFn={pubmedFn} objetivos={objetivos} pontos={pontosPorMeta.get(m.meta_terapeutica_id) ?? []} />
+                          ))}
+                        </div>
+                      </div>
+                    );
+                  })()}
+                />
+              )}
+            </>
+          )}
 
-      <SectionCard title="Orientações" description="Família, escola e articulações" icon={Lightbulb} defaultOpen={false}>
-        <div className="grid gap-3">
-          <Field label="Orientações para a família"><Textarea rows={5} value={form.orientacoes_familia ?? ""} onChange={(e) => setForm({ ...form, orientacoes_familia: e.target.value })} /></Field>
-          <Field label="Orientações para a escola"><Textarea rows={5} value={form.orientacoes_escola ?? ""} onChange={(e) => setForm({ ...form, orientacoes_escola: e.target.value })} /></Field>
-          <Field label="Parceiros clínicos / articulações"><Textarea rows={3} value={form.parceiros_clinicos ?? ""} onChange={(e) => setForm({ ...form, parceiros_clinicos: e.target.value })} /></Field>
-          <Field label="Observações de revisão"><Textarea rows={3} value={form.observacoes_revisao ?? ""} onChange={(e) => setForm({ ...form, observacoes_revisao: e.target.value })} /></Field>
-        </div>
-      </SectionCard>
+          {secao === "fontes" && (
+            <FontesSecao
+              pacienteId={pacienteId}
+              raciocinio={plano.raciocinio_clinico}
+              onGerarIA={() => setShowIaDialog(true)}
+              onAnexarLaudo={handlePdfUpload}
+              anexando={pdfUploading}
+            />
+          )}
 
-      <SectionCard title={`Evidências (${evidencias.length})`} description="Artigos PubMed anexados às metas" icon={FlaskConical} defaultOpen={false}>
-        {evidencias.length === 0 ? (
-          <p className="text-sm text-muted-foreground">Nenhuma evidência anexada. Use o botão <BookOpen className="inline h-3 w-3" /> em cada meta para buscar artigos no PubMed.</p>
-        ) : (
-          <div className="space-y-2">
-            {evidencias.map((e) => (
-              <div key={e.id} className="rounded-md border p-3 text-sm">
-                <div className="flex items-start justify-between gap-2">
-                  <a href={e.url} target="_blank" rel="noreferrer" className="font-medium text-brand hover:underline">{e.titulo}</a>
-                  <Button variant="ghost" size="sm" onClick={async () => {
-                    await supabase.from("plano_evidencias").delete().eq("id", e.id);
-                    qc.invalidateQueries({ queryKey: ["plano-evidencias", planoId] });
-                  }}><Trash2 className="h-3 w-3" /></Button>
+          {secao === "formulacao" && (
+            <>
+              <SectionCard title="Contexto clínico" description="Queixa, hipóteses, medicação e objetivo do ciclo" icon={Info}>
+                <div className="grid gap-3 md:grid-cols-2">
+                  <Field label="Queixa principal"><Textarea rows={2} value={form.queixa_principal ?? ""} onChange={(e) => setForm({ ...form, queixa_principal: e.target.value })} /></Field>
+                  <Field label="Hipótese diagnóstica"><Textarea rows={2} value={form.diagnostico_resumo ?? ""} onChange={(e) => setForm({ ...form, diagnostico_resumo: e.target.value })} /></Field>
+                  <Field label="Medicação"><Input value={form.medicacao ?? ""} onChange={(e) => setForm({ ...form, medicacao: e.target.value })} /></Field>
+                  <Field label="Frequência de sessões"><Input placeholder="ex: 1x/semana, 50min" value={form.frequencia_sessoes ?? ""} onChange={(e) => setForm({ ...form, frequencia_sessoes: e.target.value })} /></Field>
+                  <Field label="Data início"><Input type="date" value={form.data_inicio ?? ""} onChange={(e) => setForm({ ...form, data_inicio: e.target.value })} /></Field>
+                  <Field label="Revisão prevista"><Input type="date" value={form.data_revisao_prevista ?? ""} onChange={(e) => setForm({ ...form, data_revisao_prevista: e.target.value })} /></Field>
+                  <Field className="md:col-span-2" label="Objetivo de participação (o que muda na vida real ao final do ciclo)">
+                    <Textarea rows={3} value={form.objetivo_participacao ?? ""} onChange={(e) => setForm({ ...form, objetivo_participacao: e.target.value })} />
+                  </Field>
                 </div>
-                <div className="text-xs text-muted-foreground">{e.autores} · {e.journal} · {e.ano}</div>
-                {e.resumo && <p className="mt-1 line-clamp-3 text-xs">{e.resumo}</p>}
+                <div className="mt-3"><Button size="sm" variant="outline" onClick={salvar}>Salvar contexto</Button></div>
+              </SectionCard>
+
+              <SectionCard title="Formulação Clínica" description="Restrições, limitações, funções (hipóteses) e fatores — CIF estruturada e priorizável" icon={Network} defaultOpen={false}>
+                <FormulacaoEditor planoId={planoId} />
+                <LegadoCif form={form} setForm={setForm} onSalvar={salvar} />
+              </SectionCard>
+
+              <RaciocinioSecao planoId={planoId} raciocinio={plano.raciocinio_clinico} onSaved={() => qc.invalidateQueries({ queryKey: ["plano", planoId] })} />
+              <PriorizacaoSecao raciocinio={plano.raciocinio_clinico} />
+            </>
+          )}
+
+          {secao === "orientacoes" && (
+            <SectionCard title="Orientações" description="Família, escola e articulações" icon={Lightbulb}>
+              <div className="grid gap-3">
+                <Field label="Orientações para a família"><Textarea rows={5} value={form.orientacoes_familia ?? ""} onChange={(e) => setForm({ ...form, orientacoes_familia: e.target.value })} /></Field>
+                <Field label="Orientações para a escola"><Textarea rows={5} value={form.orientacoes_escola ?? ""} onChange={(e) => setForm({ ...form, orientacoes_escola: e.target.value })} /></Field>
+                <Field label="Parceiros clínicos / articulações"><Textarea rows={3} value={form.parceiros_clinicos ?? ""} onChange={(e) => setForm({ ...form, parceiros_clinicos: e.target.value })} /></Field>
+                <Field label="Observações de revisão"><Textarea rows={3} value={form.observacoes_revisao ?? ""} onChange={(e) => setForm({ ...form, observacoes_revisao: e.target.value })} /></Field>
               </div>
-            ))}
-          </div>
-        )}
-      </SectionCard>
+              <div className="mt-3"><Button size="sm" variant="outline" onClick={salvar}>Salvar orientações</Button></div>
+            </SectionCard>
+          )}
+
+          {secao === "evidencias" && (
+            <SectionCard title={`Evidências (${evidencias.length})`} description="Artigos PubMed anexados às metas" icon={FlaskConical}>
+              {evidencias.length === 0 ? (
+                <p className="text-sm text-muted-foreground">Nenhuma evidência anexada. Use o botão <BookOpen className="inline h-3 w-3" /> em cada meta para buscar artigos no PubMed.</p>
+              ) : (
+                <div className="space-y-2">
+                  {evidencias.map((e) => (
+                    <div key={e.id} className="rounded-md border p-3 text-sm">
+                      <div className="flex items-start justify-between gap-2">
+                        <a href={e.url} target="_blank" rel="noreferrer" className="font-medium text-brand hover:underline">{e.titulo}</a>
+                        <Button variant="ghost" size="sm" onClick={async () => {
+                          await supabase.from("plano_evidencias").delete().eq("id", e.id);
+                          qc.invalidateQueries({ queryKey: ["plano-evidencias", planoId] });
+                        }}><Trash2 className="h-3 w-3" /></Button>
+                      </div>
+                      <div className="text-xs text-muted-foreground">{e.autores} · {e.journal} · {e.ano}</div>
+                      {e.resumo && <p className="mt-1 line-clamp-3 text-xs">{e.resumo}</p>}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </SectionCard>
+          )}
+
+          {secao === "tutorial" && <PlanoTutorial />}
+        </div>
+      </div>
 
       <Dialog open={showIaDialog} onOpenChange={setShowIaDialog}>
         <DialogContent>
@@ -940,7 +969,7 @@ function MetaCard({ planoId, meta, pubmedFn, objetivos = [], pontos = [] }: { pl
         <div className="flex items-start justify-between gap-2">
           <div className="flex-1">
             {editing ? (
-              <Input value={form.titulo_smart} onChange={(e) => setForm({ ...form, titulo_smart: e.target.value })} />
+              <Input value={form.titulo_smart} onChange={(e) => setForm({ ...form, titulo_smart: e.target.value })} placeholder="Meta funcional — o que a pessoa vai conseguir fazer (ex.: pedir ajuda ao travar numa tarefa)" />
             ) : (
               <CardTitle className="text-base flex items-start gap-2"><Target className="mt-0.5 h-4 w-4 text-brand" />{meta.titulo_smart}</CardTitle>
             )}
@@ -1023,76 +1052,78 @@ function MetaCard({ planoId, meta, pubmedFn, objetivos = [], pontos = [] }: { pl
             <Field label="Data revisão"><Input type="date" value={form.data_revisao ?? ""} onChange={(e) => setForm({ ...form, data_revisao: e.target.value })} /></Field>
           </div>
         ) : (
-          <>
-            {meta.restricao_funcional && <div className="rounded-md bg-sky-50 dark:bg-sky-950/30 p-2 text-xs"><strong>Restrição funcional:</strong> {meta.restricao_funcional}</div>}
-            {meta.baseline && <div className="rounded-md bg-amber-50 dark:bg-amber-950/30 p-2 text-xs"><strong>Baseline:</strong> {meta.baseline}</div>}
-            {meta.justificativa && <p className="text-xs text-muted-foreground"><strong>Por quê:</strong> {meta.justificativa}</p>}
-            {meta.recursos && <p className="text-xs text-muted-foreground"><strong>Recursos:</strong> {meta.recursos}</p>}
-            {meta.criterios_progressao && <p className="text-xs text-muted-foreground"><strong>Critérios de progressão:</strong> {meta.criterios_progressao}</p>}
-            {meta.criterios_alta && <p className="text-xs text-muted-foreground"><strong>Critérios de alta:</strong> {meta.criterios_alta}</p>}
-            {meta.grau_confianca === "baixa" && meta.confianca_justificativa && (
-              <p className="text-xs text-rose-700 dark:text-rose-300"><strong>Confiança baixa:</strong> {meta.confianca_justificativa}</p>
-            )}
-          </>
+          meta.restricao_funcional ? (
+            <div className="rounded-md bg-sky-50 dark:bg-sky-950/30 p-2 text-xs"><strong>Resolve:</strong> {meta.restricao_funcional}</div>
+          ) : null
         )}
 
-        {/* Mapa da Meta — componentes clínicos + fontes/evidências (ETAPA 7) */}
-        <MapaDaMeta
-          componentes={componentes}
-          fontes={fontes}
-          onAddComponente={addComponente}
-          onRemoveComponente={removeComponente}
-          onAddFonte={addFonte}
-          onRemoveFonte={removeFonte}
-        />
-
-        <button
-          type="button"
-          className="flex w-full items-center justify-between rounded-md border border-border/50 bg-secondary/40 px-2 py-1.5 text-xs text-muted-foreground hover:text-foreground"
-          onClick={() => setShowDetalhes(!showDetalhes)}
-        >
-          <span>
-            Escada GAS{gasMap.size > 0 ? ` (${gasMap.size}/5 níveis descritos)` : " (não descrita)"} ·{" "}
-            {(meta.plano_estrategias ?? []).length} estratégia{(meta.plano_estrategias ?? []).length === 1 ? "" : "s"}
-          </span>
-          <span className="font-medium">{showDetalhes ? "ocultar" : "abrir"}</span>
-        </button>
-
-        {showDetalhes && (
+        {/* Um único "Detalhes" — some por padrão para a meta ficar enxuta */}
+        {!editing && (
           <>
-            <div>
-              <div className="mb-1 text-xs font-semibold text-muted-foreground">Escala GAS</div>
-              <div className="space-y-1">
-                {[2, 1, 0, -1, -2].map((nivel) => (
-                  <div key={nivel} className={`grid grid-cols-[110px_1fr] rounded-md text-xs ${GAS_LABELS[nivel].cls}`}>
-                    <div className="px-2 py-2 font-semibold">{GAS_LABELS[nivel].label}</div>
-                    <Textarea
-                      rows={1}
-                      defaultValue={gasMap.get(nivel) ?? ""}
-                      onBlur={(e) => { if (e.target.value !== (gasMap.get(nivel) ?? "")) atualizarGas(nivel, e.target.value); }}
-                      className="m-1 bg-white/60 dark:bg-black/20 border-0 text-xs"
-                      placeholder={nivel === 0 ? meta.titulo_smart : "Descreva o que seria observável neste nível…"}
-                    />
-                  </div>
-                ))}
-              </div>
-            </div>
+            <button
+              type="button"
+              className="flex w-full items-center justify-between rounded-md border border-border/50 bg-secondary/40 px-2 py-1.5 text-xs text-muted-foreground hover:text-foreground"
+              onClick={() => setShowDetalhes(!showDetalhes)}
+            >
+              <span>Detalhes da meta — escada GAS{gasMap.size > 0 ? ` (${gasMap.size}/5)` : ""}, estratégias, componentes e critérios</span>
+              <span className="font-medium">{showDetalhes ? "ocultar" : "abrir"}</span>
+            </button>
 
-            <div>
-              <div className="mb-1 flex items-center justify-between">
-                <div className="text-xs font-semibold text-muted-foreground">Estratégias de intervenção</div>
-                <Button size="sm" variant="ghost" onClick={addEstrategia}><Plus className="mr-1 h-3 w-3" />Adicionar</Button>
-              </div>
-              {(meta.plano_estrategias ?? []).length === 0 ? (
-                <p className="text-xs text-muted-foreground">Nenhuma estratégia.</p>
-              ) : (
-                <div className="space-y-2">
-                  {(meta.plano_estrategias ?? []).sort((a: any, b: any) => a.ordem - b.ordem).map((e: any) => (
-                    <EstrategiaRow key={e.id} estrategia={e} planoId={planoId} />
-                  ))}
+            {showDetalhes && (
+              <div className="space-y-3">
+                {meta.baseline && <div className="rounded-md bg-amber-50 dark:bg-amber-950/30 p-2 text-xs"><strong>Ponto de partida:</strong> {meta.baseline}</div>}
+                {meta.justificativa && <p className="text-xs text-muted-foreground"><strong>Por quê:</strong> {meta.justificativa}</p>}
+                {meta.recursos && <p className="text-xs text-muted-foreground"><strong>Recursos:</strong> {meta.recursos}</p>}
+                {meta.criterios_progressao && <p className="text-xs text-muted-foreground"><strong>Critérios de progressão:</strong> {meta.criterios_progressao}</p>}
+                {meta.criterios_alta && <p className="text-xs text-muted-foreground"><strong>Critérios de alta:</strong> {meta.criterios_alta}</p>}
+                {meta.grau_confianca === "baixa" && meta.confianca_justificativa && (
+                  <p className="text-xs text-rose-700 dark:text-rose-300"><strong>Confiança baixa:</strong> {meta.confianca_justificativa}</p>
+                )}
+
+                <MapaDaMeta
+                  componentes={componentes}
+                  fontes={fontes}
+                  onAddComponente={addComponente}
+                  onRemoveComponente={removeComponente}
+                  onAddFonte={addFonte}
+                  onRemoveFonte={removeFonte}
+                />
+
+                <div>
+                  <div className="mb-1 text-xs font-semibold text-muted-foreground">Escala GAS</div>
+                  <div className="space-y-1">
+                    {[2, 1, 0, -1, -2].map((nivel) => (
+                      <div key={nivel} className={`grid grid-cols-[110px_1fr] rounded-md text-xs ${GAS_LABELS[nivel].cls}`}>
+                        <div className="px-2 py-2 font-semibold">{GAS_LABELS[nivel].label}</div>
+                        <Textarea
+                          rows={1}
+                          defaultValue={gasMap.get(nivel) ?? ""}
+                          onBlur={(e) => { if (e.target.value !== (gasMap.get(nivel) ?? "")) atualizarGas(nivel, e.target.value); }}
+                          className="m-1 bg-white/60 dark:bg-black/20 border-0 text-xs"
+                          placeholder={nivel === 0 ? meta.titulo_smart : "Descreva o que seria observável neste nível…"}
+                        />
+                      </div>
+                    ))}
+                  </div>
                 </div>
-              )}
-            </div>
+
+                <div>
+                  <div className="mb-1 flex items-center justify-between">
+                    <div className="text-xs font-semibold text-muted-foreground">Estratégias de intervenção</div>
+                    <Button size="sm" variant="ghost" onClick={addEstrategia}><Plus className="mr-1 h-3 w-3" />Adicionar</Button>
+                  </div>
+                  {(meta.plano_estrategias ?? []).length === 0 ? (
+                    <p className="text-xs text-muted-foreground">Nenhuma estratégia.</p>
+                  ) : (
+                    <div className="space-y-2">
+                      {(meta.plano_estrategias ?? []).sort((a: any, b: any) => a.ordem - b.ordem).map((e: any) => (
+                        <EstrategiaRow key={e.id} estrategia={e} planoId={planoId} />
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
           </>
         )}
       </CardContent>
@@ -1115,6 +1146,100 @@ function FontesIntegradas({ raciocinio }: { raciocinio: any }) {
         </div>
       )}
     </SectionCard>
+  );
+}
+
+/** Seção "Fontes" unificada: sistema (automático) + documentos anexados + o que a IA cruzou. */
+function FontesSecao({
+  pacienteId, raciocinio, onGerarIA, onAnexarLaudo, anexando,
+}: {
+  pacienteId: string;
+  raciocinio: any;
+  onGerarIA: () => void;
+  onAnexarLaudo: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  anexando: boolean;
+}) {
+  return (
+    <div className="space-y-4">
+      <Card className="glass p-4">
+        <p className="font-semibold leading-tight">De onde a IA tira as informações</p>
+        <p className="mt-0.5 text-sm text-muted-foreground">
+          Você não escreve o plano do zero: a IA cruza as fontes abaixo e monta a formulação e as metas
+          para você revisar.
+        </p>
+        <div className="mt-3 grid gap-2 sm:grid-cols-2">
+          <div className="rounded-xl border bg-muted/30 p-3">
+            <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Do sistema · automático</p>
+            <p className="mt-1 text-sm">Anamnese, avaliações, testes e observações das sessões — sem precisar anexar nada.</p>
+          </div>
+          <div className="rounded-xl border bg-muted/30 p-3">
+            <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Documentos que você anexa</p>
+            <p className="mt-1 text-sm">Laudos, relatórios de evolução, avaliações externas, registros de um plano anterior.</p>
+          </div>
+        </div>
+        <div className="mt-3 flex flex-wrap gap-2">
+          <label className="cursor-pointer">
+            <input type="file" accept="application/pdf" className="hidden" onChange={onAnexarLaudo} disabled={anexando} />
+            <Button variant="outline" size="sm" asChild>
+              <span><Upload className="mr-2 h-4 w-4" />{anexando ? "Processando…" : "Anexar laudo (PDF)"}</span>
+            </Button>
+          </label>
+          <Button size="sm" className="gradient-brand text-brand-foreground" onClick={onGerarIA}>
+            <Sparkles className="mr-2 h-4 w-4" />Gerar com IA
+          </Button>
+        </div>
+      </Card>
+
+      <FontesDocumentais pacienteId={pacienteId} />
+      <FontesIntegradas raciocinio={raciocinio} />
+    </div>
+  );
+}
+
+/** Tutorial "Como funciona": mini-aula da estrutura do plano, com exemplos. */
+function PlanoTutorial() {
+  return (
+    <div className="space-y-4">
+      <Card className="glass p-5">
+        <div className="flex items-center gap-2">
+          <GraduationCap className="h-5 w-5 text-brand" />
+          <h3 className="font-semibold">Como este plano é estruturado</h3>
+        </div>
+        <p className="mt-1 text-sm text-muted-foreground">Um guia rápido para não se perder. Volte aqui quando quiser.</p>
+      </Card>
+
+      <SectionCard title="1. Formulação do caso" description="Entender antes de planejar" icon={Network}>
+        <p className="text-sm text-muted-foreground">Reúne queixa, hipóteses e o que cada dificuldade impacta na vida real. A IA já monta um rascunho a partir das fontes; você ajusta.</p>
+      </SectionCard>
+
+      <SectionCard title="2. Metas funcionais" description="O que a pessoa vai conseguir fazer" icon={Compass}>
+        <p className="text-sm">Uma meta funcional descreve um comportamento observável no dia a dia — não um escore de teste.</p>
+        <div className="mt-2 rounded-lg border bg-emerald-50 p-3 text-sm dark:bg-emerald-950/20">
+          <p className="font-medium">Exemplo</p>
+          <p className="text-muted-foreground">"Pedir ajuda ao adulto quando travar numa tarefa, em 3 de 4 oportunidades." — claro, observável e relevante para a rotina.</p>
+        </div>
+      </SectionCard>
+
+      <SectionCard title="3. Escala GAS — como medir a evolução" description="Uma escadinha de -2 a +2 por meta" icon={TrendingUp}>
+        <div className="grid gap-1.5 sm:grid-cols-5">
+          {([[-2, "Regrediu"], [-1, "Ponto de partida"], [0, "Resultado esperado — a meta"], [1, "Um pouco além"], [2, "Muito além · generalizou"]] as const).map(([n, d]) => (
+            <div key={n} className={`rounded-md p-2 text-xs ${GAS_LABELS[n].cls}`}>
+              <p className="font-semibold">{GAS_LABELS[n].label}</p>
+              <p className="mt-0.5 opacity-90">{d}</p>
+            </div>
+          ))}
+        </div>
+        <ol className="mt-3 list-decimal space-y-1 pl-4 text-sm text-muted-foreground">
+          <li>Ao criar a meta, o nível <strong className="text-foreground">0</strong> é o resultado esperado do ciclo.</li>
+          <li>A cada sessão você marca o nível observado — leva segundos.</li>
+          <li>No Monitoramento você acompanha a evolução; na revisão do ciclo define o nível final.</li>
+        </ol>
+      </SectionCard>
+
+      <SectionCard title="4. Sessões e revisão" description="O plano vira rotina" icon={FileText} defaultOpen={false}>
+        <p className="text-sm text-muted-foreground">A cada atendimento você registra a sessão e marca o GAS das metas trabalhadas. Ao fim do ciclo, revise: manter, graduar ou encerrar cada meta.</p>
+      </SectionCard>
+    </div>
   );
 }
 
