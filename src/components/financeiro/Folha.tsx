@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { format, startOfMonth, endOfMonth, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -39,8 +39,22 @@ export function Folha() {
 
   const { data: profs } = useQuery({
     queryKey: ["folha-profs"],
-    queryFn: async () =>
-      (await supabase.from("profissionais_consultorio").select("id, nome, ativo").eq("ativo", true).order("nome")).data ?? [],
+    queryFn: async () => {
+      const { data: ps } = await supabase
+        .from("profissionais_consultorio")
+        .select("id, nome, ativo, user_id")
+        .eq("ativo", true)
+        .order("nome");
+      const lista = ps ?? [];
+      // A foto do profissional vem de profiles.avatar_url (via user_id).
+      const userIds = lista.map((p: any) => p.user_id).filter(Boolean);
+      const avatars: Record<string, string> = {};
+      if (userIds.length) {
+        const { data: profiles } = await supabase.from("profiles").select("id, avatar_url").in("id", userIds);
+        for (const pr of (profiles ?? []) as any[]) if (pr.avatar_url) avatars[pr.id] = pr.avatar_url;
+      }
+      return lista.map((p: any) => ({ ...p, avatar_url: p.user_id ? avatars[p.user_id] ?? null : null }));
+    },
   });
 
   const { data: configs } = useQuery({
@@ -864,6 +878,7 @@ function ColaboradorCard({ p, cfg, f, onConfigurar, onCalcular, onFechar, onReab
     <Card className="glass flex flex-col gap-3 p-4 transition hover:shadow-elegant">
       <div className="flex items-start gap-3">
         <Avatar className="h-11 w-11">
+          {p.avatar_url && <AvatarImage src={p.avatar_url} alt={p.nome} />}
           <AvatarFallback className="gradient-brand text-sm text-brand-foreground">{iniciais}</AvatarFallback>
         </Avatar>
         <div className="min-w-0 flex-1">
