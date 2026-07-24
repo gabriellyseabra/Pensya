@@ -57,6 +57,7 @@ import {
   Ban,
   PanelRightClose,
   PanelRightOpen,
+  Video,
 } from "lucide-react";
 import { SessaoDialog } from "@/components/prontuario/SessaoDialog";
 import { AtendimentoQuickInfo } from "@/components/agenda/AtendimentoQuickInfo";
@@ -335,7 +336,7 @@ function AgendaPage() {
         .from("atendimentos")
         .select(
           `
-          id, inicio, fim, observacoes, paciente_id, profissional_id, local_id, modalidade_id,
+          id, inicio, fim, observacoes, link_video, paciente_id, profissional_id, local_id, modalidade_id,
           status_frequencia_id, confirmado_em, confirmacao_enviada_em, recorrencia, recorrencia_grupo,
           paciente:pacientes(id, nome, foto_url, data_nascimento),
           profissional:profissionais_consultorio(id, nome, cor),
@@ -1748,6 +1749,18 @@ function AtendimentoDrawer({
         />
       )}
 
+      {/* Teleconsulta */}
+      {atendimento.link_video && (
+        <div className="rounded-xl border p-3 space-y-2">
+          <Label className="text-xs uppercase tracking-wider text-muted-foreground">Teleconsulta</Label>
+          <Button asChild size="sm" className="gradient-brand text-white">
+            <a href={atendimento.link_video} target="_blank" rel="noreferrer">
+              <Video className="w-4 h-4 mr-1.5" /> Entrar na teleconsulta
+            </a>
+          </Button>
+        </div>
+      )}
+
       {/* WhatsApp */}
       <div className="rounded-xl border p-3 space-y-2">
         <Label className="text-xs uppercase tracking-wider text-muted-foreground">WhatsApp</Label>
@@ -1872,6 +1885,7 @@ function AtendimentoDialog({
           hora_inicio: format(parseISO(atendimento.inicio), "HH:mm"),
           hora_fim: format(parseISO(atendimento.fim), "HH:mm"),
           observacoes: atendimento.observacoes ?? "",
+          link_video: atendimento.link_video ?? "",
           recorrencia: "nao" as
             | "nao"
             | "semanal_4"
@@ -1888,6 +1902,7 @@ function AtendimentoDialog({
           hora_inicio: slotInicial?.hora_inicio ?? "09:00",
           hora_fim: slotInicial?.hora_fim ?? "10:00",
           observacoes: "",
+          link_video: "",
           recorrencia: "nao" as
             | "nao"
             | "semanal_4"
@@ -1909,7 +1924,7 @@ function AtendimentoDialog({
       const { data: profs } =
         (await supabase
           .from("profissionais_consultorio")
-          .select("id, nome, cor, user_id")
+          .select("id, nome, cor, user_id, link_video_padrao")
           .eq("ativo", true)
           .order("nome")) ?? {};
       const userIds = (profs ?? []).map((p: any) => p.user_id).filter(Boolean);
@@ -1955,6 +1970,7 @@ function AtendimentoDialog({
         local_id: form.local_id || null,
         modalidade_id: form.modalidade_id || null,
         observacoes: form.observacoes || null,
+        link_video: form.link_video?.trim() || null,
       };
       if (isEdit) {
         const { error } = await supabase
@@ -2174,6 +2190,29 @@ function AtendimentoDialog({
             </Select>
           </div>
         )}
+
+        <div>
+          <div className="flex items-center justify-between">
+            <Label>Link de teleconsulta <span className="font-normal text-muted-foreground">(opcional)</span></Label>
+            {(() => {
+              const prof: any = (profissionais ?? []).find((p: any) => p.id === form.profissional_id);
+              return prof?.link_video_padrao ? (
+                <button
+                  type="button"
+                  onClick={() => setForm({ ...form, link_video: prof.link_video_padrao })}
+                  className="text-xs text-brand hover:underline"
+                >
+                  Usar link do profissional
+                </button>
+              ) : null;
+            })()}
+          </div>
+          <Input
+            value={form.link_video}
+            placeholder="Cole o link do Meet, Zoom…"
+            onChange={(e) => setForm({ ...form, link_video: e.target.value })}
+          />
+        </div>
 
         <div>
           <Label>Observações</Label>

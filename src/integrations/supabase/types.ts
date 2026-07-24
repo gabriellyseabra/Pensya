@@ -44,12 +44,14 @@ export type Database = {
         Row: {
           confirmacao_enviada_em: string | null
           confirmado_em: string | null
+          convenio_id: string | null
           created_at: string
           created_by: string | null
           fim: string
           google_event_id: string | null
           id: string
           inicio: string
+          link_video: string | null
           local_id: string | null
           modalidade_id: string | null
           observacoes: string | null
@@ -64,12 +66,14 @@ export type Database = {
         Insert: {
           confirmacao_enviada_em?: string | null
           confirmado_em?: string | null
+          convenio_id?: string | null
           created_at?: string
           created_by?: string | null
           fim: string
           google_event_id?: string | null
           id?: string
           inicio: string
+          link_video?: string | null
           local_id?: string | null
           modalidade_id?: string | null
           observacoes?: string | null
@@ -84,12 +88,14 @@ export type Database = {
         Update: {
           confirmacao_enviada_em?: string | null
           confirmado_em?: string | null
+          convenio_id?: string | null
           created_at?: string
           created_by?: string | null
           fim?: string
           google_event_id?: string | null
           id?: string
           inicio?: string
+          link_video?: string | null
           local_id?: string | null
           modalidade_id?: string | null
           observacoes?: string | null
@@ -102,6 +108,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "atendimentos_convenio_id_fkey"
+            columns: ["convenio_id"]
+            isOneToOne: false
+            referencedRelation: "convenios"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "atendimentos_local_id_fkey"
             columns: ["local_id"]
@@ -1247,6 +1260,78 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      convenio_valores: {
+        Row: {
+          convenio_id: string
+          created_at: string
+          id: string
+          org_id: string
+          tipo_servico_id: string | null
+          valor: number
+        }
+        Insert: {
+          convenio_id: string
+          created_at?: string
+          id?: string
+          org_id?: string
+          tipo_servico_id?: string | null
+          valor?: number
+        }
+        Update: {
+          convenio_id?: string
+          created_at?: string
+          id?: string
+          org_id?: string
+          tipo_servico_id?: string | null
+          valor?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "convenio_valores_convenio_id_fkey"
+            columns: ["convenio_id"]
+            isOneToOne: false
+            referencedRelation: "convenios"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "convenio_valores_tipo_servico_id_fkey"
+            columns: ["tipo_servico_id"]
+            isOneToOne: false
+            referencedRelation: "tipos_servico"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      convenios: {
+        Row: {
+          ativo: boolean
+          created_at: string
+          id: string
+          nome: string
+          observacoes: string | null
+          ordem: number
+          org_id: string
+        }
+        Insert: {
+          ativo?: boolean
+          created_at?: string
+          id?: string
+          nome: string
+          observacoes?: string | null
+          ordem?: number
+          org_id?: string
+        }
+        Update: {
+          ativo?: boolean
+          created_at?: string
+          id?: string
+          nome?: string
+          observacoes?: string | null
+          ordem?: number
+          org_id?: string
+        }
+        Relationships: []
       }
       convites_equipe: {
         Row: {
@@ -2710,6 +2795,73 @@ export type Database = {
           },
         ]
       }
+      lista_espera: {
+        Row: {
+          convenio_id: string | null
+          created_at: string
+          id: string
+          nome_contato: string | null
+          observacoes: string | null
+          org_id: string
+          paciente_id: string | null
+          prioridade: string
+          profissional_id: string | null
+          status: string
+          telefone: string | null
+          updated_at: string
+        }
+        Insert: {
+          convenio_id?: string | null
+          created_at?: string
+          id?: string
+          nome_contato?: string | null
+          observacoes?: string | null
+          org_id?: string
+          paciente_id?: string | null
+          prioridade?: string
+          profissional_id?: string | null
+          status?: string
+          telefone?: string | null
+          updated_at?: string
+        }
+        Update: {
+          convenio_id?: string | null
+          created_at?: string
+          id?: string
+          nome_contato?: string | null
+          observacoes?: string | null
+          org_id?: string
+          paciente_id?: string | null
+          prioridade?: string
+          profissional_id?: string | null
+          status?: string
+          telefone?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lista_espera_convenio_id_fkey"
+            columns: ["convenio_id"]
+            isOneToOne: false
+            referencedRelation: "convenios"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lista_espera_paciente_id_fkey"
+            columns: ["paciente_id"]
+            isOneToOne: false
+            referencedRelation: "pacientes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lista_espera_profissional_id_fkey"
+            columns: ["profissional_id"]
+            isOneToOne: false
+            referencedRelation: "profissionais_consultorio"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       locais: {
         Row: {
           ativo: boolean
@@ -3640,6 +3792,7 @@ export type Database = {
           campanha_origem_id: string | null
           canal_origem_id: string | null
           contato_escola: string | null
+          convenio_id: string | null
           cpf: string | null
           created_at: string
           data_alta: string | null
@@ -3688,6 +3841,7 @@ export type Database = {
           campanha_origem_id?: string | null
           canal_origem_id?: string | null
           contato_escola?: string | null
+          convenio_id?: string | null
           cpf?: string | null
           created_at?: string
           data_alta?: string | null
@@ -3736,6 +3890,7 @@ export type Database = {
           campanha_origem_id?: string | null
           canal_origem_id?: string | null
           contato_escola?: string | null
+          convenio_id?: string | null
           cpf?: string | null
           created_at?: string
           data_alta?: string | null
@@ -3793,6 +3948,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "pacientes_convenio_id_fkey"
+            columns: ["convenio_id"]
+            isOneToOne: false
+            referencedRelation: "convenios"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "pacientes_escola_id_fkey"
             columns: ["escola_id"]
             isOneToOne: false
@@ -3829,10 +3991,64 @@ export type Database = {
           },
         ]
       }
+      pacotes_sessao: {
+        Row: {
+          ativo: boolean
+          created_at: string
+          data_compra: string
+          descricao: string | null
+          id: string
+          observacoes: string | null
+          org_id: string
+          paciente_id: string
+          sessoes_usadas: number
+          total_sessoes: number
+          updated_at: string
+          valor: number
+        }
+        Insert: {
+          ativo?: boolean
+          created_at?: string
+          data_compra?: string
+          descricao?: string | null
+          id?: string
+          observacoes?: string | null
+          org_id?: string
+          paciente_id: string
+          sessoes_usadas?: number
+          total_sessoes?: number
+          updated_at?: string
+          valor?: number
+        }
+        Update: {
+          ativo?: boolean
+          created_at?: string
+          data_compra?: string
+          descricao?: string | null
+          id?: string
+          observacoes?: string | null
+          org_id?: string
+          paciente_id?: string
+          sessoes_usadas?: number
+          total_sessoes?: number
+          updated_at?: string
+          valor?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pacotes_sessao_paciente_id_fkey"
+            columns: ["paciente_id"]
+            isOneToOne: false
+            referencedRelation: "pacientes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       pagamentos: {
         Row: {
           competencia: string
           conta_id: string | null
+          convenio_id: string | null
           created_at: string
           forma_pagamento: string | null
           forma_recebimento_id: string | null
@@ -3857,6 +4073,7 @@ export type Database = {
         Insert: {
           competencia: string
           conta_id?: string | null
+          convenio_id?: string | null
           created_at?: string
           forma_pagamento?: string | null
           forma_recebimento_id?: string | null
@@ -3881,6 +4098,7 @@ export type Database = {
         Update: {
           competencia?: string
           conta_id?: string | null
+          convenio_id?: string | null
           created_at?: string
           forma_pagamento?: string | null
           forma_recebimento_id?: string | null
@@ -3908,6 +4126,13 @@ export type Database = {
             columns: ["conta_id"]
             isOneToOne: false
             referencedRelation: "contas_financeiras"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pagamentos_convenio_id_fkey"
+            columns: ["convenio_id"]
+            isOneToOne: false
+            referencedRelation: "convenios"
             referencedColumns: ["id"]
           },
           {
@@ -5091,6 +5316,7 @@ export type Database = {
           email: string | null
           especialidade_id: string | null
           id: string
+          link_video_padrao: string | null
           nome: string
           org_id: string | null
           registro_profissional: string | null
@@ -5104,6 +5330,7 @@ export type Database = {
           email?: string | null
           especialidade_id?: string | null
           id?: string
+          link_video_padrao?: string | null
           nome: string
           org_id?: string | null
           registro_profissional?: string | null
@@ -5117,6 +5344,7 @@ export type Database = {
           email?: string | null
           especialidade_id?: string | null
           id?: string
+          link_video_padrao?: string | null
           nome?: string
           org_id?: string | null
           registro_profissional?: string | null
