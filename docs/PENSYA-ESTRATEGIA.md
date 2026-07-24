@@ -267,3 +267,5 @@ Decidido em jul/2026 com a Gabi.
 
 ### Multi-clínica
 Parte fiscal é por clínica e opcional; quem não liga `emite_nf`/não configura não vê a central.
+
+<!-- redeploy: força produção com a correção do Gerar do mês (#29) -->
