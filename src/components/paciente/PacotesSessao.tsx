@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Package, Plus, Minus, Trash2, Loader2 } from "lucide-react";
+import { Package, Plus, Trash2, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { format, parseISO } from "date-fns";
 
@@ -30,6 +30,12 @@ export function PacotesSessao({ pacienteId }: { pacienteId: string }) {
   const [open, setOpen] = useState(false);
   const queryKey = ["pacotes-sessao", pacienteId];
 
+  // Só aparece quando o paciente é cobrado por pacote.
+  const { data: modelo } = useQuery({
+    queryKey: ["paciente-modelo-pagamento", pacienteId],
+    queryFn: async () => (await supabase.from("pacientes").select("modelo_pagamento").eq("id", pacienteId).single()).data?.modelo_pagamento ?? null,
+  });
+
   const { data: pacotes = [] } = useQuery({
     queryKey,
     queryFn: async () => {
@@ -43,13 +49,16 @@ export function PacotesSessao({ pacienteId }: { pacienteId: string }) {
     },
   });
 
-  const ajustarUso = useMutation({
-    mutationFn: async ({ id, novo }: { id: string; novo: number }) => {
-      const { error } = await supabase.from("pacotes_sessao").update({ sessoes_usadas: novo }).eq("id", id);
-      if (error) throw error;
+  // Frequência do paciente — base do débito automático do pacote.
+  const { data: freq = [] } = useQuery({
+    queryKey: ["pacotes-frequencia", pacienteId],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("frequencia")
+        .select("tipo, data_referencia")
+        .eq("paciente_id", pacienteId);
+      return (data ?? []) as { tipo: string; data_referencia: string }[];
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey }),
-    onError: (e: Error) => toast.error(e.message),
   });
 
   const remover = useMutation({
@@ -60,6 +69,23 @@ export function PacotesSessao({ pacienteId }: { pacienteId: string }) {
     onSuccess: () => { qc.invalidateQueries({ queryKey }); toast.success("Pacote removido"); },
     onError: (e: Error) => toast.error(e.message),
   });
+
+  // Card só aparece para pacientes no modelo "pacote".
+  if (modelo !== "pacote") return null;
+
+  // Débito automático: presença, reposição e falta não justificada consomem;
+  // falta justificada mantém o crédito (será reposta). Aloca do pacote mais antigo.
+  const CONSOME = ["presente", "reposicao", "falta_nao_justificada"];
+  const pacotesAsc = [...pacotes].sort((a, b) => a.data_compra.localeCompare(b.data_compra));
+  const inicio = pacotesAsc[0]?.data_compra;
+  const consumo = freq.filter((f) => CONSOME.includes(f.tipo) && (!inicio || f.data_referencia >= inicio)).length;
+  const usadasPorId: Record<string, number> = {};
+  let restante = consumo;
+  for (const p of pacotesAsc) {
+    const u = Math.min(p.total_sessoes, restante);
+    usadasPorId[p.id] = u;
+    restante -= u;
+  }
 
   return (
     <Card className="glass">
@@ -81,8 +107,9 @@ export function PacotesSessao({ pacienteId }: { pacienteId: string }) {
 
         <div className="space-y-2">
           {pacotes.map((p) => {
-            const saldo = p.total_sessoes - p.sessoes_usadas;
-            const pct = p.total_sessoes ? Math.round((p.sessoes_usadas / p.total_sessoes) * 100) : 0;
+            const usadas = usadasPorId[p.id] ?? 0;
+            const saldo = p.total_sessoes - usadas;
+            const pct = p.total_sessoes ? Math.round((usadas / p.total_sessoes) * 100) : 0;
             const esgotado = saldo <= 0;
             return (
               <div key={p.id} className="rounded-xl border border-border/50 bg-background/40 p-3">
@@ -101,22 +128,9 @@ export function PacotesSessao({ pacienteId }: { pacienteId: string }) {
                 <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-muted">
                   <div className="h-full bg-brand transition-all" style={{ width: `${pct}%` }} />
                 </div>
-                <div className="mt-2 flex items-center gap-1.5">
-                  <Button
-                    size="sm" variant="outline" className="h-7"
-                    disabled={p.sessoes_usadas <= 0 || ajustarUso.isPending}
-                    onClick={() => ajustarUso.mutate({ id: p.id, novo: p.sessoes_usadas - 1 })}
-                  >
-                    <Minus className="h-3.5 w-3.5" />
-                  </Button>
-                  <Button
-                    size="sm" variant="outline" className="h-7"
-                    disabled={esgotado || ajustarUso.isPending}
-                    onClick={() => ajustarUso.mutate({ id: p.id, novo: p.sessoes_usadas + 1 })}
-                  >
-                    <Plus className="mr-1 h-3.5 w-3.5" /> Usar 1 sessão
-                  </Button>
-                  <Button size="sm" variant="ghost" className="ml-auto h-7 text-muted-foreground" onClick={() => remover.mutate(p.id)}>
+                <div className="mt-2 flex items-center justify-between">
+                  <span className="text-[11px] text-muted-foreground">Debita automaticamente pela frequência</span>
+                  <Button size="sm" variant="ghost" className="h-7 text-muted-foreground" onClick={() => remover.mutate(p.id)}>
                     <Trash2 className="h-3.5 w-3.5" />
                   </Button>
                 </div>

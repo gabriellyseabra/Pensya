@@ -1037,7 +1037,19 @@ function TimeGridView({
                           <span className="truncate font-semibold text-foreground">
                             {a.paciente?.nome ?? "—"}
                           </span>
-                          {freqStatus && <span className="ml-auto shrink-0"><FreqBadgeIcon status={freqStatus} size={12} /></span>}
+                          <span className="ml-auto flex shrink-0 items-center gap-0.5">
+                            {a.link_video && (
+                              <span
+                                role="button"
+                                title="Entrar na teleconsulta"
+                                onClick={(e) => { e.stopPropagation(); window.open(a.link_video, "_blank", "noopener"); }}
+                                className="text-emerald-600 hover:text-emerald-700"
+                              >
+                                <Video className="h-3 w-3" />
+                              </span>
+                            )}
+                            {freqStatus && <FreqBadgeIcon status={freqStatus} size={12} />}
+                          </span>
                         </div>
                         {(expandido || height > 46) && (
                           <div className="mt-0.5 flex items-center gap-1.5 min-w-0">
@@ -1128,6 +1140,16 @@ function MonthView({
                           </span>{" "}
                           {a.paciente?.nome}
                         </span>
+                        {a.link_video && (
+                          <span
+                            role="button"
+                            title="Entrar na teleconsulta"
+                            onClick={(e) => { e.stopPropagation(); window.open(a.link_video, "_blank", "noopener"); }}
+                            className="text-emerald-600 hover:text-emerald-700"
+                          >
+                            <Video className="h-2.5 w-2.5" />
+                          </span>
+                        )}
                         {freqStatus && <FreqBadgeIcon status={freqStatus} size={10} />}
                       </span>
                     </button>
@@ -1443,6 +1465,23 @@ function AtendimentoDrawer({
     },
   });
 
+  // Paciente no modelo "pacote" → confirmar efeito da falta no saldo.
+  const { data: modeloPagPac } = useQuery({
+    queryKey: ["paciente-modelo-pag", atendimento.paciente_id],
+    queryFn: async () =>
+      (await supabase.from("pacientes").select("modelo_pagamento").eq("id", atendimento.paciente_id).single()).data?.modelo_pagamento ?? null,
+  });
+  function lancarFalta(tipo: "falta_justificada" | "falta_nao_justificada") {
+    if (modeloPagPac === "pacote") {
+      const msg =
+        tipo === "falta_justificada"
+          ? "Falta justificada: o crédito da sessão será MANTIDO no pacote (poderá ser reposta). Confirmar?"
+          : "Falta não justificada: 1 sessão será DESCONTADA do pacote, sem crédito. Confirmar?";
+      if (!window.confirm(msg)) return;
+    }
+    registrarFrequencia.mutate({ tipo });
+  }
+
   const registrarFrequencia = useMutation({
     mutationFn: async ({
       tipo,
@@ -1676,7 +1715,7 @@ function AtendimentoDrawer({
             size="sm"
             variant="outline"
             className="text-amber-700 border-amber-600 hover:bg-amber-50"
-            onClick={() => registrarFrequencia.mutate({ tipo: "falta_justificada" })}
+            onClick={() => lancarFalta("falta_justificada")}
           >
             <XCircle className="w-4 h-4 mr-1.5" /> Falta justificada
           </Button>
@@ -1684,7 +1723,7 @@ function AtendimentoDrawer({
             size="sm"
             variant="outline"
             className="text-red-700 border-red-600 hover:bg-red-50"
-            onClick={() => registrarFrequencia.mutate({ tipo: "falta_nao_justificada" })}
+            onClick={() => lancarFalta("falta_nao_justificada")}
           >
             <Ban className="w-4 h-4 mr-1.5" /> Falta não justificada
           </Button>
