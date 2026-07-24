@@ -229,3 +229,41 @@ Manter visível, mas: **corrigir bug de cor das regiões** (bolinhas não colori
 A (financeiro desacoplado) → D (documentos/diagnóstico/QR, rápido) → B (convênios/espera) + C (pacotes) →
 F (insumos/licenças) → G (avaliação/gráficos/laudos) → H (evolução longitudinal) → I (cérebro 3D) →
 depois: automação/WhatsApp/escriba conforme decisão comercial.
+
+## 9. Bloco J — Gestão de documentos fiscais (NF, recibo e recibo de saúde)
+
+Nível **controle + dados prontos** (sem integração fiscal/custo), multi-clínica, periodicidade variável.
+Decidido em jul/2026 com a Gabi.
+
+### Três tipos de documento
+- **Nota fiscal (NFS-e)**: controle do que emitir; dados prontos para colar no portal municipal; registro
+  de número/data + upload do PDF/XML após emitir. Sem emissão automática (nível 3 fica para depois, via
+  provedor tipo PlugNotas/Focus — o modelo de dados abaixo já é compatível).
+- **Recibo simples**: PDF gerado pelo sistema (logo + dados da clínica), não-fiscal.
+- **Recibo de saúde**: PDF gerado com os campos do IRPF/Receita Saúde (prestador + CPF/registro, tomador +
+  CPF, paciente, valor, data, descrição do serviço de saúde). O lançamento oficial no app Receita Saúde
+  (gov.br) permanece manual — integração é fase futura.
+
+### Dados
+- Tabela `documentos_fiscais` (tipo, paciente/tomador, competência, valor, descrição, status, número,
+  pdf_path/xml_path, visivel_portal, observações).
+- Vínculo de receitas via `pagamentos.documento_fiscal_id` e `lancamentos_financeiros.documento_fiscal_id`
+  — uma nota/recibo pode agregar 1 sessão, o mês do paciente, ou um pacote (cobre o "varia").
+- Dados fiscais da clínica em `organizacoes` (inscrição municipal, código do serviço, alíquota ISS, regime,
+  discriminação padrão, registro do prestador).
+
+### Telas / fluxo (Financeiro › Notas fiscais)
+1. Lista com filtros (período/status/tipo/paciente) e total a emitir.
+2. Pendências: receitas pagas sem documento de pacientes que desejam NF.
+3. Gerar documento: escolhe tomador + itens/período/pacote → cria (pendente para NF; gerado para recibos).
+4. Dados para emissão (NF): bloco pronto com botões de copiar por campo.
+5. Registrar emissão (NF): número + data + upload PDF/XML. Recibos: PDF gerado na hora.
+6. Relatório do período (CSV/PDF) para o contador.
+7. Config fiscal da clínica em Financeiro › Configurar (aparece só com `emite_nf`).
+
+### Portal da família + WhatsApp
+- Documentos com `visivel_portal` aparecem no portal da família com download do PDF.
+- Botão "Enviar por WhatsApp" que abre mensagem pronta (valor/competência + link do documento).
+
+### Multi-clínica
+Parte fiscal é por clínica e opcional; quem não liga `emite_nf`/não configura não vê a central.

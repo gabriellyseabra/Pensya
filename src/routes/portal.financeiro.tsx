@@ -1,9 +1,10 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { format, parseISO } from "date-fns";
-import { ExternalLink, Receipt } from "lucide-react";
+import { ExternalLink, Receipt, FileText, Download } from "lucide-react";
 import { usePortal } from "@/components/portal/portal-context";
-import { portalMensalidades } from "@/lib/portal.functions";
+import { portalMensalidades, portalDocumentosFiscais, portalDocumentoFiscalUrl } from "@/lib/portal.functions";
+import { toast } from "sonner";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -40,7 +41,25 @@ function PortalFinanceiro() {
     queryFn: () => portalMensalidades(pid),
   });
 
+  const { data: documentos } = useQuery({
+    queryKey: ["portal-documentos-fiscais", pid],
+    queryFn: () => portalDocumentosFiscais(pid),
+  });
+
   const emAberto = (mensalidades ?? []).filter((m) => m.status !== "pago" && m.status !== "cancelado");
+
+  const TIPO_DOC: Record<string, string> = {
+    nota_fiscal: "Nota fiscal",
+    recibo: "Recibo",
+    recibo_saude: "Recibo de saúde",
+  };
+
+  async function baixarDocumento(pdfPath: string | null) {
+    if (!pdfPath) return;
+    const url = await portalDocumentoFiscalUrl(pdfPath);
+    if (url) window.open(url, "_blank");
+    else toast.error("Não foi possível abrir o documento.");
+  }
 
   return (
     <div className="space-y-4">
@@ -98,6 +117,35 @@ function PortalFinanceiro() {
           </p>
         )}
       </div>
+
+      {(documentos ?? []).length > 0 && (
+        <div className="space-y-2">
+          <h2 className="font-display text-lg font-semibold">Documentos</h2>
+          <p className="text-sm text-muted-foreground">Recibos e notas fiscais disponíveis para download.</p>
+          {(documentos ?? []).map((d) => (
+            <Card key={d.id} className="glass">
+              <CardContent className="flex flex-wrap items-center justify-between gap-3 pt-4">
+                <div className="flex items-center gap-3">
+                  <FileText className="h-6 w-6 text-brand" />
+                  <div>
+                    <p className="text-sm font-medium">
+                      {TIPO_DOC[d.tipo] ?? "Documento"}
+                      {d.numero ? ` · nº ${d.numero}` : ""}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      {format(parseISO(d.data_documento), "dd/MM/yyyy")}
+                      {d.descricao ? ` · ${d.descricao}` : ""} · {formatBRL(d.valor)}
+                    </p>
+                  </div>
+                </div>
+                <Button size="sm" variant="outline" className="h-8" onClick={() => baixarDocumento(d.pdf_path)}>
+                  <Download className="mr-1.5 h-3.5 w-3.5" /> Baixar
+                </Button>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

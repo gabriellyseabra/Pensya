@@ -79,6 +79,28 @@ export function portalMensalidades(pacienteId: string) {
   return unwrap<PortalMensalidade[]>(supabase.rpc("portal_mensalidades", { _paciente_id: pacienteId }));
 }
 
+export type PortalDocumentoFiscal = {
+  id: string; tipo: string; status: string; competencia: string | null;
+  data_documento: string; valor: number; descricao: string | null;
+  numero: string | null; pdf_path: string | null;
+};
+
+export function portalDocumentosFiscais(pacienteId: string) {
+  // RPC nova (migration 20260724110000) — ainda não consta no types.ts gerado.
+  return unwrap<PortalDocumentoFiscal[]>(
+    (supabase.rpc as any)("portal_documentos_fiscais", { _paciente_id: pacienteId }),
+  );
+}
+
+/** Gera uma signed URL (7 dias) para baixar o PDF de um documento fiscal do portal. */
+export async function portalDocumentoFiscalUrl(pdfPath: string): Promise<string | null> {
+  const { data, error } = await supabase.storage
+    .from("pacientes-docs")
+    .createSignedUrl(pdfPath, 60 * 60 * 24 * 7);
+  if (error || !data?.signedUrl) return null;
+  return data.signedUrl;
+}
+
 export async function portalRegistros(pacienteId: string) {
   const { data, error } = await supabase
     .from("portal_registros")

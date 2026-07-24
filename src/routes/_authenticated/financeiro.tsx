@@ -14,7 +14,7 @@ import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogT
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import {
   Plus, TrendingUp, TrendingDown, Wallet, AlertTriangle, Link2, RefreshCw, Copy, Check,
-  LayoutDashboard, Users, Upload, BarChart3, MoreHorizontal, Settings2, ArrowRight,
+  LayoutDashboard, Users, Upload, BarChart3, MoreHorizontal, Settings2, ArrowRight, FileText,
 } from "lucide-react";
 import { Link } from "@tanstack/react-router";
 import { FinanceiroConfig, useFinanceiroSetupStatus } from "@/components/financeiro/FinanceiroConfig";
@@ -39,6 +39,8 @@ import { ContasFixas } from "@/components/financeiro/ContasFixas";
 import { Inadimplencia } from "@/components/financeiro/Inadimplencia";
 import { Projecao } from "@/components/financeiro/Projecao";
 import { LancamentoForm, type Lanc } from "@/components/financeiro/LancamentoForm";
+import { NotasFiscais } from "@/components/financeiro/NotasFiscais";
+import { getMinhaOrganizacao } from "@/lib/clinica-config";
 import { invalidarFinanceiro } from "@/lib/financeiro-cache";
 
 export const Route = createFileRoute("/_authenticated/financeiro")({
@@ -97,6 +99,20 @@ const GRUPOS_FINANCEIRO: GrupoFinanceiro[] = [
   },
 ];
 
+const GRUPO_NOTAS_FISCAIS: GrupoFinanceiro = {
+  key: "notas", label: "Notas fiscais", icon: FileText,
+  abas: [{ key: "notas", label: "Notas fiscais", render: () => <NotasFiscais /> }],
+};
+
+/** Insere a aba de Notas fiscais (antes de "Configurar") quando a clínica emite NF. */
+function useGruposFinanceiro(): GrupoFinanceiro[] {
+  const { data: org } = useQuery({ queryKey: ["minha-organizacao"], queryFn: getMinhaOrganizacao });
+  if (!org?.emite_nf) return GRUPOS_FINANCEIRO;
+  const i = GRUPOS_FINANCEIRO.findIndex((g) => g.key === "configurar");
+  const idx = i === -1 ? GRUPOS_FINANCEIRO.length : i;
+  return [...GRUPOS_FINANCEIRO.slice(0, idx), GRUPO_NOTAS_FISCAIS, ...GRUPOS_FINANCEIRO.slice(idx)];
+}
+
 /** Alerta fixo no topo: sem conta ou sem forma de recebimento, avisa antes de lançar. */
 function FinanceiroSetupAlert({ onConfigurar }: { onConfigurar: () => void }) {
   const { carregado, configurado, temContas, temFormas } = useFinanceiroSetupStatus();
@@ -118,7 +134,8 @@ function FinanceiroSetupAlert({ onConfigurar }: { onConfigurar: () => void }) {
 function FinanceiroPage() {
   const { tab } = Route.useSearch();
   const navigate = Route.useNavigate();
-  const grupoAtivo = GRUPOS_FINANCEIRO.some((g) => g.key === tab) ? tab! : GRUPOS_FINANCEIRO[0].key;
+  const grupos = useGruposFinanceiro();
+  const grupoAtivo = grupos.some((g) => g.key === tab) ? tab! : grupos[0].key;
   const setGrupo = (v: string) => navigate({ search: { tab: v }, replace: true });
 
   return (
@@ -135,7 +152,7 @@ function FinanceiroPage() {
 
       <Tabs value={grupoAtivo} onValueChange={setGrupo}>
         <TabsList className="glass h-auto flex-wrap">
-          {GRUPOS_FINANCEIRO.map((g) => (
+          {grupos.map((g) => (
             <TabsTrigger key={g.key} value={g.key} className="gap-1.5">
               <g.icon className="h-3.5 w-3.5" />
               {g.label}
@@ -143,7 +160,7 @@ function FinanceiroPage() {
           ))}
         </TabsList>
 
-        {GRUPOS_FINANCEIRO.map((g) => (
+        {grupos.map((g) => (
           <TabsContent key={g.key} value={g.key} className="mt-4">
             {g.abas.length === 1 ? (
               g.abas[0].render()
