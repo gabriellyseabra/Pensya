@@ -8,10 +8,11 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { BarChart3, Wrench, ArrowRight, CalendarClock, Sigma, Calculator, Copy } from "lucide-react";
+import { BarChart3, Wrench, ArrowRight, CalendarClock, Sigma, Calculator, Copy, TrendingUp } from "lucide-react";
 import { toast } from "sonner";
 import { PageHero } from "@/components/shared/PageHero";
 import { GeradorGraficoAvaliacao } from "@/components/prontuario/GeradorGraficoAvaliacao";
+import { ComparadorAvaliacoes } from "@/components/ferramentas/ComparadorAvaliacoes";
 import { RubricaPreview } from "@/components/prontuario/RubricaPreview";
 import { useRubricas } from "@/hooks/use-rubricas";
 import { classificar } from "@/lib/avaliacao-classificacao";
@@ -54,6 +55,10 @@ function FerramentasPage() {
       key: "precificacao", titulo: "Precificação", icon: Calculator,
       descricao: "Simula valor por sessão, quantidade, desconto e total — para montar um pacote ou proposta sem lançar nada.",
     },
+    {
+      key: "comparador", titulo: "Comparador de avaliações", icon: TrendingUp,
+      descricao: "Mostra a evolução do paciente entre duas avaliações — percentil de cada teste antes e depois, com gráfico e tabela.",
+    },
   ];
 
   return (
@@ -89,6 +94,7 @@ function FerramentasPage() {
       <CalculadoraIdade open={aberto === "idade"} onClose={() => setAberto(null)} />
       <CalculadoraEscoreZ open={aberto === "escore_z"} onClose={() => setAberto(null)} />
       <CalculadoraPrecificacao open={aberto === "precificacao"} onClose={() => setAberto(null)} />
+      <ComparadorAvaliacoes open={aberto === "comparador"} onClose={() => setAberto(null)} />
     </div>
   );
 }
