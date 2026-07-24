@@ -37,6 +37,7 @@ import { Route as AuthenticatedInsumosRouteImport } from './routes/_authenticate
 import { Route as AuthenticatedIndicadoresRouteImport } from './routes/_authenticated/indicadores'
 import { Route as AuthenticatedImportarRouteImport } from './routes/_authenticated/importar'
 import { Route as AuthenticatedFinanceiroRouteImport } from './routes/_authenticated/financeiro'
+import { Route as AuthenticatedFerramentasRouteImport } from './routes/_authenticated/ferramentas'
 import { Route as AuthenticatedEquipeRouteImport } from './routes/_authenticated/equipe'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
 import { Route as AuthenticatedContratosRouteImport } from './routes/_authenticated/contratos'
@@ -204,6 +205,12 @@ const AuthenticatedFinanceiroRoute = AuthenticatedFinanceiroRouteImport.update({
   path: '/financeiro',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedFerramentasRoute =
+  AuthenticatedFerramentasRouteImport.update({
+    id: '/ferramentas',
+    path: '/ferramentas',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedEquipeRoute = AuthenticatedEquipeRouteImport.update({
   id: '/equipe',
   path: '/equipe',
@@ -357,6 +364,7 @@ export interface FileRoutesByFullPath {
   '/contratos': typeof AuthenticatedContratosRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/equipe': typeof AuthenticatedEquipeRoute
+  '/ferramentas': typeof AuthenticatedFerramentasRoute
   '/financeiro': typeof AuthenticatedFinanceiroRoute
   '/importar': typeof AuthenticatedImportarRoute
   '/indicadores': typeof AuthenticatedIndicadoresRoute
@@ -408,6 +416,7 @@ export interface FileRoutesByTo {
   '/contratos': typeof AuthenticatedContratosRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/equipe': typeof AuthenticatedEquipeRoute
+  '/ferramentas': typeof AuthenticatedFerramentasRoute
   '/financeiro': typeof AuthenticatedFinanceiroRoute
   '/importar': typeof AuthenticatedImportarRoute
   '/indicadores': typeof AuthenticatedIndicadoresRoute
@@ -463,6 +472,7 @@ export interface FileRoutesById {
   '/_authenticated/contratos': typeof AuthenticatedContratosRoute
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
   '/_authenticated/equipe': typeof AuthenticatedEquipeRoute
+  '/_authenticated/ferramentas': typeof AuthenticatedFerramentasRoute
   '/_authenticated/financeiro': typeof AuthenticatedFinanceiroRoute
   '/_authenticated/importar': typeof AuthenticatedImportarRoute
   '/_authenticated/indicadores': typeof AuthenticatedIndicadoresRoute
@@ -518,6 +528,7 @@ export interface FileRouteTypes {
     | '/contratos'
     | '/dashboard'
     | '/equipe'
+    | '/ferramentas'
     | '/financeiro'
     | '/importar'
     | '/indicadores'
@@ -569,6 +580,7 @@ export interface FileRouteTypes {
     | '/contratos'
     | '/dashboard'
     | '/equipe'
+    | '/ferramentas'
     | '/financeiro'
     | '/importar'
     | '/indicadores'
@@ -623,6 +635,7 @@ export interface FileRouteTypes {
     | '/_authenticated/contratos'
     | '/_authenticated/dashboard'
     | '/_authenticated/equipe'
+    | '/_authenticated/ferramentas'
     | '/_authenticated/financeiro'
     | '/_authenticated/importar'
     | '/_authenticated/indicadores'
@@ -877,6 +890,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedFinanceiroRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/ferramentas': {
+      id: '/_authenticated/ferramentas'
+      path: '/ferramentas'
+      fullPath: '/ferramentas'
+      preLoaderRoute: typeof AuthenticatedFerramentasRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/equipe': {
       id: '/_authenticated/equipe'
       path: '/equipe'
@@ -1091,6 +1111,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedContratosRoute: typeof AuthenticatedContratosRoute
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
   AuthenticatedEquipeRoute: typeof AuthenticatedEquipeRoute
+  AuthenticatedFerramentasRoute: typeof AuthenticatedFerramentasRoute
   AuthenticatedFinanceiroRoute: typeof AuthenticatedFinanceiroRoute
   AuthenticatedImportarRoute: typeof AuthenticatedImportarRoute
   AuthenticatedIndicadoresRoute: typeof AuthenticatedIndicadoresRoute
@@ -1117,6 +1138,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedContratosRoute: AuthenticatedContratosRoute,
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
   AuthenticatedEquipeRoute: AuthenticatedEquipeRoute,
+  AuthenticatedFerramentasRoute: AuthenticatedFerramentasRoute,
   AuthenticatedFinanceiroRoute: AuthenticatedFinanceiroRoute,
   AuthenticatedImportarRoute: AuthenticatedImportarRoute,
   AuthenticatedIndicadoresRoute: AuthenticatedIndicadoresRoute,
