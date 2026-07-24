@@ -3905,6 +3905,7 @@ export type Database = {
           dia_vencimento: number | null
           documento: string | null
           email: string | null
+          emite_nota: boolean
           endereco: string | null
           escola_id: string | null
           escolaridade: string | null
@@ -3954,6 +3955,7 @@ export type Database = {
           dia_vencimento?: number | null
           documento?: string | null
           email?: string | null
+          emite_nota?: boolean
           endereco?: string | null
           escola_id?: string | null
           escolaridade?: string | null
@@ -4003,6 +4005,7 @@ export type Database = {
           dia_vencimento?: number | null
           documento?: string | null
           email?: string | null
+          emite_nota?: boolean
           endereco?: string | null
           escola_id?: string | null
           escolaridade?: string | null
@@ -7165,6 +7168,20 @@ export type Database = {
           tipo: string
           usado: boolean
           valido: boolean
+        }[]
+      }
+      portal_documentos_fiscais: {
+        Args: { _paciente_id: string }
+        Returns: {
+          competencia: string
+          data_documento: string
+          descricao: string
+          id: string
+          numero: string
+          pdf_path: string
+          status: string
+          tipo: string
+          valor: number
         }[]
       }
       portal_mensalidades: {

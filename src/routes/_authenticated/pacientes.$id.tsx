@@ -233,6 +233,7 @@ function PacienteDetailPage() {
         "valor_acordado",
         "dia_vencimento",
         "numero_parcelas",
+        "emite_nota",
         "foto_url",
         "foto_path",
       ];
@@ -906,6 +907,13 @@ function PacienteDetailPage() {
                   }
                 />
               </FormRow>
+              <div className="flex items-center gap-2 pt-1">
+                <Switch
+                  checked={!!form.emite_nota}
+                  onCheckedChange={(v) => setForm({ ...form, emite_nota: v })}
+                />
+                <Label className="text-sm">Emite nota fiscal (senão, gera recibo)</Label>
+              </div>
             </Section>
           </TabsContent>
 
