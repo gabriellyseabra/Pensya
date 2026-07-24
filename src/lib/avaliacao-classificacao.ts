@@ -25,6 +25,31 @@ export type Rubrica = {
   is_preset?: boolean;
 };
 
+/* ============================== Paleta ============================== */
+// Paleta única do sistema, do desempenho mais baixo ao mais alto. Toda rubrica
+// (preset ou custom) usa estas cores — assim "Médio", "Médio superior" etc.
+// aparecem sempre na mesma cor e nada fica colorido demais.
+
+export const PALETA_SISTEMA: { cor: string; nome: string }[] = [
+  { cor: "#dc2626", nome: "Muito inferior (vermelho)" },
+  { cor: "#f97316", nome: "Inferior (laranja)" },
+  { cor: "#f59e0b", nome: "Médio inferior (âmbar)" },
+  { cor: "#22c55e", nome: "Médio (verde)" },
+  { cor: "#3b82f6", nome: "Médio superior (azul)" },
+  { cor: "#6366f1", nome: "Superior (índigo)" },
+  { cor: "#8b5cf6", nome: "Muito superior (violeta)" },
+];
+
+const C = {
+  muitoInferior: "#dc2626",
+  inferior: "#f97316",
+  medioInferior: "#f59e0b",
+  medio: "#22c55e",
+  medioSuperior: "#3b82f6",
+  superior: "#6366f1",
+  muitoSuperior: "#8b5cf6",
+};
+
 /* ============================== Presets ============================== */
 // Espelham os presets semeados no banco. Servem de fallback em código para
 // classificar mesmo antes de carregar as rubricas do banco.
@@ -35,10 +60,10 @@ export const PRESET_GUILLMETTE: Rubrica = {
   base: "percentil",
   is_preset: true,
   faixas: [
-    { min: 25, rotulo: "Médio / Superior", cor: "#16a34a" },
-    { min: 16, rotulo: "Médio inferior", cor: "#eab308" },
-    { min: 9, rotulo: "Inferior à média", cor: "#f97316" },
-    { min: 0, rotulo: "Muito inferior à média", cor: "#dc2626" },
+    { min: 25, rotulo: "Médio / Superior", cor: C.medio },
+    { min: 16, rotulo: "Médio inferior", cor: C.medioInferior },
+    { min: 9, rotulo: "Inferior à média", cor: C.inferior },
+    { min: 0, rotulo: "Muito inferior à média", cor: C.muitoInferior },
   ],
 };
 
@@ -48,13 +73,13 @@ export const PRESET_CLINICA_7: Rubrica = {
   base: "percentil",
   is_preset: true,
   faixas: [
-    { min: 98, rotulo: "Extremamente superior", cor: "#8b5cf6" },
-    { min: 91, rotulo: "Superior à média", cor: "#6366f1" },
-    { min: 75, rotulo: "Média Superior", cor: "#3b82f6" },
-    { min: 25, rotulo: "Média", cor: "#22c55e" },
-    { min: 9, rotulo: "Média Inferior", cor: "#f59e0b" },
-    { min: 2, rotulo: "Inferior à média", cor: "#ef4444" },
-    { min: 0, rotulo: "Extremamente inferior", cor: "#b91c1c" },
+    { min: 98, rotulo: "Extremamente superior", cor: C.muitoSuperior },
+    { min: 91, rotulo: "Superior à média", cor: C.superior },
+    { min: 75, rotulo: "Média Superior", cor: C.medioSuperior },
+    { min: 25, rotulo: "Média", cor: C.medio },
+    { min: 9, rotulo: "Média Inferior", cor: C.medioInferior },
+    { min: 2, rotulo: "Inferior à média", cor: C.inferior },
+    { min: 0, rotulo: "Extremamente inferior", cor: C.muitoInferior },
   ],
 };
 
@@ -64,13 +89,13 @@ export const PRESET_ESCORE_PADRAO: Rubrica = {
   base: "escore_padrao",
   is_preset: true,
   faixas: [
-    { min: 130, rotulo: "Muito superior", cor: "#8b5cf6" },
-    { min: 120, rotulo: "Superior", cor: "#6366f1" },
-    { min: 110, rotulo: "Média superior", cor: "#3b82f6" },
-    { min: 90, rotulo: "Média", cor: "#22c55e" },
-    { min: 80, rotulo: "Média inferior", cor: "#f59e0b" },
-    { min: 70, rotulo: "Inferior à média", cor: "#ef4444" },
-    { min: 0, rotulo: "Extremamente inferior", cor: "#b91c1c" },
+    { min: 130, rotulo: "Muito superior", cor: C.muitoSuperior },
+    { min: 120, rotulo: "Superior", cor: C.superior },
+    { min: 110, rotulo: "Média superior", cor: C.medioSuperior },
+    { min: 90, rotulo: "Média", cor: C.medio },
+    { min: 80, rotulo: "Média inferior", cor: C.medioInferior },
+    { min: 70, rotulo: "Inferior à média", cor: C.inferior },
+    { min: 0, rotulo: "Extremamente inferior", cor: C.muitoInferior },
   ],
 };
 
