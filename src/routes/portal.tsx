@@ -1,6 +1,6 @@
 import { createFileRoute, Link, Outlet, redirect, useNavigate, useRouterState } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { Home, LineChart, NotebookPen, Wallet, LogOut, FileBarChart } from "lucide-react";
+import { Home, LineChart, NotebookPen, Wallet, LogOut, FileBarChart, FolderOpen } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { portalMeusPacientes, portalRelatoriosDisponiveis, relatorioVisto } from "@/lib/portal.functions";
 import { PortalProvider, usePortal, primeiroNome } from "@/components/portal/portal-context";
@@ -30,6 +30,7 @@ const NAV: NavItem[] = [
   { to: "/portal", label: "Início", icon: Home, exact: true },
   { to: "/portal/evolucao", label: "Evolução", icon: LineChart },
   { to: "/portal/relatorios", label: "Relatórios", icon: FileBarChart },
+  { to: "/portal/documentos", label: "Materiais", icon: FolderOpen },
   { to: "/portal/diario", label: "Diário", icon: NotebookPen },
   { to: "/portal/financeiro", label: "Financeiro", icon: Wallet },
 ];

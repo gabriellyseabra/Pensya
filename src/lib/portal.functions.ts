@@ -92,6 +92,27 @@ export function portalDocumentosFiscais(pacienteId: string) {
   );
 }
 
+export type PortalDocumento = {
+  id: string; tipo: string; titulo: string; conteudo: any; created_at: string;
+};
+
+/** Documentos compartilhados pela clínica (roteiro de estudos, orientações…). */
+export function portalDocumentos(pacienteId: string) {
+  return unwrap<PortalDocumento[]>(
+    (supabase.rpc as any)("portal_documentos_lista", { _paciente_id: pacienteId }),
+  );
+}
+
+/** Salva um documento no portal da família (lado da clínica; org_id via default). */
+export async function salvarDocumentoPortal(input: {
+  paciente_id: string; tipo: string; titulo: string; conteudo: unknown;
+}) {
+  const { error } = await (supabase as any).from("portal_documentos").insert({
+    paciente_id: input.paciente_id, tipo: input.tipo, titulo: input.titulo, conteudo: input.conteudo,
+  });
+  if (error) throw new Error(error.message);
+}
+
 /** Gera uma signed URL (7 dias) para baixar o PDF de um documento fiscal do portal. */
 export async function portalDocumentoFiscalUrl(pdfPath: string): Promise<string | null> {
   const { data, error } = await supabase.storage

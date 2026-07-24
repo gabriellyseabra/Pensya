@@ -1,14 +1,18 @@
 import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
+import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Sparkles, Loader2, FileDown, GraduationCap } from "lucide-react";
+import { Sparkles, Loader2, FileDown, GraduationCap, Share2, Check } from "lucide-react";
 import { toast } from "sonner";
 import { gerarRoteiroEstudos, type RoteiroEstudos as Roteiro } from "@/lib/ferramentas-ia.functions";
 import { gerarDocumentoHTML, imprimirDocumento } from "@/lib/documento-avulso";
+import { salvarDocumentoPortal } from "@/lib/portal.functions";
 
 const PERFIS = ["TDAH", "Dislexia", "Discalculia", "TEA", "Altas habilidades", "Sem diagnóstico"];
 
@@ -22,8 +26,17 @@ export function RoteiroEstudos({ open, onClose }: { open: boolean; onClose: () =
   const [perfil, setPerfil] = useState<string[]>([]);
   const [objetivos, setObjetivos] = useState("");
   const [nomeAluno, setNomeAluno] = useState("");
+  const [pacienteId, setPacienteId] = useState("");
   const [res, setRes] = useState<Roteiro | null>(null);
   const [loading, setLoading] = useState(false);
+  const [salvando, setSalvando] = useState(false);
+  const [salvo, setSalvo] = useState(false);
+
+  const { data: pacientes = [] } = useQuery({
+    queryKey: ["roteiro-pacientes"],
+    enabled: open,
+    queryFn: async () => (await supabase.from("pacientes").select("id, nome").order("nome")).data ?? [],
+  });
 
   function togglePerfil(p: string) {
     setPerfil((cur) => (cur.includes(p) ? cur.filter((x) => x !== p) : [...cur, p]));
@@ -32,6 +45,7 @@ export function RoteiroEstudos({ open, onClose }: { open: boolean; onClose: () =
   async function gerar() {
     if (!disciplinas.trim()) { toast.error("Informe as disciplinas e dificuldades"); return; }
     setLoading(true);
+    setSalvo(false);
     try {
       const r = await gerarFn({ data: { ano, disciplinas: disciplinas.trim(), tempo, perfil, objetivos } });
       setRes(r as Roteiro);
@@ -42,9 +56,30 @@ export function RoteiroEstudos({ open, onClose }: { open: boolean; onClose: () =
     }
   }
 
+  const tituloDoc = () => "Roteiro de estudos" + (nomeAluno.trim() ? ` — ${nomeAluno.trim()}` : "");
+
+  async function salvarNoPortal() {
+    if (!res || !pacienteId) return;
+    setSalvando(true);
+    try {
+      await salvarDocumentoPortal({
+        paciente_id: pacienteId,
+        tipo: "roteiro_estudos",
+        titulo: tituloDoc(),
+        conteudo: { ...res, ano, perfil, tempo },
+      });
+      setSalvo(true);
+      toast.success("Roteiro publicado no portal da família");
+    } catch (e: any) {
+      toast.error(e?.message ?? "Não foi possível salvar no portal");
+    } finally {
+      setSalvando(false);
+    }
+  }
+
   async function gerarPdf() {
     if (!res) return;
-    const titulo = "Roteiro de Estudos" + (nomeAluno.trim() ? ` — ${nomeAluno.trim()}` : "");
+    const titulo = tituloDoc();
     const partes: string[] = [];
     if (res.resumo) partes.push(`<p>${esc(res.resumo)}</p>`);
     if (res.cronograma.length) {
@@ -89,6 +124,26 @@ export function RoteiroEstudos({ open, onClose }: { open: boolean; onClose: () =
             <Label className="text-xs">Ano / série</Label>
             <Input value={ano} onChange={(e) => setAno(e.target.value)} placeholder="Ex.: 5º ano do fundamental" />
           </div>
+        </div>
+
+        <div>
+          <Label className="text-xs">Paciente (opcional — necessário para salvar no portal da família)</Label>
+          <Select
+            value={pacienteId || "__none__"}
+            onValueChange={(v) => {
+              const id = v === "__none__" ? "" : v;
+              setPacienteId(id);
+              setSalvo(false);
+              const p = (pacientes as any[]).find((x) => x.id === id);
+              if (p && !nomeAluno.trim()) setNomeAluno(p.nome);
+            }}
+          >
+            <SelectTrigger className="h-9"><SelectValue placeholder="Sem paciente" /></SelectTrigger>
+            <SelectContent className="max-h-72">
+              <SelectItem value="__none__">Sem paciente (avulso)</SelectItem>
+              {(pacientes as any[]).map((p) => <SelectItem key={p.id} value={p.id}>{p.nome}</SelectItem>)}
+            </SelectContent>
+          </Select>
         </div>
 
         <div>
@@ -179,11 +234,28 @@ export function RoteiroEstudos({ open, onClose }: { open: boolean; onClose: () =
               </div>
             )}
 
-            <div className="flex justify-end">
+            <div className="flex flex-wrap justify-end gap-2">
               <Button size="sm" variant="outline" onClick={gerarPdf}>
                 <FileDown className="mr-1.5 h-4 w-4" />Gerar PDF para a família
               </Button>
+              <Button
+                size="sm"
+                variant={salvo ? "outline" : "default"}
+                onClick={salvarNoPortal}
+                disabled={!pacienteId || salvando || salvo}
+                title={!pacienteId ? "Selecione um paciente para publicar no portal" : undefined}
+              >
+                {salvando ? <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />
+                  : salvo ? <Check className="mr-1.5 h-4 w-4" />
+                  : <Share2 className="mr-1.5 h-4 w-4" />}
+                {salvo ? "Publicado no portal" : "Salvar no portal da família"}
+              </Button>
             </div>
+            {!pacienteId && (
+              <p className="text-right text-[10px] text-muted-foreground">
+                Selecione um paciente no topo para liberar a publicação no portal.
+              </p>
+            )}
             <p className="text-[10px] text-muted-foreground">Revise antes de entregar — a IA pode errar. Ajuste o roteiro ao contexto real do aluno.</p>
           </div>
         )}

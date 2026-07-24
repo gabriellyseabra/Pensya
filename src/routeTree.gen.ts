@@ -23,6 +23,7 @@ import { Route as ProcessoPublicoTokenRouteImport } from './routes/processo-publ
 import { Route as PortalRelatoriosRouteImport } from './routes/portal.relatorios'
 import { Route as PortalFinanceiroRouteImport } from './routes/portal.financeiro'
 import { Route as PortalEvolucaoRouteImport } from './routes/portal.evolucao'
+import { Route as PortalDocumentosRouteImport } from './routes/portal.documentos'
 import { Route as PortalDiarioRouteImport } from './routes/portal.diario'
 import { Route as FotoTokenRouteImport } from './routes/foto.$token'
 import { Route as CadastroTokenRouteImport } from './routes/cadastro.$token'
@@ -130,6 +131,11 @@ const PortalFinanceiroRoute = PortalFinanceiroRouteImport.update({
 const PortalEvolucaoRoute = PortalEvolucaoRouteImport.update({
   id: '/evolucao',
   path: '/evolucao',
+  getParentRoute: () => PortalRoute,
+} as any)
+const PortalDocumentosRoute = PortalDocumentosRouteImport.update({
+  id: '/documentos',
+  path: '/documentos',
   getParentRoute: () => PortalRoute,
 } as any)
 const PortalDiarioRoute = PortalDiarioRouteImport.update({
@@ -379,6 +385,7 @@ export interface FileRoutesByFullPath {
   '/cadastro/$token': typeof CadastroTokenRoute
   '/foto/$token': typeof FotoTokenRoute
   '/portal/diario': typeof PortalDiarioRoute
+  '/portal/documentos': typeof PortalDocumentosRoute
   '/portal/evolucao': typeof PortalEvolucaoRoute
   '/portal/financeiro': typeof PortalFinanceiroRoute
   '/portal/relatorios': typeof PortalRelatoriosRoute
@@ -431,6 +438,7 @@ export interface FileRoutesByTo {
   '/cadastro/$token': typeof CadastroTokenRoute
   '/foto/$token': typeof FotoTokenRoute
   '/portal/diario': typeof PortalDiarioRoute
+  '/portal/documentos': typeof PortalDocumentosRoute
   '/portal/evolucao': typeof PortalEvolucaoRoute
   '/portal/financeiro': typeof PortalFinanceiroRoute
   '/portal/relatorios': typeof PortalRelatoriosRoute
@@ -487,6 +495,7 @@ export interface FileRoutesById {
   '/cadastro/$token': typeof CadastroTokenRoute
   '/foto/$token': typeof FotoTokenRoute
   '/portal/diario': typeof PortalDiarioRoute
+  '/portal/documentos': typeof PortalDocumentosRoute
   '/portal/evolucao': typeof PortalEvolucaoRoute
   '/portal/financeiro': typeof PortalFinanceiroRoute
   '/portal/relatorios': typeof PortalRelatoriosRoute
@@ -543,6 +552,7 @@ export interface FileRouteTypes {
     | '/cadastro/$token'
     | '/foto/$token'
     | '/portal/diario'
+    | '/portal/documentos'
     | '/portal/evolucao'
     | '/portal/financeiro'
     | '/portal/relatorios'
@@ -595,6 +605,7 @@ export interface FileRouteTypes {
     | '/cadastro/$token'
     | '/foto/$token'
     | '/portal/diario'
+    | '/portal/documentos'
     | '/portal/evolucao'
     | '/portal/financeiro'
     | '/portal/relatorios'
@@ -650,6 +661,7 @@ export interface FileRouteTypes {
     | '/cadastro/$token'
     | '/foto/$token'
     | '/portal/diario'
+    | '/portal/documentos'
     | '/portal/evolucao'
     | '/portal/financeiro'
     | '/portal/relatorios'
@@ -790,6 +802,13 @@ declare module '@tanstack/react-router' {
       path: '/evolucao'
       fullPath: '/portal/evolucao'
       preLoaderRoute: typeof PortalEvolucaoRouteImport
+      parentRoute: typeof PortalRoute
+    }
+    '/portal/documentos': {
+      id: '/portal/documentos'
+      path: '/documentos'
+      fullPath: '/portal/documentos'
+      preLoaderRoute: typeof PortalDocumentosRouteImport
       parentRoute: typeof PortalRoute
     }
     '/portal/diario': {
@@ -1161,6 +1180,7 @@ const AuthenticatedRouteRouteWithChildren =
 
 interface PortalRouteChildren {
   PortalDiarioRoute: typeof PortalDiarioRoute
+  PortalDocumentosRoute: typeof PortalDocumentosRoute
   PortalEvolucaoRoute: typeof PortalEvolucaoRoute
   PortalFinanceiroRoute: typeof PortalFinanceiroRoute
   PortalRelatoriosRoute: typeof PortalRelatoriosRoute
@@ -1169,6 +1189,7 @@ interface PortalRouteChildren {
 
 const PortalRouteChildren: PortalRouteChildren = {
   PortalDiarioRoute: PortalDiarioRoute,
+  PortalDocumentosRoute: PortalDocumentosRoute,
   PortalEvolucaoRoute: PortalEvolucaoRoute,
   PortalFinanceiroRoute: PortalFinanceiroRoute,
   PortalRelatoriosRoute: PortalRelatoriosRoute,
