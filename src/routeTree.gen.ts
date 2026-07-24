@@ -32,6 +32,7 @@ import { Route as AuthenticatedSublocacaoRouteImport } from './routes/_authentic
 import { Route as AuthenticatedProdutosRouteImport } from './routes/_authenticated/produtos'
 import { Route as AuthenticatedMeuFinanceiroRouteImport } from './routes/_authenticated/meu-financeiro'
 import { Route as AuthenticatedMarketingRouteImport } from './routes/_authenticated/marketing'
+import { Route as AuthenticatedListaEsperaRouteImport } from './routes/_authenticated/lista-espera'
 import { Route as AuthenticatedIndicadoresRouteImport } from './routes/_authenticated/indicadores'
 import { Route as AuthenticatedImportarRouteImport } from './routes/_authenticated/importar'
 import { Route as AuthenticatedFinanceiroRouteImport } from './routes/_authenticated/financeiro'
@@ -174,6 +175,12 @@ const AuthenticatedMarketingRoute = AuthenticatedMarketingRouteImport.update({
   path: '/marketing',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedListaEsperaRoute =
+  AuthenticatedListaEsperaRouteImport.update({
+    id: '/lista-espera',
+    path: '/lista-espera',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedIndicadoresRoute =
   AuthenticatedIndicadoresRouteImport.update({
     id: '/indicadores',
@@ -340,6 +347,7 @@ export interface FileRoutesByFullPath {
   '/financeiro': typeof AuthenticatedFinanceiroRoute
   '/importar': typeof AuthenticatedImportarRoute
   '/indicadores': typeof AuthenticatedIndicadoresRoute
+  '/lista-espera': typeof AuthenticatedListaEsperaRoute
   '/marketing': typeof AuthenticatedMarketingRoute
   '/meu-financeiro': typeof AuthenticatedMeuFinanceiroRoute
   '/produtos': typeof AuthenticatedProdutosRoute
@@ -388,6 +396,7 @@ export interface FileRoutesByTo {
   '/financeiro': typeof AuthenticatedFinanceiroRoute
   '/importar': typeof AuthenticatedImportarRoute
   '/indicadores': typeof AuthenticatedIndicadoresRoute
+  '/lista-espera': typeof AuthenticatedListaEsperaRoute
   '/marketing': typeof AuthenticatedMarketingRoute
   '/meu-financeiro': typeof AuthenticatedMeuFinanceiroRoute
   '/produtos': typeof AuthenticatedProdutosRoute
@@ -440,6 +449,7 @@ export interface FileRoutesById {
   '/_authenticated/financeiro': typeof AuthenticatedFinanceiroRoute
   '/_authenticated/importar': typeof AuthenticatedImportarRoute
   '/_authenticated/indicadores': typeof AuthenticatedIndicadoresRoute
+  '/_authenticated/lista-espera': typeof AuthenticatedListaEsperaRoute
   '/_authenticated/marketing': typeof AuthenticatedMarketingRoute
   '/_authenticated/meu-financeiro': typeof AuthenticatedMeuFinanceiroRoute
   '/_authenticated/produtos': typeof AuthenticatedProdutosRoute
@@ -492,6 +502,7 @@ export interface FileRouteTypes {
     | '/financeiro'
     | '/importar'
     | '/indicadores'
+    | '/lista-espera'
     | '/marketing'
     | '/meu-financeiro'
     | '/produtos'
@@ -540,6 +551,7 @@ export interface FileRouteTypes {
     | '/financeiro'
     | '/importar'
     | '/indicadores'
+    | '/lista-espera'
     | '/marketing'
     | '/meu-financeiro'
     | '/produtos'
@@ -591,6 +603,7 @@ export interface FileRouteTypes {
     | '/_authenticated/financeiro'
     | '/_authenticated/importar'
     | '/_authenticated/indicadores'
+    | '/_authenticated/lista-espera'
     | '/_authenticated/marketing'
     | '/_authenticated/meu-financeiro'
     | '/_authenticated/produtos'
@@ -802,6 +815,13 @@ declare module '@tanstack/react-router' {
       path: '/marketing'
       fullPath: '/marketing'
       preLoaderRoute: typeof AuthenticatedMarketingRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/lista-espera': {
+      id: '/_authenticated/lista-espera'
+      path: '/lista-espera'
+      fullPath: '/lista-espera'
+      preLoaderRoute: typeof AuthenticatedListaEsperaRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/indicadores': {
@@ -1032,6 +1052,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedFinanceiroRoute: typeof AuthenticatedFinanceiroRoute
   AuthenticatedImportarRoute: typeof AuthenticatedImportarRoute
   AuthenticatedIndicadoresRoute: typeof AuthenticatedIndicadoresRoute
+  AuthenticatedListaEsperaRoute: typeof AuthenticatedListaEsperaRoute
   AuthenticatedMarketingRoute: typeof AuthenticatedMarketingRoute
   AuthenticatedMeuFinanceiroRoute: typeof AuthenticatedMeuFinanceiroRoute
   AuthenticatedProdutosRoute: typeof AuthenticatedProdutosRoute
@@ -1056,6 +1077,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedFinanceiroRoute: AuthenticatedFinanceiroRoute,
   AuthenticatedImportarRoute: AuthenticatedImportarRoute,
   AuthenticatedIndicadoresRoute: AuthenticatedIndicadoresRoute,
+  AuthenticatedListaEsperaRoute: AuthenticatedListaEsperaRoute,
   AuthenticatedMarketingRoute: AuthenticatedMarketingRoute,
   AuthenticatedMeuFinanceiroRoute: AuthenticatedMeuFinanceiroRoute,
   AuthenticatedProdutosRoute: AuthenticatedProdutosRoute,

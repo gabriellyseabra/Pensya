@@ -20,6 +20,7 @@ import {
   ChevronUp,
   ChevronDown,
   Upload,
+  Clock,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
@@ -72,6 +73,7 @@ const groups: { label: string; items: Item[] }[] = [
     label: "Pacientes",
     items: [
       { title: "Pacientes", url: "/pacientes", icon: Users },
+      { title: "Lista de espera", url: "/lista-espera", icon: Clock },
       { title: "Cadastros", url: "/cadastros", icon: Link2 },
     ],
   },

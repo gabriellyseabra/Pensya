@@ -9,6 +9,7 @@ import { ReunioesTab } from "@/components/paciente/ReunioesTab";
 import { TarefasTab } from "@/components/paciente/TarefasTab";
 import { PortalTab } from "@/components/paciente/PortalTab";
 import { DeclaracaoComparecimento } from "@/components/paciente/DeclaracaoComparecimento";
+import { PacotesSessao } from "@/components/paciente/PacotesSessao";
 
 /**
  * Aba Administrativa: agrega tudo que não é clínico —
@@ -38,7 +39,8 @@ export function AdministrativoTab({
         <TabsTrigger value="portal">Portal</TabsTrigger>
       </TabsList>
 
-      <TabsContent value="financeiro">
+      <TabsContent value="financeiro" className="space-y-4">
+        <PacotesSessao pacienteId={pacienteId} />
         <FinanceiroPacienteTab pacienteId={pacienteId} />
       </TabsContent>
 

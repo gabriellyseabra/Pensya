@@ -71,7 +71,7 @@ function EquipePage() {
         supabase.from("profiles").select("*").in("id", ids),
         supabase
           .from("profissionais_consultorio")
-          .select("id, user_id, especialidade_id, cor, email")
+          .select("id, user_id, especialidade_id, cor, email, link_video_padrao")
           .not("user_id", "is", null),
       ]);
       return (membros ?? []).map((m) => {
@@ -84,6 +84,7 @@ function EquipePage() {
           especialidade_id: prof?.especialidade_id ?? null,
           cor: prof?.cor ?? null,
           email: prof?.email ?? null,
+          link_video_padrao: prof?.link_video_padrao ?? null,
         };
       });
     },
@@ -413,6 +414,7 @@ function EditarMembroDialog({
   const [nome, setNome] = useState("");
   const [especialidadeId, setEspecialidadeId] = useState<string>("__none__");
   const [cor, setCor] = useState<string>("#5585b1");
+  const [linkVideoPadrao, setLinkVideoPadrao] = useState("");
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
@@ -420,6 +422,7 @@ function EditarMembroDialog({
       setNome(membro.nome ?? "");
       setEspecialidadeId(membro.especialidade_id ?? "__none__");
       setCor(membro.cor ?? "#5585b1");
+      setLinkVideoPadrao(membro.link_video_padrao ?? "");
     }
   }, [membro]);
 
@@ -438,7 +441,7 @@ function EditarMembroDialog({
       if (membro.prof_id) {
         const { error: e2 } = await supabase
           .from("profissionais_consultorio")
-          .update({ nome: nome.trim(), especialidade_id: espId, cor })
+          .update({ nome: nome.trim(), especialidade_id: espId, cor, link_video_padrao: linkVideoPadrao.trim() || null })
           .eq("id", membro.prof_id);
         if (e2) throw e2;
       }
@@ -496,6 +499,17 @@ function EditarMembroDialog({
                 />
                 <span className="text-sm text-muted-foreground">{cor}</span>
               </div>
+            </div>
+          )}
+          {membro?.prof_id && (
+            <div className="space-y-1.5">
+              <Label>Link fixo de teleconsulta <span className="font-normal text-muted-foreground">(opcional)</span></Label>
+              <Input
+                value={linkVideoPadrao}
+                placeholder="Ex.: seu link pessoal do Zoom"
+                onChange={(e) => setLinkVideoPadrao(e.target.value)}
+              />
+              <p className="text-[11px] text-muted-foreground">Aparece como “Usar link do profissional” ao agendar.</p>
             </div>
           )}
           {membro?.prof_id && <RemuneracaoConfig profId={membro.prof_id} />}
