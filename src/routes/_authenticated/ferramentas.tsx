@@ -191,6 +191,7 @@ function CalculadoraEscoreZ({ open, onClose }: { open: boolean; onClose: () => v
   const [media, setMedia] = useState("");
   const [dp, setDp] = useState("");
   const [bruto, setBruto] = useState("");
+  const [direcao, setDirecao] = useState<"maior_melhor" | "menor_melhor">("maior_melhor");
   const [rubricaId, setRubricaId] = useState<string | null>(null);
 
   const rubrica = resolver(rubricaId);
@@ -198,12 +199,14 @@ function CalculadoraEscoreZ({ open, onClose }: { open: boolean; onClose: () => v
   const res = useMemo(() => {
     const m = Number(media), s = Number(dp), x = Number(bruto);
     if (media === "" || dp === "" || bruto === "" || !s || Number.isNaN(m) || Number.isNaN(x)) return null;
-    const z = (x - m) / s;
+    // Direção do escore: em testes "maior é melhor" z = (x-m)/DP; em testes onde
+    // maior é pior (erros, tempo), o sinal inverte: z = (m-x)/DP.
+    const z = direcao === "menor_melhor" ? (m - x) / s : (x - m) / s;
     const T = 50 + 10 * z;
     const padrao = 100 + 15 * z;
     const percentil = Math.min(99.9, Math.max(0.1, normalCDF(z) * 100));
     return { z, T, padrao, percentil };
-  }, [media, dp, bruto]);
+  }, [media, dp, bruto, direcao]);
 
   const classif = res ? classificar(rubrica, { percentil: res.percentil, escorePadrao: res.padrao }) : null;
 
@@ -220,6 +223,16 @@ function CalculadoraEscoreZ({ open, onClose }: { open: boolean; onClose: () => v
             <div><Label className="text-xs">Bruto</Label><Input type="number" step="0.01" value={bruto} onChange={(e) => setBruto(e.target.value)} /></div>
             <div><Label className="text-xs">Média</Label><Input type="number" step="0.01" value={media} onChange={(e) => setMedia(e.target.value)} /></div>
             <div><Label className="text-xs">Desvio-padrão</Label><Input type="number" step="0.01" value={dp} onChange={(e) => setDp(e.target.value)} /></div>
+          </div>
+          <div>
+            <Label className="text-xs">Tipo de teste (direção do escore)</Label>
+            <Select value={direcao} onValueChange={(v) => setDirecao(v as "maior_melhor" | "menor_melhor")}>
+              <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="maior_melhor">Escore alto = melhor desempenho · z = (x − média)/DP</SelectItem>
+                <SelectItem value="menor_melhor">Escore alto = pior desempenho (erros, tempo) · z = (média − x)/DP</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
           <div>
             <Label className="text-xs">Rubrica de classificação</Label>
