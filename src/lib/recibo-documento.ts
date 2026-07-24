@@ -12,6 +12,7 @@ export type ReciboTipo = "recibo" | "recibo_saude";
 export type ReciboOpts = {
   tipo: ReciboTipo;
   pacienteNome?: string | null;
+  pacienteDocumento?: string | null;
   tomadorNome: string;
   tomadorDocumento?: string | null;
   valor: number;
@@ -101,7 +102,7 @@ function dataExtenso(iso: string): string {
 
 /** Gera o PDF do recibo e devolve como Blob. */
 export async function gerarReciboPdf(opts: ReciboOpts): Promise<Blob> {
-  const { tipo, pacienteNome, tomadorNome, tomadorDocumento, valor, data, descricao, org } = opts;
+  const { tipo, pacienteNome, pacienteDocumento, tomadorNome, tomadorDocumento, valor, data, descricao, org } = opts;
   const logo = await minhaOrganizacaoLogoDataUrl();
 
   const doc = new jsPDF({ unit: "pt", format: "a4" });
@@ -168,9 +169,18 @@ export async function gerarReciboPdf(opts: ReciboOpts): Promise<Blob> {
   y += linhasCorpo.length * 16 + 6;
 
   if (pacienteNome) {
-    const pacTxt = doc.splitTextToSize(`Paciente atendido: ${pacienteNome}.`, contentW);
-    doc.text(pacTxt, marginX, y);
-    y += pacTxt.length * 16 + 2;
+    // Só registra "Paciente atendido" quando o tomador é outra pessoa (ex.: o
+    // responsável recebendo pelo atendimento de uma criança) — com o CPF do
+    // paciente quando houver. Se o tomador já é o próprio paciente, o nome e o
+    // CPF dele já constam na linha "Recebi de", então não repete.
+    const mesmaPessoa =
+      pacienteNome.trim().toLocaleLowerCase("pt-BR") === tomadorNome.trim().toLocaleLowerCase("pt-BR");
+    if (!mesmaPessoa) {
+      const pacDoc = pacienteDocumento ? ` (CPF ${pacienteDocumento})` : "";
+      const pacTxt = doc.splitTextToSize(`Paciente atendido: ${pacienteNome}${pacDoc}.`, contentW);
+      doc.text(pacTxt, marginX, y);
+      y += pacTxt.length * 16 + 2;
+    }
   }
 
   // Bloco específico do recibo de saúde

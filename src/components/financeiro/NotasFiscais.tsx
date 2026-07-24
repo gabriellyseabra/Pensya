@@ -13,11 +13,11 @@ import { Switch } from "@/components/ui/switch";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Textarea } from "@/components/ui/textarea";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   Plus, Download, MessageCircle, FileSpreadsheet, Loader2, Copy, Ban, Trash2, FileText,
-  CalendarPlus, FileDown,
+  CalendarPlus, FileDown, FileUp, CheckCircle2,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -41,6 +41,7 @@ type DocFiscal = {
   observacoes: string | null;
   paciente: {
     nome: string;
+    cpf: string | null;
     telefone: string | null;
     responsaveis: { telefone: string | null; principal: boolean }[];
   } | null;
@@ -64,6 +65,18 @@ const STATUS_META: Record<string, { label: string; variant: "default" | "seconda
 };
 
 const BRL = (v: number) => Number(v || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+
+/** Idade em anos a partir de uma data ISO (yyyy-mm-dd). null se não houver data. */
+function idadeAnos(dataNascimento?: string | null): number | null {
+  if (!dataNascimento) return null;
+  const [y, m, d] = String(dataNascimento).split("-").map(Number);
+  if (!y || !m || !d) return null;
+  const hoje = new Date();
+  let idade = hoje.getFullYear() - y;
+  const passouAniv = hoje.getMonth() + 1 > m || (hoje.getMonth() + 1 === m && hoje.getDate() >= d);
+  if (!passouAniv) idade -= 1;
+  return idade;
+}
 
 function fmtCompetencia(c: string | null): string {
   if (!c) return "—";
@@ -97,7 +110,7 @@ export function NotasFiscais() {
       const { data, error } = await supabase
         .from("documentos_fiscais")
         .select(
-          "id, tipo, status, paciente_id, tomador_nome, tomador_documento, competencia, data_documento, valor, descricao, numero, pdf_path, xml_path, visivel_portal, observacoes, paciente:pacientes(nome, telefone, responsaveis(telefone, principal))",
+          "id, tipo, status, paciente_id, tomador_nome, tomador_documento, competencia, data_documento, valor, descricao, numero, pdf_path, xml_path, visivel_portal, observacoes, paciente:pacientes(nome, cpf, telefone, responsaveis(telefone, principal))",
         )
         .order("data_documento", { ascending: false })
         .limit(500);
@@ -214,6 +227,7 @@ export function NotasFiscais() {
       const blob = await gerarReciboPdf({
         tipo: (doc.tipo === "recibo_saude" ? "recibo_saude" : "recibo") as ReciboTipo,
         pacienteNome: doc.paciente?.nome ?? null,
+        pacienteDocumento: doc.paciente?.cpf ?? null,
         tomadorNome: doc.tomador_nome ?? doc.paciente?.nome ?? "",
         tomadorDocumento: doc.tomador_documento ?? null,
         valor: Number(doc.valor),
@@ -495,7 +509,9 @@ function GerarMesDialog({
       const pacIds = Array.from(new Set([...pagRows, ...lancRows].map((r) => r.paciente_id).filter(Boolean)));
       const { data: pacs, error: pacErr } = await supabase
         .from("pacientes")
-        .select("id, nome, cpf, emite_nota")
+        .select(
+          "id, nome, cpf, data_nascimento, emite_nota, responsaveis(nome, documento, dados_nf, deseja_nf, principal)",
+        )
         .in("id", pacIds);
       if (pacErr) throw new Error(pacErr.message);
       const pacMap = new Map((pacs ?? []).map((p: any) => [p.id, p]));
@@ -520,14 +536,33 @@ function GerarMesDialog({
 
       for (const g of grupos.values()) {
         if (g.total <= 0 || !g.paciente) continue;
-        const tipo = g.paciente.emite_nota ? "nota_fiscal" : "recibo";
+        const p = g.paciente;
+        const resps: any[] = Array.isArray(p.responsaveis) ? p.responsaveis : [];
+        const respPrincipal = resps.find((r) => r?.principal) ?? resps[0] ?? null;
+
+        // Emissão de NF: lê a escolha da família no cadastro (responsaveis.deseja_nf),
+        // além do marcador manual no paciente. Não precisa selecionar à mão.
+        const querNota = !!p.emite_nota || resps.some((r) => r?.deseja_nf);
+        const tipo = querNota ? "nota_fiscal" : "recibo";
+
+        // Tomador: paciente adulto → o próprio; menor com responsável → o
+        // responsável principal (com o CPF dele). O paciente atendido é sempre
+        // registrado no documento (paciente_id) e aparece no PDF.
+        const idade = idadeAnos(p.data_nascimento);
+        const adulto = idade != null && idade >= 18;
+        const usarResponsavel = !adulto && !!respPrincipal;
+        const tomadorNome = usarResponsavel ? respPrincipal.nome : p.nome;
+        const tomadorDocumento = usarResponsavel
+          ? (respPrincipal.documento ?? respPrincipal.dados_nf ?? null)
+          : (p.cpf ?? null);
+
         const { data: novo, error: insErr } = await supabase
           .from("documentos_fiscais")
           .insert({
             tipo,
-            paciente_id: g.paciente.id,
-            tomador_nome: g.paciente.nome,
-            tomador_documento: g.paciente.cpf ?? null,
+            paciente_id: p.id,
+            tomador_nome: tomadorNome,
+            tomador_documento: tomadorDocumento,
             competencia: firstDay,
             data_documento: hoje,
             valor: g.total,
@@ -661,6 +696,7 @@ function NovoDocumentoDialog({
         const blob = await gerarReciboPdf({
           tipo: tipo as ReciboTipo,
           pacienteNome: paciente?.nome ?? null,
+          pacienteDocumento: paciente?.cpf ?? null,
           tomadorNome: tomadorNome.trim(),
           tomadorDocumento: tomadorDoc.trim() || null,
           valor: valorNum,
@@ -786,16 +822,17 @@ function NovoDocumentoDialog({
 
 function CopyRow({ label, value }: { label: string; value: string }) {
   return (
-    <div className="flex items-center justify-between gap-2 rounded-lg border border-border/40 bg-background/40 px-3 py-1.5">
-      <div className="min-w-0">
+    <div className="flex items-start justify-between gap-2 rounded-lg border border-border/40 bg-background/40 px-3 py-1.5">
+      <div className="min-w-0 flex-1">
         <p className="text-[10px] uppercase tracking-wider text-muted-foreground">{label}</p>
-        <p className="text-sm truncate">{value || "—"}</p>
+        {/* break-words evita corte/scroll horizontal quando o valor é longo */}
+        <p className="text-sm break-words">{value || "—"}</p>
       </div>
       {value && (
         <Button
           size="icon"
           variant="ghost"
-          className="shrink-0"
+          className="h-7 w-7 shrink-0"
           onClick={() => navigator.clipboard.writeText(value).then(() => toast.success("Copiado"))}
         >
           <Copy className="h-3.5 w-3.5" />
@@ -862,34 +899,44 @@ function DadosEmissaoDialog({
 
   return (
     <Dialog open={!!doc} onOpenChange={onOpenChange}>
-      <DialogContent className="glass-strong max-w-lg max-h-[90vh] overflow-y-auto">
-        <DialogHeader><DialogTitle>Dados para emissão da NF</DialogTitle></DialogHeader>
+      <DialogContent className="glass-strong max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>Dados para emissão da NF</DialogTitle>
+          <DialogDescription>
+            Copie os campos para o portal da prefeitura e, depois de emitir, anexe o PDF aqui.
+          </DialogDescription>
+        </DialogHeader>
         {doc && (
-          <div className="space-y-3">
-            <div className="space-y-1.5">
-              <p className="text-xs font-medium text-muted-foreground">Prestador</p>
-              <CopyRow label="Razão social" value={org?.razao_social ?? org?.nome ?? ""} />
-              <CopyRow label="CNPJ" value={org?.cnpj ?? ""} />
-              <CopyRow label="Inscrição municipal" value={org?.inscricao_municipal ?? ""} />
-              <CopyRow label="Código do serviço" value={org?.codigo_servico_municipal ?? ""} />
-              <CopyRow label="Alíquota ISS" value={org?.aliquota_iss != null ? `${org.aliquota_iss}%` : ""} />
-            </div>
-            <div className="space-y-1.5">
-              <p className="text-xs font-medium text-muted-foreground">Tomador</p>
-              <CopyRow label="Nome" value={doc.tomador_nome ?? doc.paciente?.nome ?? ""} />
-              <CopyRow label="CPF/CNPJ" value={doc.tomador_documento ?? ""} />
-            </div>
-            <div className="space-y-1.5">
-              <p className="text-xs font-medium text-muted-foreground">Serviço</p>
-              <CopyRow label="Discriminação" value={doc.descricao ?? ""} />
-              <CopyRow label="Valor" value={BRL(Number(doc.valor))} />
-              <CopyRow
-                label={`ISS (${org?.aliquota_iss ?? 0}%)`}
-                value={BRL(Number(doc.valor) * ((org?.aliquota_iss ?? 0) / 100))}
-              />
+          <div className="space-y-4">
+            {/* Dados para copiar — duas colunas para caber sem rolar de lado */}
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-1.5">
+                <p className="text-xs font-medium text-muted-foreground">Prestador</p>
+                <CopyRow label="Razão social" value={org?.razao_social ?? org?.nome ?? ""} />
+                <CopyRow label="CNPJ" value={org?.cnpj ?? ""} />
+                <CopyRow label="Inscrição municipal" value={org?.inscricao_municipal ?? ""} />
+                <CopyRow label="Código do serviço" value={org?.codigo_servico_municipal ?? ""} />
+                <CopyRow label="Alíquota ISS" value={org?.aliquota_iss != null ? `${org.aliquota_iss}%` : ""} />
+              </div>
+              <div className="space-y-4">
+                <div className="space-y-1.5">
+                  <p className="text-xs font-medium text-muted-foreground">Tomador</p>
+                  <CopyRow label="Nome" value={doc.tomador_nome ?? doc.paciente?.nome ?? ""} />
+                  <CopyRow label="CPF/CNPJ" value={doc.tomador_documento ?? ""} />
+                </div>
+                <div className="space-y-1.5">
+                  <p className="text-xs font-medium text-muted-foreground">Serviço</p>
+                  <CopyRow label="Discriminação" value={doc.descricao ?? ""} />
+                  <CopyRow label="Valor" value={BRL(Number(doc.valor))} />
+                  <CopyRow
+                    label={`ISS (${org?.aliquota_iss ?? 0}%)`}
+                    value={BRL(Number(doc.valor) * ((org?.aliquota_iss ?? 0) / 100))}
+                  />
+                </div>
+              </div>
             </div>
 
-            <div className="rounded-lg border border-border/40 p-3 space-y-2">
+            <div className="rounded-lg border border-border/40 p-3 space-y-3">
               <p className="text-sm font-medium">Registrar emissão</p>
               <div className="grid grid-cols-2 gap-3">
                 <div>
@@ -901,12 +948,40 @@ function DadosEmissaoDialog({
                   <Input type="date" value={dataEmissao} onChange={(e) => setDataEmissao(e.target.value)} />
                 </div>
               </div>
+
+              {/* Anexo do PDF em destaque (área clicável grande) */}
+              <label
+                htmlFor="nf-pdf-upload"
+                className={`flex cursor-pointer flex-col items-center justify-center gap-1.5 rounded-lg border-2 border-dashed px-4 py-6 text-center transition-colors ${
+                  pdfFile
+                    ? "border-emerald-500/60 bg-emerald-500/5"
+                    : "border-brand/50 bg-brand/5 hover:bg-brand/10"
+                }`}
+              >
+                {pdfFile ? (
+                  <>
+                    <CheckCircle2 className="h-6 w-6 text-emerald-600" />
+                    <span className="text-sm font-medium break-all">{pdfFile.name}</span>
+                    <span className="text-xs text-muted-foreground">Clique para trocar o arquivo</span>
+                  </>
+                ) : (
+                  <>
+                    <FileUp className="h-6 w-6 text-brand" />
+                    <span className="text-sm font-medium">Anexar PDF da nota emitida</span>
+                    <span className="text-xs text-muted-foreground">Clique para selecionar o arquivo (.pdf)</span>
+                  </>
+                )}
+                <Input
+                  id="nf-pdf-upload"
+                  type="file"
+                  accept="application/pdf"
+                  className="hidden"
+                  onChange={(e) => setPdfFile(e.target.files?.[0] ?? null)}
+                />
+              </label>
+
               <div>
-                <Label>PDF da nota</Label>
-                <Input type="file" accept="application/pdf" onChange={(e) => setPdfFile(e.target.files?.[0] ?? null)} />
-              </div>
-              <div>
-                <Label>XML (opcional)</Label>
+                <Label className="text-xs text-muted-foreground">XML (opcional)</Label>
                 <Input type="file" accept="text/xml,application/xml,.xml" onChange={(e) => setXmlFile(e.target.files?.[0] ?? null)} />
               </div>
             </div>
