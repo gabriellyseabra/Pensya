@@ -41,6 +41,7 @@ type DocFiscal = {
   observacoes: string | null;
   paciente: {
     nome: string;
+    cpf: string | null;
     telefone: string | null;
     responsaveis: { telefone: string | null; principal: boolean }[];
   } | null;
@@ -64,6 +65,18 @@ const STATUS_META: Record<string, { label: string; variant: "default" | "seconda
 };
 
 const BRL = (v: number) => Number(v || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+
+/** Idade em anos a partir de uma data ISO (yyyy-mm-dd). null se não houver data. */
+function idadeAnos(dataNascimento?: string | null): number | null {
+  if (!dataNascimento) return null;
+  const [y, m, d] = String(dataNascimento).split("-").map(Number);
+  if (!y || !m || !d) return null;
+  const hoje = new Date();
+  let idade = hoje.getFullYear() - y;
+  const passouAniv = hoje.getMonth() + 1 > m || (hoje.getMonth() + 1 === m && hoje.getDate() >= d);
+  if (!passouAniv) idade -= 1;
+  return idade;
+}
 
 function fmtCompetencia(c: string | null): string {
   if (!c) return "—";
@@ -97,7 +110,7 @@ export function NotasFiscais() {
       const { data, error } = await supabase
         .from("documentos_fiscais")
         .select(
-          "id, tipo, status, paciente_id, tomador_nome, tomador_documento, competencia, data_documento, valor, descricao, numero, pdf_path, xml_path, visivel_portal, observacoes, paciente:pacientes(nome, telefone, responsaveis(telefone, principal))",
+          "id, tipo, status, paciente_id, tomador_nome, tomador_documento, competencia, data_documento, valor, descricao, numero, pdf_path, xml_path, visivel_portal, observacoes, paciente:pacientes(nome, cpf, telefone, responsaveis(telefone, principal))",
         )
         .order("data_documento", { ascending: false })
         .limit(500);
@@ -214,6 +227,7 @@ export function NotasFiscais() {
       const blob = await gerarReciboPdf({
         tipo: (doc.tipo === "recibo_saude" ? "recibo_saude" : "recibo") as ReciboTipo,
         pacienteNome: doc.paciente?.nome ?? null,
+        pacienteDocumento: doc.paciente?.cpf ?? null,
         tomadorNome: doc.tomador_nome ?? doc.paciente?.nome ?? "",
         tomadorDocumento: doc.tomador_documento ?? null,
         valor: Number(doc.valor),
@@ -495,7 +509,9 @@ function GerarMesDialog({
       const pacIds = Array.from(new Set([...pagRows, ...lancRows].map((r) => r.paciente_id).filter(Boolean)));
       const { data: pacs, error: pacErr } = await supabase
         .from("pacientes")
-        .select("id, nome, cpf, emite_nota")
+        .select(
+          "id, nome, cpf, data_nascimento, emite_nota, responsaveis(nome, documento, dados_nf, deseja_nf, principal)",
+        )
         .in("id", pacIds);
       if (pacErr) throw new Error(pacErr.message);
       const pacMap = new Map((pacs ?? []).map((p: any) => [p.id, p]));
@@ -520,14 +536,33 @@ function GerarMesDialog({
 
       for (const g of grupos.values()) {
         if (g.total <= 0 || !g.paciente) continue;
-        const tipo = g.paciente.emite_nota ? "nota_fiscal" : "recibo";
+        const p = g.paciente;
+        const resps: any[] = Array.isArray(p.responsaveis) ? p.responsaveis : [];
+        const respPrincipal = resps.find((r) => r?.principal) ?? resps[0] ?? null;
+
+        // Emissão de NF: lê a escolha da família no cadastro (responsaveis.deseja_nf),
+        // além do marcador manual no paciente. Não precisa selecionar à mão.
+        const querNota = !!p.emite_nota || resps.some((r) => r?.deseja_nf);
+        const tipo = querNota ? "nota_fiscal" : "recibo";
+
+        // Tomador: paciente adulto → o próprio; menor com responsável → o
+        // responsável principal (com o CPF dele). O paciente atendido é sempre
+        // registrado no documento (paciente_id) e aparece no PDF.
+        const idade = idadeAnos(p.data_nascimento);
+        const adulto = idade != null && idade >= 18;
+        const usarResponsavel = !adulto && !!respPrincipal;
+        const tomadorNome = usarResponsavel ? respPrincipal.nome : p.nome;
+        const tomadorDocumento = usarResponsavel
+          ? (respPrincipal.documento ?? respPrincipal.dados_nf ?? null)
+          : (p.cpf ?? null);
+
         const { data: novo, error: insErr } = await supabase
           .from("documentos_fiscais")
           .insert({
             tipo,
-            paciente_id: g.paciente.id,
-            tomador_nome: g.paciente.nome,
-            tomador_documento: g.paciente.cpf ?? null,
+            paciente_id: p.id,
+            tomador_nome: tomadorNome,
+            tomador_documento: tomadorDocumento,
             competencia: firstDay,
             data_documento: hoje,
             valor: g.total,
@@ -661,6 +696,7 @@ function NovoDocumentoDialog({
         const blob = await gerarReciboPdf({
           tipo: tipo as ReciboTipo,
           pacienteNome: paciente?.nome ?? null,
+          pacienteDocumento: paciente?.cpf ?? null,
           tomadorNome: tomadorNome.trim(),
           tomadorDocumento: tomadorDoc.trim() || null,
           valor: valorNum,
