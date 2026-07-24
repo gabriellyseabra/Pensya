@@ -150,6 +150,40 @@ function CalculadoraIdade({ open, onClose }: { open: boolean; onClose: () => voi
   );
 }
 
+/** Curva normal (Gauss) com a posição do z marcada e a área do percentil sombreada. */
+function CurvaGauss({ z, cor = "#7c3aed" }: { z: number; cor?: string }) {
+  const W = 320, H = 130, pad = 12, base = H - 20;
+  const xmin = -3.6, xmax = 3.6;
+  const N = 120;
+  const phi = (x: number) => Math.exp((-x * x) / 2) / Math.sqrt(2 * Math.PI);
+  const peak = phi(0);
+  const sx = (x: number) => pad + ((x - xmin) / (xmax - xmin)) * (W - 2 * pad);
+  const sy = (y: number) => base - (y / peak) * (base - 12);
+  const xs = Array.from({ length: N + 1 }, (_, i) => xmin + ((xmax - xmin) * i) / N);
+  const curve = "M" + xs.map((x) => `${sx(x).toFixed(1)},${sy(phi(x)).toFixed(1)}`).join(" L");
+  const zc = Math.max(xmin, Math.min(xmax, z));
+  const left = xs.filter((x) => x <= zc);
+  const area = left.length
+    ? `M${sx(xmin).toFixed(1)},${base} L` + left.map((x) => `${sx(x).toFixed(1)},${sy(phi(x)).toFixed(1)}`).join(" L") + ` L${sx(zc).toFixed(1)},${base} Z`
+    : "";
+  return (
+    <svg viewBox={`0 0 ${W} ${H}`} className="w-full">
+      {/* faixas de DP */}
+      {[-3, -2, -1, 0, 1, 2, 3].map((s) => (
+        <g key={s}>
+          <line x1={sx(s)} y1={base} x2={sx(s)} y2={base + 3} stroke="#cbd5e1" />
+          <text x={sx(s)} y={base + 14} fontSize="8" fill="#94a3b8" textAnchor="middle">{s}</text>
+        </g>
+      ))}
+      <line x1={pad} y1={base} x2={W - pad} y2={base} stroke="#e2e8f0" />
+      {area && <path d={area} fill={cor} fillOpacity={0.18} />}
+      <path d={curve} fill="none" stroke={cor} strokeWidth={1.5} />
+      <line x1={sx(zc)} y1={sy(phi(zc))} x2={sx(zc)} y2={base} stroke={cor} strokeWidth={1.5} strokeDasharray="3 3" />
+      <circle cx={sx(zc)} cy={sy(phi(zc))} r={3.5} fill={cor} />
+    </svg>
+  );
+}
+
 /* ===================== Conversor de escores + classificação ===================== */
 
 function CalculadoraEscoreZ({ open, onClose }: { open: boolean; onClose: () => void }) {
@@ -221,6 +255,14 @@ function CalculadoraEscoreZ({ open, onClose }: { open: boolean; onClose: () => v
               </div>
             </div>
           )}
+          {res && (
+            <div className="rounded-lg border border-border/40 bg-white p-2">
+              <CurvaGauss z={res.z} cor={classif?.cor ?? "#7c3aed"} />
+              <p className="text-center text-[10px] text-muted-foreground">
+                Posição na curva normal · z = {res.z.toFixed(2)} · percentil {res.percentil.toFixed(1)}
+              </p>
+            </div>
+          )}
           <RubricaPreview rubrica={rubrica} />
         </div>
       </DialogContent>
@@ -230,13 +272,20 @@ function CalculadoraEscoreZ({ open, onClose }: { open: boolean; onClose: () => v
 
 /* ============================ Precificação ============================ */
 
+type ItemServico = { id: string; rotulo: string; valor: string };
+let _sq = 0;
+const novoItem = (): ItemServico => ({ id: `s${_sq++}`, rotulo: "", valor: "" });
+
 function CalculadoraPrecificacao({ open, onClose }: { open: boolean; onClose: () => void }) {
+  const [modo, setModo] = useState<"pacote" | "servico">("pacote");
+
+  // --- modo pacote ---
   const [valorSessao, setValorSessao] = useState("");
   const [qtd, setQtd] = useState("4");
   const [desconto, setDesconto] = useState("");
   const [tipoDesc, setTipoDesc] = useState<"pct" | "reais">("pct");
 
-  const res = useMemo(() => {
+  const pacote = useMemo(() => {
     const v = Number(valorSessao), q = Number(qtd), d = Number(desconto) || 0;
     if (!v || !q) return null;
     const subtotal = v * q;
@@ -245,39 +294,126 @@ function CalculadoraPrecificacao({ open, onClose }: { open: boolean; onClose: ()
     return { subtotal, descontoVal, total, porSessao: total / q };
   }, [valorSessao, qtd, desconto, tipoDesc]);
 
+  // --- modo serviço (avaliação, laudo, devolutiva, reunião…) ---
+  const [itens, setItens] = useState<ItemServico[]>([novoItem(), novoItem()]);
+  const [materiais, setMateriais] = useState("");
+  const [deslocamento, setDeslocamento] = useState("");
+  const [descServico, setDescServico] = useState("");
+  const [impostoPct, setImpostoPct] = useState("");
+  const [taxaPct, setTaxaPct] = useState("");
+
+  function setItem(id: string, campo: keyof ItemServico, v: string) {
+    setItens((is) => is.map((i) => (i.id === id ? { ...i, [campo]: v } : i)));
+  }
+
+  const servico = useMemo(() => {
+    const soma = itens.reduce((s, i) => s + (Number(i.valor) || 0), 0);
+    const mat = Number(materiais) || 0;
+    const desl = Number(deslocamento) || 0;
+    const bruto = soma + mat + desl;
+    const desc = Number(descServico) || 0;
+    const preco = Math.max(0, bruto - desc);
+    const imposto = (preco * (Number(impostoPct) || 0)) / 100;
+    const taxa = (preco * (Number(taxaPct) || 0)) / 100;
+    const liquido = Math.max(0, preco - imposto - taxa);
+    if (bruto <= 0) return null;
+    return { soma, mat, desl, bruto, desc, preco, imposto, taxa, liquido };
+  }, [itens, materiais, deslocamento, descServico, impostoPct, taxaPct]);
+
   return (
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="max-w-md">
+      <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
         <DialogHeader><DialogTitle>Precificação</DialogTitle></DialogHeader>
         <div className="space-y-3">
-          <div className="grid grid-cols-2 gap-3">
-            <div><Label className="text-xs">Valor por sessão (R$)</Label><Input type="number" step="0.01" value={valorSessao} onChange={(e) => setValorSessao(e.target.value)} /></div>
-            <div><Label className="text-xs">Nº de sessões</Label><Input type="number" step="1" value={qtd} onChange={(e) => setQtd(e.target.value)} /></div>
+          <div>
+            <Label className="text-xs">O que você está precificando?</Label>
+            <Select value={modo} onValueChange={(v) => setModo(v as "pacote" | "servico")}>
+              <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="pacote">Pacote de sessões</SelectItem>
+                <SelectItem value="servico">Serviço (avaliação, laudo, devolutiva…)</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
-          <div className="grid grid-cols-2 gap-3">
-            <div><Label className="text-xs">Desconto</Label><Input type="number" step="0.01" value={desconto} onChange={(e) => setDesconto(e.target.value)} placeholder="0" /></div>
-            <div>
-              <Label className="text-xs">Tipo</Label>
-              <Select value={tipoDesc} onValueChange={(v) => setTipoDesc(v as "pct" | "reais")}>
-                <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="pct">Percentual (%)</SelectItem>
-                  <SelectItem value="reais">Valor (R$)</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-          {res && (
-            <div className="space-y-1.5 rounded-lg border border-border/40 bg-muted/20 p-4 text-sm">
-              <div className="flex justify-between"><span className="text-muted-foreground">Subtotal</span><span>{BRL(res.subtotal)}</span></div>
-              {res.descontoVal > 0 && <div className="flex justify-between text-amber-700 dark:text-amber-400"><span>Desconto</span><span>− {BRL(res.descontoVal)}</span></div>}
-              <div className="flex justify-between border-t border-border/40 pt-1.5 text-base font-semibold"><span>Total</span><span>{BRL(res.total)}</span></div>
-              <div className="flex justify-between text-xs text-muted-foreground"><span>Valor efetivo por sessão</span><span>{BRL(res.porSessao)}</span></div>
-              <Button size="sm" variant="outline" className="mt-2 w-full"
-                onClick={() => copiar(`${qtd} sessões — ${BRL(res.total)} (${BRL(res.porSessao)}/sessão)`)}>
-                <Copy className="mr-1.5 h-3.5 w-3.5" />Copiar proposta
-              </Button>
-            </div>
+
+          {modo === "pacote" ? (
+            <>
+              <div className="grid grid-cols-2 gap-3">
+                <div><Label className="text-xs">Valor por sessão (R$)</Label><Input type="number" step="0.01" value={valorSessao} onChange={(e) => setValorSessao(e.target.value)} /></div>
+                <div><Label className="text-xs">Nº de sessões</Label><Input type="number" step="1" value={qtd} onChange={(e) => setQtd(e.target.value)} /></div>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div><Label className="text-xs">Desconto</Label><Input type="number" step="0.01" value={desconto} onChange={(e) => setDesconto(e.target.value)} placeholder="0" /></div>
+                <div>
+                  <Label className="text-xs">Tipo</Label>
+                  <Select value={tipoDesc} onValueChange={(v) => setTipoDesc(v as "pct" | "reais")}>
+                    <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="pct">Percentual (%)</SelectItem>
+                      <SelectItem value="reais">Valor (R$)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              {pacote && (
+                <div className="space-y-1.5 rounded-lg border border-border/40 bg-muted/20 p-4 text-sm">
+                  <div className="flex justify-between"><span className="text-muted-foreground">Subtotal</span><span>{BRL(pacote.subtotal)}</span></div>
+                  {pacote.descontoVal > 0 && <div className="flex justify-between text-amber-700 dark:text-amber-400"><span>Desconto</span><span>− {BRL(pacote.descontoVal)}</span></div>}
+                  <div className="flex justify-between border-t border-border/40 pt-1.5 text-base font-semibold"><span>Total</span><span>{BRL(pacote.total)}</span></div>
+                  <div className="flex justify-between text-xs text-muted-foreground"><span>Valor efetivo por sessão</span><span>{BRL(pacote.porSessao)}</span></div>
+                  <Button size="sm" variant="outline" className="mt-2 w-full" onClick={() => copiar(`${qtd} sessões — ${BRL(pacote.total)} (${BRL(pacote.porSessao)}/sessão)`)}>
+                    <Copy className="mr-1.5 h-3.5 w-3.5" />Copiar proposta
+                  </Button>
+                </div>
+              )}
+            </>
+          ) : (
+            <>
+              <div>
+                <Label className="text-xs">Itens que compõem o serviço</Label>
+                <p className="mb-1.5 text-[10px] text-muted-foreground">Ex.: aplicação, correção, redação do laudo, devolutiva, reunião escolar — cada um com seu valor.</p>
+                <div className="space-y-1.5">
+                  {itens.map((i) => (
+                    <div key={i.id} className="flex gap-2">
+                      <Input value={i.rotulo} onChange={(e) => setItem(i.id, "rotulo", e.target.value)} placeholder="Descrição" className="h-8 flex-1 text-xs" />
+                      <Input type="number" step="0.01" value={i.valor} onChange={(e) => setItem(i.id, "valor", e.target.value)} placeholder="R$" className="h-8 w-24 text-xs" />
+                    </div>
+                  ))}
+                </div>
+                <Button size="sm" variant="outline" className="mt-1.5 h-7 text-xs" onClick={() => setItens((is) => [...is, novoItem()])}>
+                  + Item
+                </Button>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div><Label className="text-xs">Materiais/insumos (R$)</Label><Input type="number" step="0.01" value={materiais} onChange={(e) => setMateriais(e.target.value)} placeholder="0" /></div>
+                <div><Label className="text-xs">Deslocamento (R$)</Label><Input type="number" step="0.01" value={deslocamento} onChange={(e) => setDeslocamento(e.target.value)} placeholder="0" /></div>
+              </div>
+              <div className="grid grid-cols-3 gap-2">
+                <div><Label className="text-xs">Desconto (R$)</Label><Input type="number" step="0.01" value={descServico} onChange={(e) => setDescServico(e.target.value)} placeholder="0" /></div>
+                <div><Label className="text-xs">Imposto (%)</Label><Input type="number" step="0.01" value={impostoPct} onChange={(e) => setImpostoPct(e.target.value)} placeholder="0" /></div>
+                <div><Label className="text-xs">Taxa receb. (%)</Label><Input type="number" step="0.01" value={taxaPct} onChange={(e) => setTaxaPct(e.target.value)} placeholder="0" /></div>
+              </div>
+              {servico && (
+                <div className="space-y-1.5 rounded-lg border border-border/40 bg-muted/20 p-4 text-sm">
+                  <div className="flex justify-between"><span className="text-muted-foreground">Itens</span><span>{BRL(servico.soma)}</span></div>
+                  {(servico.mat > 0 || servico.desl > 0) && (
+                    <div className="flex justify-between text-muted-foreground"><span>Materiais + deslocamento</span><span>{BRL(servico.mat + servico.desl)}</span></div>
+                  )}
+                  {servico.desc > 0 && <div className="flex justify-between text-amber-700 dark:text-amber-400"><span>Desconto</span><span>− {BRL(servico.desc)}</span></div>}
+                  <div className="flex justify-between border-t border-border/40 pt-1.5 text-base font-semibold"><span>Preço a cobrar</span><span>{BRL(servico.preco)}</span></div>
+                  {(servico.imposto > 0 || servico.taxa > 0) && (
+                    <>
+                      <div className="flex justify-between text-xs text-muted-foreground"><span>− Imposto</span><span>{BRL(servico.imposto)}</span></div>
+                      <div className="flex justify-between text-xs text-muted-foreground"><span>− Taxa de recebimento</span><span>{BRL(servico.taxa)}</span></div>
+                      <div className="flex justify-between text-xs font-medium"><span>Líquido estimado</span><span>{BRL(servico.liquido)}</span></div>
+                    </>
+                  )}
+                  <Button size="sm" variant="outline" className="mt-2 w-full" onClick={() => copiar(`Serviço — ${BRL(servico.preco)}`)}>
+                    <Copy className="mr-1.5 h-3.5 w-3.5" />Copiar preço
+                  </Button>
+                </div>
+              )}
+            </>
           )}
         </div>
       </DialogContent>
