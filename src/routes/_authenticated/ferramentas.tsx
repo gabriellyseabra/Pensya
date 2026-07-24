@@ -8,13 +8,15 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { BarChart3, Wrench, ArrowRight, CalendarClock, Sigma, Calculator, Copy, TrendingUp, Table2, FileText } from "lucide-react";
+import { BarChart3, Wrench, ArrowRight, CalendarClock, Sigma, Calculator, Copy, TrendingUp, Table2, FileText, MessageSquareText, GraduationCap } from "lucide-react";
 import { toast } from "sonner";
 import { PageHero } from "@/components/shared/PageHero";
 import { GeradorGraficoAvaliacao } from "@/components/prontuario/GeradorGraficoAvaliacao";
 import { ComparadorAvaliacoes } from "@/components/ferramentas/ComparadorAvaliacoes";
 import { TabelaResultados } from "@/components/ferramentas/TabelaResultados";
 import { DocumentosAvulsos } from "@/components/ferramentas/DocumentosAvulsos";
+import { ComunicacaoFamiliaEscola } from "@/components/ferramentas/ComunicacaoFamiliaEscola";
+import { RoteiroEstudos } from "@/components/ferramentas/RoteiroEstudos";
 import { RubricaPreview } from "@/components/prontuario/RubricaPreview";
 import { useRubricas } from "@/hooks/use-rubricas";
 import { classificar } from "@/lib/avaliacao-classificacao";
@@ -69,6 +71,14 @@ function FerramentasPage() {
       key: "documentos", titulo: "Documentos avulsos", icon: FileText,
       descricao: "Declaração, atestado escolar, encaminhamento, autorização, parecer… modelos pré-preenchidos e editáveis, em PDF com o cabeçalho da clínica.",
     },
+    {
+      key: "comunicacao", titulo: "Comunicação família / escola", icon: MessageSquareText,
+      descricao: "A IA redige uma mensagem para a família, a escola ou outro profissional — no tom e tamanho que você escolher, pronta para WhatsApp, e-mail ou bilhete.",
+    },
+    {
+      key: "roteiro", titulo: "Roteiro de estudos", icon: GraduationCap,
+      descricao: "Gera um plano de estudos semanal baseado na ciência da aprendizagem, adaptado ao perfil e ao tempo real do aluno — com PDF para a família.",
+    },
   ];
 
   return (
@@ -107,6 +117,8 @@ function FerramentasPage() {
       <ComparadorAvaliacoes open={aberto === "comparador"} onClose={() => setAberto(null)} />
       <TabelaResultados open={aberto === "tabela"} onClose={() => setAberto(null)} />
       <DocumentosAvulsos open={aberto === "documentos"} onClose={() => setAberto(null)} />
+      <ComunicacaoFamiliaEscola open={aberto === "comunicacao"} onClose={() => setAberto(null)} />
+      <RoteiroEstudos open={aberto === "roteiro"} onClose={() => setAberto(null)} />
     </div>
   );
 }
