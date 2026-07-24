@@ -263,7 +263,7 @@ function AvaliacaoDetalhe({ id, onBack }: { id: string; onBack: () => void }) {
       .maybeSingle()).data,
   });
 
-  const { resolver: resolverRubrica } = useRubricas();
+  const { rubricaDeTeste } = useRubricas();
 
   const { data: catalogo } = useQuery({
     queryKey: ["testes-catalogo"],
@@ -909,7 +909,7 @@ function AvaliacaoDetalhe({ id, onBack }: { id: string; onBack: () => void }) {
                       {lista.map((a: any) => {
                         const temGlobal = a.escore_bruto != null || a.escore_padrao != null || a.percentil != null;
                         const cat: any = catalogo?.find((c: any) => c.id === a.teste_id);
-                        const rubricaDoTeste = resolverRubrica(cat?.rubrica_id);
+                        const rubricaDoTeste = rubricaDeTeste(a.teste_id);
                         const formula: FormulaAgregacao | null = (cat?.formula_agregacao as any) ?? null;
                         const agregado = !temGlobal ? aplicarFormula(a.variaveis_valores, formula) : null;
                         const stats = !temGlobal ? statsDeVariaveis(a.variaveis_valores) : { total: 0, comClassif: 0 };
