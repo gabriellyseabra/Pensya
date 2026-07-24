@@ -66,6 +66,16 @@ const STATUS_META: Record<string, { label: string; variant: "default" | "seconda
 
 const BRL = (v: number) => Number(v || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
+/**
+ * Substitui a variável {paciente} pelo nome do paciente na descrição/discriminação.
+ * Aceita {paciente} e {nome} (com ou sem espaços). Assim a discriminação padrão
+ * pode ser "…prestados a {paciente}" e o nome entra sozinho na geração.
+ */
+export function aplicarVarsDescricao(template: string, pacienteNome?: string | null): string {
+  if (!template) return template;
+  return template.replace(/\{\s*(paciente|nome)\s*\}/gi, (pacienteNome ?? "").trim());
+}
+
 /** Idade em anos a partir de uma data ISO (yyyy-mm-dd). null se não houver data. */
 function idadeAnos(dataNascimento?: string | null): number | null {
   if (!dataNascimento) return null;
@@ -133,19 +143,20 @@ export function NotasFiscais() {
 
   const filtrados = useMemo(() => {
     const b = busca.trim().toLowerCase();
-    return docs.filter((d) => {
-      if (filtroTipo !== "todos" && d.tipo !== filtroTipo) return false;
-      if (filtroStatus !== "todos" && d.status !== filtroStatus) return false;
-      if (filtroMes) {
-        const ref = (d.competencia ?? d.data_documento ?? "").slice(0, 7);
-        if (ref !== filtroMes) return false;
-      }
-      if (b) {
-        const nome = (d.paciente?.nome ?? d.tomador_nome ?? "").toLowerCase();
-        if (!nome.includes(b)) return false;
-      }
-      return true;
-    });
+    const nomeDe = (d: DocFiscal) => d.paciente?.nome ?? d.tomador_nome ?? "";
+    return docs
+      .filter((d) => {
+        if (filtroTipo !== "todos" && d.tipo !== filtroTipo) return false;
+        if (filtroStatus !== "todos" && d.status !== filtroStatus) return false;
+        if (filtroMes) {
+          const ref = (d.competencia ?? d.data_documento ?? "").slice(0, 7);
+          if (ref !== filtroMes) return false;
+        }
+        if (b && !nomeDe(d).toLowerCase().includes(b)) return false;
+        return true;
+      })
+      // Ordem alfabética pelo nome para facilitar a busca visual.
+      .sort((a, b2) => nomeDe(a).localeCompare(nomeDe(b2), "pt-BR", { sensitivity: "base" }));
   }, [docs, filtroTipo, filtroStatus, filtroMes, busca]);
 
   const totalAEmitir = useMemo(
@@ -538,22 +549,25 @@ function GerarMesDialog({
         if (g.total <= 0 || !g.paciente) continue;
         const p = g.paciente;
         const resps: any[] = Array.isArray(p.responsaveis) ? p.responsaveis : [];
-        const respPrincipal = resps.find((r) => r?.principal) ?? resps[0] ?? null;
+        // Responsável tomador: o que a família escolheu no cadastro (deseja_nf),
+        // senão o principal, senão o primeiro.
+        const respTomador =
+          resps.find((r) => r?.deseja_nf) ?? resps.find((r) => r?.principal) ?? resps[0] ?? null;
 
         // Emissão de NF: lê a escolha da família no cadastro (responsaveis.deseja_nf),
         // além do marcador manual no paciente. Não precisa selecionar à mão.
         const querNota = !!p.emite_nota || resps.some((r) => r?.deseja_nf);
         const tipo = querNota ? "nota_fiscal" : "recibo";
 
-        // Tomador: paciente adulto → o próprio; menor com responsável → o
-        // responsável principal (com o CPF dele). O paciente atendido é sempre
-        // registrado no documento (paciente_id) e aparece no PDF.
+        // Tomador: paciente adulto → o próprio; caso contrário → o responsável
+        // escolhido (com o CPF dele). O paciente atendido é sempre registrado no
+        // documento (paciente_id) e aparece no PDF.
         const idade = idadeAnos(p.data_nascimento);
         const adulto = idade != null && idade >= 18;
-        const usarResponsavel = !adulto && !!respPrincipal;
-        const tomadorNome = usarResponsavel ? respPrincipal.nome : p.nome;
+        const usarResponsavel = !adulto && !!respTomador;
+        const tomadorNome = usarResponsavel ? respTomador.nome : p.nome;
         const tomadorDocumento = usarResponsavel
-          ? (respPrincipal.documento ?? respPrincipal.dados_nf ?? null)
+          ? (respTomador.documento ?? respTomador.dados_nf ?? null)
           : (p.cpf ?? null);
 
         const { data: novo, error: insErr } = await supabase
@@ -566,7 +580,7 @@ function GerarMesDialog({
             competencia: firstDay,
             data_documento: hoje,
             valor: g.total,
-            descricao: descricaoPadrao,
+            descricao: aplicarVarsDescricao(descricaoPadrao, p.nome),
             status: "pendente",
             visivel_portal: true,
           })
@@ -679,6 +693,8 @@ function NovoDocumentoDialog({
     setSaving(true);
     try {
       const competenciaDate = competencia ? `${competencia}-01` : null;
+      const pacienteSel = pacientes.find((p) => p.id === pacienteId);
+      const descricaoFinal = aplicarVarsDescricao(descricao.trim(), pacienteSel?.nome) || null;
       const base = {
         tipo,
         paciente_id: semTomador ? null : (pacienteId || null),
@@ -687,12 +703,12 @@ function NovoDocumentoDialog({
         competencia: competenciaDate,
         data_documento: dataDoc,
         valor: valorNum,
-        descricao: descricao.trim() || null,
+        descricao: descricaoFinal,
       };
 
       if (tipo === "recibo" || tipo === "recibo_saude") {
         const org = await getMinhaOrganizacao();
-        const paciente = pacientes.find((p) => p.id === pacienteId);
+        const paciente = pacienteSel;
         const blob = await gerarReciboPdf({
           tipo: tipo as ReciboTipo,
           pacienteNome: paciente?.nome ?? null,
@@ -701,7 +717,7 @@ function NovoDocumentoDialog({
           tomadorDocumento: tomadorDoc.trim() || null,
           valor: valorNum,
           data: dataDoc,
-          descricao: descricao.trim() || null,
+          descricao: descricaoFinal,
           org,
         });
         const path = `fiscais/${pacienteId || "avulsa"}/${Date.now()}-${randId()}.pdf`;
@@ -800,8 +816,30 @@ function NovoDocumentoDialog({
             </div>
           </div>
           <div>
-            <Label>Descrição do serviço</Label>
+            <div className="flex items-center justify-between gap-2">
+              <Label>Descrição do serviço</Label>
+              {(() => {
+                const nomeSel = pacientes.find((p) => p.id === pacienteId)?.nome ?? "";
+                return (
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    className="h-7 text-xs"
+                    disabled={!nomeSel}
+                    onClick={() =>
+                      setDescricao((d) => (d.trim() ? `${d.replace(/\s+$/, "")} ${nomeSel}` : nomeSel))
+                    }
+                  >
+                    <Plus className="mr-1 h-3 w-3" />Inserir nome do paciente
+                  </Button>
+                );
+              })()}
+            </div>
             <Textarea value={descricao} onChange={(e) => setDescricao(e.target.value)} rows={3} />
+            <p className="mt-1 text-[11px] text-muted-foreground">
+              Dica: use <code>{"{paciente}"}</code> no texto para o nome entrar sozinho ao salvar.
+            </p>
           </div>
           {ehRecibo && (
             <p className="text-xs text-muted-foreground">Ao salvar, o PDF do recibo é gerado e fica disponível para download e envio.</p>

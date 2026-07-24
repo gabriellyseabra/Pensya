@@ -111,13 +111,30 @@ export function DadosFiscaisConfig() {
           <Input value={prestadorReg} onChange={(e) => setPrestadorReg(e.target.value)} placeholder="Ex: CRP 00/00000 (usado no recibo de saúde)" />
         </div>
         <div className="sm:col-span-2">
-          <Label>Discriminação padrão</Label>
+          <div className="flex items-center justify-between gap-2">
+            <Label>Discriminação padrão</Label>
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              className="h-7 text-xs"
+              onClick={() =>
+                setDiscriminacao((d) => (d.trim() ? `${d.replace(/\s+$/, "")} {paciente}` : "{paciente}"))
+              }
+            >
+              Inserir nome do paciente
+            </Button>
+          </div>
           <Textarea
             value={discriminacao}
             onChange={(e) => setDiscriminacao(e.target.value)}
-            placeholder="Descrição padrão do serviço prestado (usada como padrão em NF e recibos)."
+            placeholder="Ex.: Referente aos serviços de atendimento prestados a {paciente}."
             rows={3}
           />
+          <p className="mt-1 text-[11px] text-muted-foreground">
+            Use <code>{"{paciente}"}</code> onde o nome do paciente deve aparecer — ele é preenchido
+            automaticamente na geração de cada nota/recibo, sem precisar copiar e colar.
+          </p>
         </div>
       </div>
 
