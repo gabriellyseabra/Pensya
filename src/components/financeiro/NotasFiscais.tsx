@@ -456,7 +456,7 @@ function NovoDocumentoDialog({
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className="glass-strong max-w-lg">
+      <DialogContent className="glass-strong max-w-lg max-h-[90vh] overflow-y-auto">
         <DialogHeader><DialogTitle>Novo documento fiscal</DialogTitle></DialogHeader>
         <div className="space-y-3">
           <div>
@@ -603,7 +603,7 @@ function DadosEmissaoDialog({
 
   return (
     <Dialog open={!!doc} onOpenChange={onOpenChange}>
-      <DialogContent className="glass-strong max-w-lg">
+      <DialogContent className="glass-strong max-w-lg max-h-[90vh] overflow-y-auto">
         <DialogHeader><DialogTitle>Dados para emissão da NF</DialogTitle></DialogHeader>
         {doc && (
           <div className="space-y-3">
