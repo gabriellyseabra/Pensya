@@ -10,12 +10,14 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Textarea } from "@/components/ui/textarea";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   Plus, Download, MessageCircle, FileSpreadsheet, Loader2, Copy, Ban, Trash2, FileText,
+  CalendarPlus, FileDown,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -83,7 +85,9 @@ export function NotasFiscais() {
   const [filtroMes, setFiltroMes] = useState(""); // yyyy-MM
   const [busca, setBusca] = useState("");
   const [novoOpen, setNovoOpen] = useState(false);
+  const [gerarMesOpen, setGerarMesOpen] = useState(false);
   const [emissaoDoc, setEmissaoDoc] = useState<DocFiscal | null>(null);
+  const [gerandoPdf, setGerandoPdf] = useState<string | null>(null);
 
   const { data: org } = useQuery({ queryKey: ["minha-organizacao"], queryFn: getMinhaOrganizacao });
 
@@ -135,6 +139,21 @@ export function NotasFiscais() {
     () => docs.filter((d) => d.tipo === "nota_fiscal" && d.status === "pendente").reduce((s, d) => s + Number(d.valor), 0),
     [docs],
   );
+
+  const issARecolher = useMemo(() => {
+    const aliq = (org?.aliquota_iss ?? 0) / 100;
+    const base = docs
+      .filter((d) => {
+        if (d.tipo !== "nota_fiscal" || d.status !== "emitida") return false;
+        if (filtroMes) {
+          const ref = (d.competencia ?? d.data_documento ?? "").slice(0, 7);
+          if (ref !== filtroMes) return false;
+        }
+        return true;
+      })
+      .reduce((s, d) => s + Number(d.valor), 0);
+    return base * aliq;
+  }, [docs, filtroMes, org]);
 
   const toggleVisivel = useMutation({
     mutationFn: async ({ id, visivel }: { id: string; visivel: boolean }) => {
@@ -188,6 +207,34 @@ export function NotasFiscais() {
     }
   }
 
+  async function gerarPdfRecibo(doc: DocFiscal) {
+    setGerandoPdf(doc.id);
+    try {
+      const org = await getMinhaOrganizacao();
+      const blob = await gerarReciboPdf({
+        tipo: (doc.tipo === "recibo_saude" ? "recibo_saude" : "recibo") as ReciboTipo,
+        pacienteNome: doc.paciente?.nome ?? null,
+        tomadorNome: doc.tomador_nome ?? doc.paciente?.nome ?? "",
+        tomadorDocumento: doc.tomador_documento ?? null,
+        valor: Number(doc.valor),
+        data: doc.data_documento,
+        descricao: doc.descricao ?? null,
+        org,
+      });
+      const path = `fiscais/${doc.paciente_id || "avulsa"}/${Date.now()}-${randId()}.pdf`;
+      const up = await supabase.storage.from(BUCKET).upload(path, blob, { contentType: "application/pdf", upsert: false });
+      if (up.error) throw new Error(up.error.message);
+      const { error } = await supabase.from("documentos_fiscais").update({ pdf_path: path, status: "gerado" }).eq("id", doc.id);
+      if (error) throw new Error(error.message);
+      toast.success("PDF do recibo gerado");
+      qc.invalidateQueries({ queryKey: ["documentos-fiscais"] });
+    } catch (e: any) {
+      toast.error(e?.message ?? "Erro ao gerar PDF");
+    } finally {
+      setGerandoPdf(null);
+    }
+  }
+
   function exportarCSV() {
     const cab = ["Tipo", "Paciente", "Tomador", "Competência", "Valor", "Status", "Número"];
     const linhas = filtrados.map((d) => [
@@ -214,18 +261,37 @@ export function NotasFiscais() {
     <div className="space-y-4">
       {/* Header + stat */}
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <Card className="glass">
-          <CardContent className="flex items-center gap-3 py-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-brand-yellow/40 shrink-0">
-              <FileText className="h-5 w-5" />
-            </div>
-            <div>
-              <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Total a emitir (NF pendentes)</p>
-              <p className="text-xl font-semibold leading-tight">{BRL(totalAEmitir)}</p>
-            </div>
-          </CardContent>
-        </Card>
+        <div className="flex flex-wrap gap-3">
+          <Card className="glass">
+            <CardContent className="flex items-center gap-3 py-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-brand-yellow/40 shrink-0">
+                <FileText className="h-5 w-5" />
+              </div>
+              <div>
+                <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Total a emitir (NF pendentes)</p>
+                <p className="text-xl font-semibold leading-tight">{BRL(totalAEmitir)}</p>
+              </div>
+            </CardContent>
+          </Card>
+          <Card className="glass">
+            <CardContent className="flex items-center gap-3 py-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-brand-yellow/40 shrink-0">
+                <FileText className="h-5 w-5" />
+              </div>
+              <div>
+                <p className="text-[10px] uppercase tracking-wider text-muted-foreground">ISS a recolher (notas emitidas)</p>
+                <p className="flex items-center gap-2 text-xl font-semibold leading-tight">
+                  {BRL(issARecolher)}
+                  <Badge variant="secondary" className="text-[10px]">pendente</Badge>
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
         <div className="flex gap-2">
+          <Button variant="outline" onClick={() => setGerarMesOpen(true)}>
+            <CalendarPlus className="mr-1.5 h-4 w-4" />Gerar do mês
+          </Button>
           <Button variant="outline" onClick={exportarCSV}>
             <FileSpreadsheet className="mr-1.5 h-4 w-4" />Exportar CSV
           </Button>
@@ -314,6 +380,11 @@ export function NotasFiscais() {
                         {d.tipo === "nota_fiscal" && d.status === "pendente" && (
                           <Button size="sm" variant="outline" onClick={() => setEmissaoDoc(d)}>Emissão</Button>
                         )}
+                        {(d.tipo === "recibo" || d.tipo === "recibo_saude") && !d.pdf_path && d.status !== "cancelada" && (
+                          <Button size="sm" variant="outline" disabled={gerandoPdf === d.id} onClick={() => gerarPdfRecibo(d)}>
+                            {gerandoPdf === d.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <><FileDown className="mr-1 h-4 w-4" />Gerar PDF</>}
+                          </Button>
+                        )}
                         {d.pdf_path && (
                           <>
                             <Button size="icon" variant="ghost" title="Baixar" onClick={() => baixar(d)}><Download className="h-4 w-4" /></Button>
@@ -342,6 +413,13 @@ export function NotasFiscais() {
         onSaved={() => { qc.invalidateQueries({ queryKey: ["documentos-fiscais"] }); setNovoOpen(false); }}
       />
 
+      <GerarMesDialog
+        open={gerarMesOpen}
+        onOpenChange={setGerarMesOpen}
+        discriminacaoPadrao={org?.discriminacao_padrao ?? ""}
+        onDone={() => { qc.invalidateQueries({ queryKey: ["documentos-fiscais"] }); setGerarMesOpen(false); }}
+      />
+
       <DadosEmissaoDialog
         doc={emissaoDoc}
         org={org ?? null}
@@ -349,6 +427,135 @@ export function NotasFiscais() {
         onSaved={() => { qc.invalidateQueries({ queryKey: ["documentos-fiscais"] }); setEmissaoDoc(null); }}
       />
     </div>
+  );
+}
+
+/* ======================== Gerar documentos do mês ======================== */
+
+function GerarMesDialog({
+  open, onOpenChange, discriminacaoPadrao, onDone,
+}: {
+  open: boolean;
+  onOpenChange: (b: boolean) => void;
+  discriminacaoPadrao: string;
+  onDone: () => void;
+}) {
+  const [competencia, setCompetencia] = useState(format(new Date(), "yyyy-MM"));
+  const [gerando, setGerando] = useState(false);
+
+  function handleOpenChange(o: boolean) {
+    if (o) setCompetencia(format(new Date(), "yyyy-MM"));
+    onOpenChange(o);
+  }
+
+  async function gerar() {
+    const m = competencia.match(/^(\d{4})-(\d{2})$/);
+    if (!m) { toast.error("Selecione uma competência válida"); return; }
+    setGerando(true);
+    try {
+      const ano = Number(m[1]);
+      const mes = Number(m[2]);
+      const firstDay = `${m[1]}-${m[2]}-01`;
+      const lastDayNum = new Date(ano, mes, 0).getDate();
+      const lastDay = `${m[1]}-${m[2]}-${String(lastDayNum).padStart(2, "0")}`;
+      const hoje = format(new Date(), "yyyy-MM-dd");
+
+      const { data: pags, error } = await supabase
+        .from("pagamentos")
+        .select("id, paciente_id, valor, competencia, paciente:pacientes(id, nome, cpf, emite_nota)")
+        .eq("status", "pago")
+        .is("documento_fiscal_id", null)
+        .gte("competencia", firstDay)
+        .lte("competencia", lastDay);
+      if (error) throw new Error(error.message);
+
+      const rows = (pags ?? []) as any[];
+      if (rows.length === 0) {
+        toast.info("Nenhuma receita paga sem documento neste mês.");
+        onDone();
+        return;
+      }
+
+      // Agrupa por paciente
+      const grupos = new Map<string, { paciente: any; ids: string[]; total: number }>();
+      for (const r of rows) {
+        const pid = r.paciente_id as string;
+        const g = grupos.get(pid) ?? { paciente: r.paciente, ids: [], total: 0 };
+        g.ids.push(r.id);
+        g.total += Number(r.valor);
+        grupos.set(pid, g);
+      }
+
+      let notas = 0;
+      let recibos = 0;
+      const descricaoPadrao = discriminacaoPadrao?.trim() || "Serviços de acompanhamento psicopedagógico";
+
+      for (const g of grupos.values()) {
+        if (g.total <= 0 || !g.paciente) continue;
+        const tipo = g.paciente.emite_nota ? "nota_fiscal" : "recibo";
+        const { data: novo, error: insErr } = await supabase
+          .from("documentos_fiscais")
+          .insert({
+            tipo,
+            paciente_id: g.paciente.id,
+            tomador_nome: g.paciente.nome,
+            tomador_documento: g.paciente.cpf ?? null,
+            competencia: firstDay,
+            data_documento: hoje,
+            valor: g.total,
+            descricao: descricaoPadrao,
+            status: "pendente",
+            visivel_portal: true,
+          })
+          .select("id")
+          .single();
+        if (insErr) throw new Error(insErr.message);
+
+        const { error: updErr } = await supabase
+          .from("pagamentos")
+          .update({ documento_fiscal_id: novo.id })
+          .in("id", g.ids);
+        if (updErr) throw new Error(updErr.message);
+
+        if (tipo === "nota_fiscal") notas++;
+        else recibos++;
+      }
+
+      const total = notas + recibos;
+      if (total === 0) {
+        toast.info("Nenhuma receita paga sem documento neste mês.");
+      } else {
+        toast.success(`${total} documentos gerados (${notas} notas, ${recibos} recibos)`);
+      }
+      onDone();
+    } catch (e: any) {
+      toast.error(e?.message ?? "Erro ao gerar documentos");
+    } finally {
+      setGerando(false);
+    }
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={handleOpenChange}>
+      <DialogContent className="glass-strong max-w-sm">
+        <DialogHeader><DialogTitle>Gerar documentos do mês</DialogTitle></DialogHeader>
+        <div className="space-y-3">
+          <div>
+            <Label>Competência</Label>
+            <Input type="month" value={competencia} onChange={(e) => setCompetencia(e.target.value)} />
+          </div>
+          <p className="text-xs text-muted-foreground">
+            Cria um documento por paciente somando as receitas pagas da competência que ainda não têm documento.
+            Pacientes que emitem nota geram uma NF pendente; os demais, um recibo (gere o PDF depois na lista).
+          </p>
+        </div>
+        <DialogFooter>
+          <Button onClick={gerar} disabled={gerando} className="gradient-brand text-brand-foreground">
+            {gerando && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}Gerar documentos
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
 
@@ -364,6 +571,7 @@ function NovoDocumentoDialog({
   onSaved: () => void;
 }) {
   const [tipo, setTipo] = useState<string>("nota_fiscal");
+  const [semTomador, setSemTomador] = useState(false);
   const [pacienteId, setPacienteId] = useState("");
   const [tomadorNome, setTomadorNome] = useState("");
   const [tomadorDoc, setTomadorDoc] = useState("");
@@ -377,6 +585,7 @@ function NovoDocumentoDialog({
   function handleOpenChange(o: boolean) {
     if (o) {
       setTipo("nota_fiscal");
+      setSemTomador(false);
       setPacienteId("");
       setTomadorNome("");
       setTomadorDoc("");
@@ -406,7 +615,7 @@ function NovoDocumentoDialog({
       const competenciaDate = competencia ? `${competencia}-01` : null;
       const base = {
         tipo,
-        paciente_id: pacienteId || null,
+        paciente_id: semTomador ? null : (pacienteId || null),
         tomador_nome: tomadorNome.trim(),
         tomador_documento: tomadorDoc.trim() || null,
         competencia: competenciaDate,
@@ -470,16 +679,35 @@ function NovoDocumentoDialog({
               </SelectContent>
             </Select>
           </div>
-          <div>
-            <Label>Paciente / Tomador</Label>
-            <Select value={pacienteId || "__none"} onValueChange={(v) => selecionarPaciente(v === "__none" ? "" : v)}>
-              <SelectTrigger><SelectValue placeholder="Selecione o paciente" /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="__none">Avulso (sem paciente)</SelectItem>
-                {pacientes.map((p) => <SelectItem key={p.id} value={p.id}>{p.nome}</SelectItem>)}
-              </SelectContent>
-            </Select>
-          </div>
+          <label className="flex items-center gap-2 text-sm">
+            <Checkbox
+              checked={semTomador}
+              onCheckedChange={(v) => {
+                const on = v === true;
+                setSemTomador(on);
+                if (on) {
+                  setPacienteId("");
+                  setTomadorNome("Consumidor não identificado");
+                  setTomadorDoc("");
+                } else {
+                  setTomadorNome("");
+                }
+              }}
+            />
+            Sem tomador identificado (nota com valor total)
+          </label>
+          {!semTomador && (
+            <div>
+              <Label>Paciente / Tomador</Label>
+              <Select value={pacienteId || "__none"} onValueChange={(v) => selecionarPaciente(v === "__none" ? "" : v)}>
+                <SelectTrigger><SelectValue placeholder="Selecione o paciente" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__none">Avulso (sem paciente)</SelectItem>
+                  {pacientes.map((p) => <SelectItem key={p.id} value={p.id}>{p.nome}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
           <div className="grid grid-cols-2 gap-3">
             <div>
               <Label>Nome do tomador</Label>
@@ -624,6 +852,10 @@ function DadosEmissaoDialog({
               <p className="text-xs font-medium text-muted-foreground">Serviço</p>
               <CopyRow label="Discriminação" value={doc.descricao ?? ""} />
               <CopyRow label="Valor" value={BRL(Number(doc.valor))} />
+              <CopyRow
+                label={`ISS (${org?.aliquota_iss ?? 0}%)`}
+                value={BRL(Number(doc.valor) * ((org?.aliquota_iss ?? 0) / 100))}
+              />
             </div>
 
             <div className="rounded-lg border border-border/40 p-3 space-y-2">
