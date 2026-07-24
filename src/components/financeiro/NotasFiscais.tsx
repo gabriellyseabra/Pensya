@@ -47,7 +47,20 @@ type DocFiscal = {
   } | null;
 };
 
-type PacienteSel = { id: string; nome: string; cpf: string | null };
+type RespSel = {
+  nome: string;
+  documento: string | null;
+  dados_nf: string | null;
+  deseja_nf: boolean | null;
+  principal: boolean;
+};
+type PacienteSel = {
+  id: string;
+  nome: string;
+  cpf: string | null;
+  data_nascimento: string | null;
+  responsaveis: RespSel[];
+};
 
 const BUCKET = "pacientes-docs";
 
@@ -134,10 +147,10 @@ export function NotasFiscais() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("pacientes")
-        .select("id, nome, cpf")
+        .select("id, nome, cpf, data_nascimento, responsaveis(nome, documento, dados_nf, deseja_nf, principal)")
         .order("nome");
       if (error) throw new Error(error.message);
-      return (data ?? []) as PacienteSel[];
+      return (data ?? []) as unknown as PacienteSel[];
     },
   });
 
@@ -413,9 +426,9 @@ export function NotasFiscais() {
                             {d.status === "pendente" ? "Emissão" : d.pdf_path ? "Editar" : "Anexar PDF"}
                           </Button>
                         )}
-                        {(d.tipo === "recibo" || d.tipo === "recibo_saude") && !d.pdf_path && d.status !== "cancelada" && (
+                        {(d.tipo === "recibo" || d.tipo === "recibo_saude") && d.status !== "cancelada" && (
                           <Button size="sm" variant="outline" disabled={gerandoPdf === d.id} onClick={() => gerarPdfRecibo(d)}>
-                            {gerandoPdf === d.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <><FileDown className="mr-1 h-4 w-4" />Gerar PDF</>}
+                            {gerandoPdf === d.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <><FileDown className="mr-1 h-4 w-4" />{d.pdf_path ? "Regerar" : "Gerar PDF"}</>}
                           </Button>
                         )}
                         {d.pdf_path && (
@@ -688,9 +701,20 @@ function NovoDocumentoDialog({
   function selecionarPaciente(id: string) {
     setPacienteId(id);
     const p = pacientes.find((x) => x.id === id);
-    if (p) {
+    if (!p) return;
+    // Tomador padrão: responsável escolhido (deseja_nf > principal > primeiro)
+    // quando o paciente é menor; o próprio paciente quando adulto/idoso.
+    const resps = p.responsaveis ?? [];
+    const respTomador =
+      resps.find((r) => r?.deseja_nf) ?? resps.find((r) => r?.principal) ?? resps[0] ?? null;
+    const idade = idadeAnos(p.data_nascimento);
+    const adulto = idade != null && idade >= 18;
+    if (!adulto && respTomador) {
+      setTomadorNome(respTomador.nome);
+      setTomadorDoc(respTomador.documento ?? respTomador.dados_nf ?? "");
+    } else {
       setTomadorNome(p.nome);
-      if (p.cpf) setTomadorDoc(p.cpf);
+      setTomadorDoc(p.cpf ?? "");
     }
   }
 
