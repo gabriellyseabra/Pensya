@@ -4,6 +4,7 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Plus, Sparkles, Trash2 } from "lucide-react";
+import { classificar, RUBRICA_PADRAO, type Rubrica } from "@/lib/avaliacao-classificacao";
 
 export type VariavelDef = {
   key: string;
@@ -91,12 +92,15 @@ export function VariaveisTesteEditor({
   onChangeValores,
   onAddSchema,
   onRemoveSchema,
+  rubrica,
 }: {
   schema: VariavelDef[];
   valores: VariaveisValores;
   onChangeValores: (v: VariaveisValores) => void;
   onAddSchema: (v: VariavelDef) => void;
   onRemoveSchema?: (key: string) => void;
+  /** Rubrica de classificação do teste (cai no preset clínico de 7 faixas). */
+  rubrica?: Rubrica | null;
 }) {
   const [novaLabel, setNovaLabel] = useState("");
 
@@ -151,7 +155,10 @@ export function VariaveisTesteEditor({
             <tbody>
               {schema.map((v) => {
                 const r = normalizarResultado(valores[v.key]);
-                const classif = classificarResultado(r.percentil ?? null, r.padrao ?? null);
+                const cl = classificar(rubrica ?? RUBRICA_PADRAO, {
+                  percentil: r.percentil ?? null,
+                  escorePadrao: r.padrao ?? null,
+                });
                 return (
                   <tr key={v.key} className="border-t border-border/40">
                     <td className="px-2 py-1.5">
@@ -168,8 +175,9 @@ export function VariaveisTesteEditor({
                       <Input type="number" min="0" max="100" step="0.01" value={r.percentil ?? ""} onChange={(e) => setCampo(v.key, "percentil", e.target.value)} className="h-7 text-xs" />
                     </td>
                     <td className="px-1 py-1">
-                      {classif ? (
-                        <span className={`inline-block px-2 py-0.5 rounded text-[10px] font-medium ${corClassificacaoBg(classif)}`}>{classif}</span>
+                      {cl ? (
+                        <span className="inline-block px-2 py-0.5 rounded text-[10px] font-medium"
+                          style={{ backgroundColor: `${cl.cor}26`, color: cl.cor }}>{cl.rotulo}</span>
                       ) : <span className="text-[10px] text-muted-foreground">—</span>}
                     </td>
                     <td className="px-1 py-1">

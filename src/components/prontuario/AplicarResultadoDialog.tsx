@@ -13,9 +13,11 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { Switch } from "@/components/ui/switch";
 import { ChevronDown, ChevronRight } from "lucide-react";
 import { ImpactosCIFEditor, type ImpactoCif } from "./ImpactosCIFEditor";
-import { VariaveisTesteEditor, type VariavelDef, classificarResultado } from "./VariaveisTesteEditor";
+import { VariaveisTesteEditor, type VariavelDef } from "./VariaveisTesteEditor";
 import { useServerFn } from "@tanstack/react-start";
 import { aprenderVariaveisTeste, salvarFormulaTeste, FORMULAS_AGREGACAO, type FormulaAgregacao } from "@/lib/baterias.functions";
+import { useRubricas } from "@/hooks/use-rubricas";
+import { classificarRotulo } from "@/lib/avaliacao-classificacao";
 
 export function calcIdadeAnosMeses(nascISO: string | null | undefined, refISO: string | null | undefined): string {
   if (!nascISO || !refISO) return "";
@@ -61,6 +63,7 @@ export function AplicarResultadoDialog({
 }) {
   const qc = useQueryClient();
   const editingId: string | null = editing?.id ?? null;
+  const { rubricas, resolver: resolverRubrica } = useRubricas();
 
   const { data: aval } = useQuery({
     enabled: !!avaliacaoId,
@@ -79,7 +82,7 @@ export function AplicarResultadoDialog({
     queryKey: ["testes-catalogo"],
     queryFn: async () => (await supabase
       .from("testes_catalogo")
-      .select("id, nome, objetivo, cif_dimensoes, cif_descricao, variaveis, formula_agregacao, dominio:dominios_cognitivos(id, nome)")
+      .select("id, nome, objetivo, cif_dimensoes, cif_descricao, variaveis, formula_agregacao, rubrica_id, dominio:dominios_cognitivos(id, nome)")
       .eq("ativo", true)
       .order("nome")).data ?? [],
   });
@@ -146,6 +149,24 @@ export function AplicarResultadoDialog({
     () => (catalogo ?? []).find((t: any) => t.id === aplicar.teste_id) ?? null,
     [catalogo, aplicar.teste_id],
   );
+  const rubricaDoTeste = useMemo(
+    () => resolverRubrica(testeSelecionado?.rubrica_id),
+    [resolverRubrica, testeSelecionado?.rubrica_id],
+  );
+
+  // Troca a rubrica de classificação do teste (fica salva no catálogo).
+  const definirRubrica = useMutation({
+    mutationFn: async (rubricaId: string | null) => {
+      if (!aplicar.teste_id) return;
+      const { error } = await (supabase as any)
+        .from("testes_catalogo")
+        .update({ rubrica_id: rubricaId })
+        .eq("id", aplicar.teste_id);
+      if (error) throw error;
+    },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["testes-catalogo"] }); toast.success("Rubrica do teste atualizada"); },
+    onError: (e: any) => toast.error(e.message),
+  });
   const variaveisSchema: VariavelDef[] = useMemo(() => {
     const base = Array.isArray(testeSelecionado?.variaveis) ? (testeSelecionado.variaveis as VariavelDef[]) : [];
     const novas = (aplicar.variaveis_schema_local ?? []).filter((n: VariavelDef) => !base.some((b) => b.key === n.key));
@@ -182,10 +203,10 @@ export function AplicarResultadoDialog({
         variaveis_valores: isQualitativo ? {} : varsLimpa,
         classificacao: isQualitativo
           ? "Qualitativo"
-          : (classificarResultado(
-              aplicar.percentil !== "" ? Number(aplicar.percentil) : null,
-              aplicar.escore_padrao !== "" ? Number(aplicar.escore_padrao) : null,
-            ) ?? null),
+          : (classificarRotulo(rubricaDoTeste, {
+              percentil: aplicar.percentil !== "" ? Number(aplicar.percentil) : null,
+              escorePadrao: aplicar.escore_padrao !== "" ? Number(aplicar.escore_padrao) : null,
+            }) ?? null),
         aplicado_por: u.user?.id ?? null,
       };
       if (editingId) {
@@ -265,6 +286,30 @@ export function AplicarResultadoDialog({
               <p className="text-[10px] text-muted-foreground mt-1">Mostrando apenas testes do planejamento desta avaliação.</p>
             )}
           </div>
+
+          {aplicar.teste_id && !aplicar.qualitativo && (
+            <div>
+              <Label>Rubrica de classificação</Label>
+              <Select
+                value={testeSelecionado?.rubrica_id ?? "__padrao__"}
+                onValueChange={(v) => definirRubrica.mutate(v === "__padrao__" ? null : v)}
+              >
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__padrao__">Padrão (clínica — 7 faixas)</SelectItem>
+                  {rubricas.filter((r) => r.id).map((r) => (
+                    <SelectItem key={r.id} value={r.id!}>
+                      {r.nome}{r.is_preset ? "" : " · custom"}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-[10px] text-muted-foreground mt-1">
+                Régua de faixas deste teste (fica salva no catálogo). A classificação é gerada a partir dela — o percentil/escore continua sendo inserido por você. Cadastre rubricas próprias em Configurações › Avaliação.
+              </p>
+            </div>
+          )}
+
           <div className="grid grid-cols-2 gap-3">
             <div>
               <Label>Data de aplicação</Label>
@@ -298,6 +343,7 @@ export function AplicarResultadoDialog({
               <VariaveisTesteEditor
                 schema={variaveisSchema}
                 valores={aplicar.variaveis_valores}
+                rubrica={rubricaDoTeste}
                 onChangeValores={(v) => setAplicar({ ...aplicar, variaveis_valores: v })}
                 onAddSchema={(novo) => setAplicar({
                   ...aplicar,

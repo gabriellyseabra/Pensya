@@ -32,6 +32,8 @@ import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import { ImpactosCIFEditor, type ImpactoCif, CIF_DIM_LABEL } from "./ImpactosCIFEditor";
 import { VariaveisTesteEditor, type VariavelDef, normalizarResultado, classificarPorPercentil, classificarResultado, corClassificacaoBg } from "./VariaveisTesteEditor";
+import { useRubricas } from "@/hooks/use-rubricas";
+import { classificar, classificarRotulo, corDoRotulo } from "@/lib/avaliacao-classificacao";
 import { AplicarBateriaModeloDialog } from "@/components/paciente/AplicarBateriaModeloDialog";
 import { AplicarResultadoDialog } from "@/components/prontuario/AplicarResultadoDialog";
 import { FORMULAS_AGREGACAO, type FormulaAgregacao } from "@/lib/baterias.functions";
@@ -261,11 +263,13 @@ function AvaliacaoDetalhe({ id, onBack }: { id: string; onBack: () => void }) {
       .maybeSingle()).data,
   });
 
+  const { resolver: resolverRubrica } = useRubricas();
+
   const { data: catalogo } = useQuery({
     queryKey: ["testes-catalogo"],
     queryFn: async () => (await supabase
       .from("testes_catalogo")
-      .select("id, nome, objetivo, cif_dimensoes, cif_descricao, variaveis, formula_agregacao, dominio:dominios_cognitivos(id, nome)")
+      .select("id, nome, objetivo, cif_dimensoes, cif_descricao, variaveis, formula_agregacao, rubrica_id, dominio:dominios_cognitivos(id, nome)")
       .eq("ativo", true)
       .order("nome")).data ?? [],
   });
@@ -905,6 +909,7 @@ function AvaliacaoDetalhe({ id, onBack }: { id: string; onBack: () => void }) {
                       {lista.map((a: any) => {
                         const temGlobal = a.escore_bruto != null || a.escore_padrao != null || a.percentil != null;
                         const cat: any = catalogo?.find((c: any) => c.id === a.teste_id);
+                        const rubricaDoTeste = resolverRubrica(cat?.rubrica_id);
                         const formula: FormulaAgregacao | null = (cat?.formula_agregacao as any) ?? null;
                         const agregado = !temGlobal ? aplicarFormula(a.variaveis_valores, formula) : null;
                         const stats = !temGlobal ? statsDeVariaveis(a.variaveis_valores) : { total: 0, comClassif: 0 };
@@ -914,7 +919,7 @@ function AvaliacaoDetalhe({ id, onBack }: { id: string; onBack: () => void }) {
                         const brutoCell = a.escore_bruto != null ? fmtNum(a.escore_bruto) : (agregado?.bruto != null ? fmtNum(agregado.bruto) : "—");
                         const padraoCell = a.escore_padrao != null ? fmtNum(a.escore_padrao) : (agregado?.padrao != null ? fmtNum(agregado.padrao) : "—");
                         const percCell = a.percentil != null ? fmtNum(a.percentil) : (agregado?.percentil != null ? fmtNum(agregado.percentil) : "—");
-                        const classifAgregada = agregado ? classificarResultado(agregado.percentil, agregado.padrao) : null;
+                        const classifAgregada = agregado ? classificarRotulo(rubricaDoTeste, { percentil: agregado.percentil, escorePadrao: agregado.padrao }) : null;
                         const classifCell = a.classificacao ?? classifAgregada ?? (isQualitativo ? "Qualitativo" : null);
                         const formulaLabel = agregado ? FORMULAS_AGREGACAO.find(f => f.value === formula)?.label : null;
                         return (
@@ -958,14 +963,14 @@ function AvaliacaoDetalhe({ id, onBack }: { id: string; onBack: () => void }) {
                                   {Object.entries(a.variaveis_valores).map(([k, raw]) => {
                                     const def = schema.find((s) => s.key === k);
                                     const r = normalizarResultado(raw as any);
-                                    const classif = classificarResultado(r.percentil ?? null, r.padrao ?? null);
+                                    const cl = classificar(rubricaDoTeste, { percentil: r.percentil ?? null, escorePadrao: r.padrao ?? null });
                                     return (
                                       <div key={k} className="flex items-center gap-2 text-[11px] flex-wrap">
                                         <span className="font-medium text-foreground/80 min-w-[120px]">{def?.label ?? k}</span>
                                         {r.bruto != null && r.bruto !== "" && <span className="text-muted-foreground">bruto <b className="text-foreground">{fmtNum(r.bruto)}</b></span>}
                                         {r.padrao != null && <span className="text-muted-foreground">padrão <b className="text-foreground">{fmtNum(r.padrao)}</b></span>}
                                         {r.percentil != null && <span className="text-muted-foreground">P <b className="text-foreground">{fmtNum(r.percentil)}</b></span>}
-                                        {classif && <span className={`px-1.5 py-px rounded text-[10px] ${corClassificacaoBg(classif)}`}>{classif}</span>}
+                                        {cl && <span className="px-1.5 py-px rounded text-[10px]" style={{ backgroundColor: `${cl.cor}26`, color: cl.cor }}>{cl.rotulo}</span>}
                                         {r.impressoes && <span className="text-muted-foreground italic">— {r.impressoes}</span>}
                                       </div>
                                     );
@@ -995,7 +1000,12 @@ function AvaliacaoDetalhe({ id, onBack }: { id: string; onBack: () => void }) {
                           <TableCell>{isQualitativo ? "—" : percCell}</TableCell>
                           <TableCell>
                             {classifCell
-                              ? <Badge className={corClassificacao(classifCell)}>{classifCell}</Badge>
+                              ? (() => {
+                                  const cor = classifCell === "Qualitativo" ? null : corDoRotulo(rubricaDoTeste, classifCell);
+                                  return cor
+                                    ? <Badge className="border-transparent" style={{ backgroundColor: `${cor}26`, color: cor }}>{classifCell}</Badge>
+                                    : <Badge className={corClassificacao(classifCell)}>{classifCell}</Badge>;
+                                })()
                               : <span className="text-xs text-muted-foreground">—</span>}
                           </TableCell>
                           <TableCell>

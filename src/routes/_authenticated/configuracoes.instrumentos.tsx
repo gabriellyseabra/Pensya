@@ -15,6 +15,7 @@ import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "
 import { TestTube, Plus, Trash2, Search, X } from "lucide-react";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { FORMULAS_AGREGACAO } from "@/lib/baterias.functions";
+import { useRubricas } from "@/hooks/use-rubricas";
 
 export const Route = createFileRoute("/_authenticated/configuracoes/instrumentos")({
   component: InstrumentosPage,
@@ -164,6 +165,7 @@ function InstrumentosPage() {
 function InstrumentoDetalhe({ id, dominios, onDeleted }: { id: string; dominios: any[]; onDeleted: () => void }) {
   const qc = useQueryClient();
   const [novaVar, setNovaVar] = useState("");
+  const { rubricas } = useRubricas();
 
   const { data: inst } = useQuery({
     queryKey: ["instrumento", id],
@@ -244,6 +246,21 @@ function InstrumentoDetalhe({ id, dominios, onDeleted }: { id: string; dominios:
                 {dominios.map((d: any) => <SelectItem key={d.id} value={d.id}>{d.nome}</SelectItem>)}
               </SelectContent>
             </Select>
+          </div>
+          <div className="md:col-span-2">
+            <Label>Rubrica de classificação</Label>
+            <Select value={(inst as any).rubrica_id ?? "__padrao__"} onValueChange={(v) => salvar.mutate({ rubrica_id: v === "__padrao__" ? null : v })}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent className="max-h-72">
+                <SelectItem value="__padrao__">Padrão (clínica — 7 faixas)</SelectItem>
+                {rubricas.filter((r) => r.id).map((r) => (
+                  <SelectItem key={r.id} value={r.id!}>{r.nome}{r.is_preset ? "" : " · custom"}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <p className="text-[10px] text-muted-foreground mt-1">
+              Régua de faixas que traduz percentil/escore em classificação. Gerencie as suas em Configurações › Rubricas de classificação.
+            </p>
           </div>
           <div className="md:col-span-2">
             <Label>Objetivo</Label>
