@@ -29,6 +29,7 @@ export const DESCRICOES: Record<string, { descricao: string; nivel: NivelConfig 
 /** Rotas de configuração com página própria (ficavam escondidas). */
 export const ROTAS_EXTRA: { key: string; label: string; href: string; descricao: string; nivel: NivelConfig }[] = [
   { key: "instrumentos", label: "Instrumentos", href: "/configuracoes/instrumentos", descricao: "Escalas e instrumentos aplicáveis aos pacientes.", nivel: "avancado" },
+  { key: "rubricas", label: "Rubricas de classificação", href: "/configuracoes/rubricas", descricao: "Réguas de faixas (percentil/escore) por teste — presets + as suas (TDE II, Seabra…).", nivel: "avancado" },
   { key: "protocolos", label: "Biblioteca de Protocolos", href: "/configuracoes/protocolos", descricao: "Protocolos clínicos reutilizáveis nas sessões.", nivel: "avancado" },
   { key: "ia", label: "IA & Automações", href: "/configuracoes/ia", descricao: "Preferências da inteligência artificial e automações.", nivel: "avancado" },
   { key: "baterias", label: "Baterias por demanda", href: "/configuracoes/baterias", descricao: "Modelos de baterias de testes (TDAH, Dislexia…).", nivel: "avancado" },

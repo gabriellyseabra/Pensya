@@ -52,6 +52,7 @@ import { Route as PortalConviteTokenRouteImport } from './routes/portal_.convite
 import { Route as EquipeConviteTokenRouteImport } from './routes/equipe_.convite.$token'
 import { Route as AuthenticatedProcessosIdRouteImport } from './routes/_authenticated/processos.$id'
 import { Route as AuthenticatedPacientesIdRouteImport } from './routes/_authenticated/pacientes.$id'
+import { Route as AuthenticatedConfiguracoesRubricasRouteImport } from './routes/_authenticated/configuracoes.rubricas'
 import { Route as AuthenticatedConfiguracoesReferenciasRouteImport } from './routes/_authenticated/configuracoes.referencias'
 import { Route as AuthenticatedConfiguracoesRecursosRouteImport } from './routes/_authenticated/configuracoes.recursos'
 import { Route as AuthenticatedConfiguracoesProtocolosRouteImport } from './routes/_authenticated/configuracoes.protocolos'
@@ -285,6 +286,12 @@ const AuthenticatedPacientesIdRoute =
     path: '/pacientes/$id',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedConfiguracoesRubricasRoute =
+  AuthenticatedConfiguracoesRubricasRouteImport.update({
+    id: '/rubricas',
+    path: '/rubricas',
+    getParentRoute: () => AuthenticatedConfiguracoesRoute,
+  } as any)
 const AuthenticatedConfiguracoesReferenciasRoute =
   AuthenticatedConfiguracoesReferenciasRouteImport.update({
     id: '/referencias',
@@ -377,6 +384,7 @@ export interface FileRoutesByFullPath {
   '/configuracoes/protocolos': typeof AuthenticatedConfiguracoesProtocolosRoute
   '/configuracoes/recursos': typeof AuthenticatedConfiguracoesRecursosRoute
   '/configuracoes/referencias': typeof AuthenticatedConfiguracoesReferenciasRoute
+  '/configuracoes/rubricas': typeof AuthenticatedConfiguracoesRubricasRoute
   '/pacientes/$id': typeof AuthenticatedPacientesIdRoute
   '/processos/$id': typeof AuthenticatedProcessosIdRoute
   '/equipe/convite/$token': typeof EquipeConviteTokenRoute
@@ -427,6 +435,7 @@ export interface FileRoutesByTo {
   '/configuracoes/protocolos': typeof AuthenticatedConfiguracoesProtocolosRoute
   '/configuracoes/recursos': typeof AuthenticatedConfiguracoesRecursosRoute
   '/configuracoes/referencias': typeof AuthenticatedConfiguracoesReferenciasRoute
+  '/configuracoes/rubricas': typeof AuthenticatedConfiguracoesRubricasRoute
   '/pacientes/$id': typeof AuthenticatedPacientesIdRoute
   '/processos/$id': typeof AuthenticatedProcessosIdRoute
   '/equipe/convite/$token': typeof EquipeConviteTokenRoute
@@ -481,6 +490,7 @@ export interface FileRoutesById {
   '/_authenticated/configuracoes/protocolos': typeof AuthenticatedConfiguracoesProtocolosRoute
   '/_authenticated/configuracoes/recursos': typeof AuthenticatedConfiguracoesRecursosRoute
   '/_authenticated/configuracoes/referencias': typeof AuthenticatedConfiguracoesReferenciasRoute
+  '/_authenticated/configuracoes/rubricas': typeof AuthenticatedConfiguracoesRubricasRoute
   '/_authenticated/pacientes/$id': typeof AuthenticatedPacientesIdRoute
   '/_authenticated/processos/$id': typeof AuthenticatedProcessosIdRoute
   '/equipe_/convite/$token': typeof EquipeConviteTokenRoute
@@ -535,6 +545,7 @@ export interface FileRouteTypes {
     | '/configuracoes/protocolos'
     | '/configuracoes/recursos'
     | '/configuracoes/referencias'
+    | '/configuracoes/rubricas'
     | '/pacientes/$id'
     | '/processos/$id'
     | '/equipe/convite/$token'
@@ -585,6 +596,7 @@ export interface FileRouteTypes {
     | '/configuracoes/protocolos'
     | '/configuracoes/recursos'
     | '/configuracoes/referencias'
+    | '/configuracoes/rubricas'
     | '/pacientes/$id'
     | '/processos/$id'
     | '/equipe/convite/$token'
@@ -638,6 +650,7 @@ export interface FileRouteTypes {
     | '/_authenticated/configuracoes/protocolos'
     | '/_authenticated/configuracoes/recursos'
     | '/_authenticated/configuracoes/referencias'
+    | '/_authenticated/configuracoes/rubricas'
     | '/_authenticated/pacientes/$id'
     | '/_authenticated/processos/$id'
     | '/equipe_/convite/$token'
@@ -969,6 +982,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedPacientesIdRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/configuracoes/rubricas': {
+      id: '/_authenticated/configuracoes/rubricas'
+      path: '/rubricas'
+      fullPath: '/configuracoes/rubricas'
+      preLoaderRoute: typeof AuthenticatedConfiguracoesRubricasRouteImport
+      parentRoute: typeof AuthenticatedConfiguracoesRoute
+    }
     '/_authenticated/configuracoes/referencias': {
       id: '/_authenticated/configuracoes/referencias'
       path: '/referencias'
@@ -1035,6 +1055,7 @@ interface AuthenticatedConfiguracoesRouteChildren {
   AuthenticatedConfiguracoesProtocolosRoute: typeof AuthenticatedConfiguracoesProtocolosRoute
   AuthenticatedConfiguracoesRecursosRoute: typeof AuthenticatedConfiguracoesRecursosRoute
   AuthenticatedConfiguracoesReferenciasRoute: typeof AuthenticatedConfiguracoesReferenciasRoute
+  AuthenticatedConfiguracoesRubricasRoute: typeof AuthenticatedConfiguracoesRubricasRoute
   AuthenticatedConfiguracoesIndexRoute: typeof AuthenticatedConfiguracoesIndexRoute
 }
 
@@ -1051,6 +1072,8 @@ const AuthenticatedConfiguracoesRouteChildren: AuthenticatedConfiguracoesRouteCh
       AuthenticatedConfiguracoesRecursosRoute,
     AuthenticatedConfiguracoesReferenciasRoute:
       AuthenticatedConfiguracoesReferenciasRoute,
+    AuthenticatedConfiguracoesRubricasRoute:
+      AuthenticatedConfiguracoesRubricasRoute,
     AuthenticatedConfiguracoesIndexRoute: AuthenticatedConfiguracoesIndexRoute,
   }
 
