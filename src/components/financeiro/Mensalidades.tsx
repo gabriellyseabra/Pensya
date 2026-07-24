@@ -205,15 +205,22 @@ function GerarMensalidades({ onGerado }: { onGerado: () => void }) {
         if (!ultimoValor.has(h.paciente_id)) ultimoValor.set(h.paciente_id, Number(h.valor));
       }
       const insertsMensal = porMensal
-        .filter((p) => ultimoValor.has(p.id))
-        .map((p) => ({
-          paciente_id: p.id,
-          competencia,
-          valor: ultimoValor.get(p.id)!,
-          vencimento: vencimentoDe(p.id),
-          status: "pendente",
-          observacoes: "Gerado automaticamente (mensalidade recorrente)",
-        }));
+        .map((p) => {
+          // Sem histórico de pagamento? Usa o valor acordado da ficha do paciente.
+          const valor = ultimoValor.get(p.id) ?? Number(p.valor_acordado ?? 0);
+          if (!valor) return null;
+          return {
+            paciente_id: p.id,
+            competencia,
+            valor,
+            vencimento: vencimentoDe(p.id),
+            status: "pendente" as const,
+            observacoes: ultimoValor.has(p.id)
+              ? "Gerado automaticamente (mensalidade recorrente)"
+              : "Gerado automaticamente (valor acordado)",
+          };
+        })
+        .filter((v): v is NonNullable<typeof v> => v !== null);
 
       // Pacientes por sessão: projeta pela quantidade de atendimentos planejados no mês.
       const contagemSessoes = new Map<string, number>();
