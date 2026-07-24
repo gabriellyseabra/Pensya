@@ -13,11 +13,11 @@ import { Switch } from "@/components/ui/switch";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Textarea } from "@/components/ui/textarea";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   Plus, Download, MessageCircle, FileSpreadsheet, Loader2, Copy, Ban, Trash2, FileText,
-  CalendarPlus, FileDown,
+  CalendarPlus, FileDown, FileUp, CheckCircle2,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -822,16 +822,17 @@ function NovoDocumentoDialog({
 
 function CopyRow({ label, value }: { label: string; value: string }) {
   return (
-    <div className="flex items-center justify-between gap-2 rounded-lg border border-border/40 bg-background/40 px-3 py-1.5">
-      <div className="min-w-0">
+    <div className="flex items-start justify-between gap-2 rounded-lg border border-border/40 bg-background/40 px-3 py-1.5">
+      <div className="min-w-0 flex-1">
         <p className="text-[10px] uppercase tracking-wider text-muted-foreground">{label}</p>
-        <p className="text-sm truncate">{value || "—"}</p>
+        {/* break-words evita corte/scroll horizontal quando o valor é longo */}
+        <p className="text-sm break-words">{value || "—"}</p>
       </div>
       {value && (
         <Button
           size="icon"
           variant="ghost"
-          className="shrink-0"
+          className="h-7 w-7 shrink-0"
           onClick={() => navigator.clipboard.writeText(value).then(() => toast.success("Copiado"))}
         >
           <Copy className="h-3.5 w-3.5" />
@@ -898,34 +899,44 @@ function DadosEmissaoDialog({
 
   return (
     <Dialog open={!!doc} onOpenChange={onOpenChange}>
-      <DialogContent className="glass-strong max-w-lg max-h-[90vh] overflow-y-auto">
-        <DialogHeader><DialogTitle>Dados para emissão da NF</DialogTitle></DialogHeader>
+      <DialogContent className="glass-strong max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>Dados para emissão da NF</DialogTitle>
+          <DialogDescription>
+            Copie os campos para o portal da prefeitura e, depois de emitir, anexe o PDF aqui.
+          </DialogDescription>
+        </DialogHeader>
         {doc && (
-          <div className="space-y-3">
-            <div className="space-y-1.5">
-              <p className="text-xs font-medium text-muted-foreground">Prestador</p>
-              <CopyRow label="Razão social" value={org?.razao_social ?? org?.nome ?? ""} />
-              <CopyRow label="CNPJ" value={org?.cnpj ?? ""} />
-              <CopyRow label="Inscrição municipal" value={org?.inscricao_municipal ?? ""} />
-              <CopyRow label="Código do serviço" value={org?.codigo_servico_municipal ?? ""} />
-              <CopyRow label="Alíquota ISS" value={org?.aliquota_iss != null ? `${org.aliquota_iss}%` : ""} />
-            </div>
-            <div className="space-y-1.5">
-              <p className="text-xs font-medium text-muted-foreground">Tomador</p>
-              <CopyRow label="Nome" value={doc.tomador_nome ?? doc.paciente?.nome ?? ""} />
-              <CopyRow label="CPF/CNPJ" value={doc.tomador_documento ?? ""} />
-            </div>
-            <div className="space-y-1.5">
-              <p className="text-xs font-medium text-muted-foreground">Serviço</p>
-              <CopyRow label="Discriminação" value={doc.descricao ?? ""} />
-              <CopyRow label="Valor" value={BRL(Number(doc.valor))} />
-              <CopyRow
-                label={`ISS (${org?.aliquota_iss ?? 0}%)`}
-                value={BRL(Number(doc.valor) * ((org?.aliquota_iss ?? 0) / 100))}
-              />
+          <div className="space-y-4">
+            {/* Dados para copiar — duas colunas para caber sem rolar de lado */}
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-1.5">
+                <p className="text-xs font-medium text-muted-foreground">Prestador</p>
+                <CopyRow label="Razão social" value={org?.razao_social ?? org?.nome ?? ""} />
+                <CopyRow label="CNPJ" value={org?.cnpj ?? ""} />
+                <CopyRow label="Inscrição municipal" value={org?.inscricao_municipal ?? ""} />
+                <CopyRow label="Código do serviço" value={org?.codigo_servico_municipal ?? ""} />
+                <CopyRow label="Alíquota ISS" value={org?.aliquota_iss != null ? `${org.aliquota_iss}%` : ""} />
+              </div>
+              <div className="space-y-4">
+                <div className="space-y-1.5">
+                  <p className="text-xs font-medium text-muted-foreground">Tomador</p>
+                  <CopyRow label="Nome" value={doc.tomador_nome ?? doc.paciente?.nome ?? ""} />
+                  <CopyRow label="CPF/CNPJ" value={doc.tomador_documento ?? ""} />
+                </div>
+                <div className="space-y-1.5">
+                  <p className="text-xs font-medium text-muted-foreground">Serviço</p>
+                  <CopyRow label="Discriminação" value={doc.descricao ?? ""} />
+                  <CopyRow label="Valor" value={BRL(Number(doc.valor))} />
+                  <CopyRow
+                    label={`ISS (${org?.aliquota_iss ?? 0}%)`}
+                    value={BRL(Number(doc.valor) * ((org?.aliquota_iss ?? 0) / 100))}
+                  />
+                </div>
+              </div>
             </div>
 
-            <div className="rounded-lg border border-border/40 p-3 space-y-2">
+            <div className="rounded-lg border border-border/40 p-3 space-y-3">
               <p className="text-sm font-medium">Registrar emissão</p>
               <div className="grid grid-cols-2 gap-3">
                 <div>
@@ -937,12 +948,40 @@ function DadosEmissaoDialog({
                   <Input type="date" value={dataEmissao} onChange={(e) => setDataEmissao(e.target.value)} />
                 </div>
               </div>
+
+              {/* Anexo do PDF em destaque (área clicável grande) */}
+              <label
+                htmlFor="nf-pdf-upload"
+                className={`flex cursor-pointer flex-col items-center justify-center gap-1.5 rounded-lg border-2 border-dashed px-4 py-6 text-center transition-colors ${
+                  pdfFile
+                    ? "border-emerald-500/60 bg-emerald-500/5"
+                    : "border-brand/50 bg-brand/5 hover:bg-brand/10"
+                }`}
+              >
+                {pdfFile ? (
+                  <>
+                    <CheckCircle2 className="h-6 w-6 text-emerald-600" />
+                    <span className="text-sm font-medium break-all">{pdfFile.name}</span>
+                    <span className="text-xs text-muted-foreground">Clique para trocar o arquivo</span>
+                  </>
+                ) : (
+                  <>
+                    <FileUp className="h-6 w-6 text-brand" />
+                    <span className="text-sm font-medium">Anexar PDF da nota emitida</span>
+                    <span className="text-xs text-muted-foreground">Clique para selecionar o arquivo (.pdf)</span>
+                  </>
+                )}
+                <Input
+                  id="nf-pdf-upload"
+                  type="file"
+                  accept="application/pdf"
+                  className="hidden"
+                  onChange={(e) => setPdfFile(e.target.files?.[0] ?? null)}
+                />
+              </label>
+
               <div>
-                <Label>PDF da nota</Label>
-                <Input type="file" accept="application/pdf" onChange={(e) => setPdfFile(e.target.files?.[0] ?? null)} />
-              </div>
-              <div>
-                <Label>XML (opcional)</Label>
+                <Label className="text-xs text-muted-foreground">XML (opcional)</Label>
                 <Input type="file" accept="text/xml,application/xml,.xml" onChange={(e) => setXmlFile(e.target.files?.[0] ?? null)} />
               </div>
             </div>
