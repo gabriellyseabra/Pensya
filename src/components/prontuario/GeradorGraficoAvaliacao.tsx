@@ -9,8 +9,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Download, Plus, Trash2, Sparkles } from "lucide-react";
+import { Download, Plus, Trash2, Sparkles, Save, Loader2 } from "lucide-react";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 import { normalizarResultado } from "./VariaveisTesteEditor";
 import { classificar, corPastel, PALETA_SISTEMA, type Rubrica } from "@/lib/avaliacao-classificacao";
 
@@ -34,36 +35,69 @@ let _seq = 0;
 const novaLinha = (cor = NIVEIS[3].cor, nivelLabel = NIVEIS[3].label): Linha =>
   ({ id: `l${_seq++}`, rotulo: "", valor: "", nivelLabel, cor });
 
-/** Serializa o SVG do gráfico e baixa como PNG (fundo branco, 2x). */
-function baixarPng(container: HTMLElement | null, filename: string) {
-  const svg = container?.querySelector("svg");
-  if (!svg) { toast.error("Nada para exportar"); return; }
-  const w = svg.clientWidth || 800;
-  const h = svg.clientHeight || 420;
-  const clone = svg.cloneNode(true) as SVGSVGElement;
-  clone.setAttribute("width", String(w));
-  clone.setAttribute("height", String(h));
-  const xml = new XMLSerializer().serializeToString(clone);
-  const src = "data:image/svg+xml;base64," + btoa(unescape(encodeURIComponent(xml)));
-  const img = new Image();
-  img.onload = () => {
-    const canvas = document.createElement("canvas");
-    canvas.width = w * 2; canvas.height = h * 2;
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return;
-    ctx.scale(2, 2);
-    ctx.fillStyle = "#ffffff"; ctx.fillRect(0, 0, w, h);
-    ctx.drawImage(img, 0, 0, w, h);
-    canvas.toBlob((blob) => {
-      if (!blob) return;
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url; a.download = filename; a.click();
-      URL.revokeObjectURL(url);
-    }, "image/png");
-  };
-  img.onerror = () => toast.error("Falha ao gerar a imagem");
-  img.src = src;
+/**
+ * Compõe o PNG final (fundo branco, 2x) com TÍTULO no topo, o gráfico (SVG) e a
+ * LEGENDA de classificação embaixo — tudo desenhado no canvas para sair na imagem.
+ */
+function comporPng(
+  container: HTMLElement | null,
+  opts: { titulo?: string; legenda: [string, string][] },
+): Promise<Blob | null> {
+  return new Promise((resolve) => {
+    const svg = container?.querySelector("svg");
+    if (!svg) { toast.error("Nada para exportar"); resolve(null); return; }
+    const w = svg.clientWidth || 800;
+    const h = svg.clientHeight || 420;
+    const clone = svg.cloneNode(true) as SVGSVGElement;
+    clone.setAttribute("width", String(w));
+    clone.setAttribute("height", String(h));
+    const xml = new XMLSerializer().serializeToString(clone);
+    const src = "data:image/svg+xml;base64," + btoa(unescape(encodeURIComponent(xml)));
+    const img = new Image();
+    img.onload = () => {
+      const pad = 16;
+      const titleH = opts.titulo ? 30 : 0;
+      const legendH = opts.legenda.length ? 24 : 0;
+      const W = w + pad * 2;
+      const H = titleH + h + legendH + pad * 2;
+      const canvas = document.createElement("canvas");
+      canvas.width = W * 2; canvas.height = H * 2;
+      const ctx = canvas.getContext("2d");
+      if (!ctx) { resolve(null); return; }
+      ctx.scale(2, 2);
+      ctx.fillStyle = "#ffffff"; ctx.fillRect(0, 0, W, H);
+
+      let y = pad;
+      if (opts.titulo) {
+        ctx.fillStyle = "#334155";
+        ctx.font = "bold 15px sans-serif";
+        ctx.textAlign = "center"; ctx.textBaseline = "top";
+        ctx.fillText(opts.titulo, W / 2, y);
+        y += titleH;
+      }
+      ctx.drawImage(img, pad, y, w, h);
+      y += h;
+
+      if (opts.legenda.length) {
+        ctx.font = "12px sans-serif"; ctx.textBaseline = "middle"; ctx.textAlign = "left";
+        const sw = 9, gap = 14, txtGap = 5;
+        const largura = (nome: string) => sw + txtGap + ctx.measureText(nome).width + gap;
+        const totalW = opts.legenda.reduce((s, [n]) => s + largura(n), 0) - gap;
+        let x = Math.max(pad, (W - totalW) / 2);
+        const cy = y + legendH / 2 + 2;
+        for (const [nome, cor] of opts.legenda) {
+          ctx.fillStyle = cor;
+          ctx.beginPath(); ctx.arc(x + sw / 2, cy, sw / 2, 0, Math.PI * 2); ctx.fill();
+          ctx.fillStyle = "#475569";
+          ctx.fillText(nome, x + sw + txtGap, cy);
+          x += largura(nome);
+        }
+      }
+      canvas.toBlob((blob) => resolve(blob), "image/png");
+    };
+    img.onerror = () => { toast.error("Falha ao gerar a imagem"); resolve(null); };
+    img.src = src;
+  });
 }
 
 function mediaVariaveis(vv: any, campo: "percentil" | "padrao"): number | null {
@@ -78,7 +112,7 @@ function mediaVariaveis(vv: any, campo: "percentil" | "padrao"): number | null {
 }
 
 export function GeradorGraficoAvaliacao({
-  open, onOpenChange, titulo, aplicados, rubricaDeTeste, catalogo,
+  open, onOpenChange, titulo, aplicados, rubricaDeTeste, catalogo, avaliacaoId, onSalvou,
 }: {
   open: boolean;
   onOpenChange: (v: boolean) => void;
@@ -86,10 +120,15 @@ export function GeradorGraficoAvaliacao({
   aplicados?: any[];
   rubricaDeTeste?: (testeId?: string | null) => Rubrica;
   catalogo?: any[];
+  /** Quando informado, habilita "Salvar na avaliação" (anexa o PNG aos documentos). */
+  avaliacaoId?: string | null;
+  onSalvou?: () => void;
 }) {
   const chartRef = useRef<HTMLDivElement>(null);
+  const [salvando, setSalvando] = useState(false);
   const [tituloGrafico, setTituloGrafico] = useState("");
   const [tipo, setTipo] = useState<Tipo>("barras");
+  const [barOrient, setBarOrient] = useState<"horizontal" | "vertical">("horizontal");
   const [barSize, setBarSize] = useState(22);
   const [linhaBase, setLinhaBase] = useState("");
   const [origem, setOrigem] = useState("__completa__");
@@ -178,6 +217,39 @@ export function GeradorGraficoAvaliacao({
   const base = linhaBase.trim() !== "" && !Number.isNaN(Number(linhaBase)) ? Number(linhaBase) : null;
   const arquivo = `grafico-${(tituloGrafico || titulo || "avaliacao").toLowerCase().replace(/[^a-z0-9]+/g, "-").slice(0, 40)}.png`;
 
+  async function baixar() {
+    const blob = await comporPng(chartRef.current, { titulo: tituloGrafico || undefined, legenda });
+    if (!blob) return;
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url; a.download = arquivo; a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  async function salvarNaAvaliacao() {
+    if (!avaliacaoId) return;
+    setSalvando(true);
+    try {
+      const blob = await comporPng(chartRef.current, { titulo: tituloGrafico || undefined, legenda });
+      if (!blob) { setSalvando(false); return; }
+      const nome = `${tituloGrafico || "Gráfico"}.png`;
+      const path = `avaliacoes/${avaliacaoId}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.png`;
+      const up = await supabase.storage.from("prontuario-docs").upload(path, blob, { contentType: "image/png", upsert: false });
+      if (up.error) throw new Error(up.error.message);
+      const { data: u } = await supabase.auth.getUser();
+      const { error } = await supabase.from("avaliacao_documentos").insert({
+        avaliacao_id: avaliacaoId, nome, storage_path: path, tamanho: blob.size, tipo: "image/png", uploaded_by: u.user?.id ?? null,
+      });
+      if (error) throw new Error(error.message);
+      toast.success("Gráfico salvo nos documentos da avaliação");
+      onSalvou?.();
+    } catch (e: any) {
+      toast.error(e?.message ?? "Erro ao salvar");
+    } finally {
+      setSalvando(false);
+    }
+  }
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-4xl max-h-[92vh] overflow-y-auto">
@@ -213,6 +285,18 @@ export function GeradorGraficoAvaliacao({
 
             {(tipo === "barras" || tipo === "linha") && (
               <div className="flex flex-wrap items-end gap-4">
+                {tipo === "barras" && (
+                  <div>
+                    <Label className="text-xs">Orientação</Label>
+                    <Select value={barOrient} onValueChange={(v) => setBarOrient(v as "horizontal" | "vertical")}>
+                      <SelectTrigger className="h-9 w-36"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="horizontal">Barras horizontais</SelectItem>
+                        <SelectItem value="vertical">Barras verticais</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
                 {tipo === "barras" && (
                   <div>
                     <Label className="text-xs">Espessura das barras</Label>
@@ -289,9 +373,16 @@ export function GeradorGraficoAvaliacao({
           <div className="space-y-2">
             <div className="flex items-center justify-between">
               <Label className="text-xs text-muted-foreground">Prévia</Label>
-              <Button variant="outline" size="sm" className="h-7 text-xs" disabled={vazio} onClick={() => baixarPng(chartRef.current, arquivo)}>
-                <Download className="mr-1 h-3.5 w-3.5" />PNG
-              </Button>
+              <div className="flex gap-1.5">
+                {avaliacaoId && (
+                  <Button variant="outline" size="sm" className="h-7 text-xs" disabled={vazio || salvando} onClick={salvarNaAvaliacao}>
+                    {salvando ? <Loader2 className="mr-1 h-3.5 w-3.5 animate-spin" /> : <Save className="mr-1 h-3.5 w-3.5" />}Salvar na avaliação
+                  </Button>
+                )}
+                <Button variant="outline" size="sm" className="h-7 text-xs" disabled={vazio} onClick={baixar}>
+                  <Download className="mr-1 h-3.5 w-3.5" />PNG
+                </Button>
+              </div>
             </div>
             <div ref={chartRef} className="rounded-lg border border-border/40 bg-white p-3">
               {tituloGrafico && <p className="mb-1 text-center text-sm font-semibold text-slate-700">{tituloGrafico}</p>}
@@ -333,6 +424,22 @@ export function GeradorGraficoAvaliacao({
                       }}
                       isAnimationActive={false} />
                   </LineChart>
+                </ResponsiveContainer>
+              ) : barOrient === "vertical" ? (
+                <ResponsiveContainer width="100%" height={360}>
+                  <BarChart data={dados} margin={{ left: 4, right: 12, top: 16, bottom: 8 }}>
+                    <XAxis type="category" dataKey="nome" tick={{ fontSize: 10 }} interval={0} angle={-15} textAnchor="end" height={54} />
+                    <YAxis type="number" domain={[0, "dataMax"]} tick={{ fontSize: 10 }} />
+                    <Tooltip formatter={(v: any, _n: any, p: any) => [`${v}${p?.payload?.nivel ? ` · ${p.payload.nivel}` : ""}`, "Valor"]} />
+                    {base != null && (
+                      <ReferenceLine y={base} stroke="#64748b" strokeDasharray="5 4"
+                        label={{ value: `base ${base}`, position: "insideTopRight", fontSize: 10, fill: "#64748b" }} />
+                    )}
+                    <Bar dataKey="valor" barSize={barSize} radius={[4, 4, 0, 0]} isAnimationActive={false}>
+                      <LabelList dataKey="nivel" position="top" style={{ fontSize: 10, fill: "#334155" }} />
+                      {dados.map((d, i) => <Cell key={i} fill={corPastel(d.cor)} stroke={d.cor} strokeOpacity={0.55} />)}
+                    </Bar>
+                  </BarChart>
                 </ResponsiveContainer>
               ) : (
                 <ResponsiveContainer width="100%" height={Math.max(240, dados.length * 40 + 50)}>

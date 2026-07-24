@@ -22,6 +22,7 @@ import {
   Upload,
   Clock,
   Package,
+  Wrench,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
@@ -83,6 +84,7 @@ const groups: { label: string; items: Item[] }[] = [
     items: [
       { title: "Financeiro", url: "/financeiro", icon: DollarSign },
       { title: "Insumos e testes", url: "/insumos", icon: Package },
+      { title: "Ferramentas", url: "/ferramentas", icon: Wrench },
       { title: "Importar", url: "/importar", icon: Upload },
       { title: "Contratos", url: "/contratos", icon: FileText },
       { title: "Indicadores", url: "/indicadores", icon: BarChart3 },

@@ -646,6 +646,8 @@ function AvaliacaoDetalhe({ id, onBack }: { id: string; onBack: () => void }) {
         aplicados={aplicados ?? []}
         rubricaDeTeste={rubricaDeTeste}
         catalogo={catalogo ?? []}
+        avaliacaoId={id}
+        onSalvou={() => qc.invalidateQueries({ queryKey: ["aval-docs", id] })}
       />
 
       <Card>
