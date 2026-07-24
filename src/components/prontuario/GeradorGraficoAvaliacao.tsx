@@ -1,40 +1,37 @@
 import { useMemo, useRef, useState } from "react";
 import {
-  Bar, BarChart, Cell, LabelList, PolarAngleAxis, PolarGrid, Radar, RadarChart,
-  ResponsiveContainer, Tooltip, XAxis, YAxis,
+  Bar, BarChart, Cell, LabelList, Pie, PieChart, PolarAngleAxis, PolarGrid,
+  Radar, RadarChart, ResponsiveContainer, Tooltip, XAxis, YAxis,
 } from "recharts";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Download, Lightbulb } from "lucide-react";
+import { Download, Plus, Trash2, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import { normalizarResultado } from "./VariaveisTesteEditor";
-import { classificar, corDoRotulo, RUBRICA_PADRAO, type Rubrica } from "@/lib/avaliacao-classificacao";
+import { classificar, PALETA_SISTEMA, type Rubrica } from "@/lib/avaliacao-classificacao";
 
-type Metrica = "percentil" | "escore_padrao";
-type TipoGrafico = "barras_teste" | "barras_dominio" | "radar";
+type Tipo = "barras" | "radar" | "pizza";
 
-const COR_NEUTRA = "#94a3b8";
+/** Níveis padrão (mesma paleta do sistema, do mais baixo ao mais alto). */
+const NIVEIS = [
+  { label: "Muito inferior", cor: PALETA_SISTEMA[0].cor },
+  { label: "Inferior", cor: PALETA_SISTEMA[1].cor },
+  { label: "Médio inferior", cor: PALETA_SISTEMA[2].cor },
+  { label: "Médio", cor: PALETA_SISTEMA[3].cor },
+  { label: "Médio superior", cor: PALETA_SISTEMA[4].cor },
+  { label: "Superior", cor: PALETA_SISTEMA[5].cor },
+  { label: "Muito superior", cor: PALETA_SISTEMA[6].cor },
+];
+const ordinalDaCor = (cor: string) => Math.max(1, PALETA_SISTEMA.findIndex((c) => c.cor === cor) + 1);
 
-/** Média das variáveis (quando o teste não tem escore global). */
-function mediaVariaveis(vv: any, campo: "percentil" | "padrao"): number | null {
-  if (!vv || typeof vv !== "object") return null;
-  const nums: number[] = [];
-  for (const raw of Object.values(vv)) {
-    const r = normalizarResultado(raw as any);
-    const v = campo === "percentil" ? r.percentil : r.padrao;
-    if (v != null && !Number.isNaN(Number(v))) nums.push(Number(v));
-  }
-  return nums.length ? nums.reduce((s, n) => s + n, 0) / nums.length : null;
-}
+type Linha = { id: string; rotulo: string; valor: string; nivelLabel: string; cor: string };
 
-function valorDe(a: any, metrica: Metrica): number | null {
-  if (metrica === "escore_padrao") {
-    return a.escore_padrao != null ? Number(a.escore_padrao) : mediaVariaveis(a.variaveis_valores, "padrao");
-  }
-  return a.percentil != null ? Number(a.percentil) : mediaVariaveis(a.variaveis_valores, "percentil");
-}
+let _seq = 0;
+const novaLinha = (cor = NIVEIS[3].cor, nivelLabel = NIVEIS[3].label): Linha =>
+  ({ id: `l${_seq++}`, rotulo: "", valor: "", nivelLabel, cor });
 
 /** Serializa o SVG do gráfico e baixa como PNG (fundo branco, 2x). */
 function baixarPng(container: HTMLElement | null, filename: string) {
@@ -54,8 +51,7 @@ function baixarPng(container: HTMLElement | null, filename: string) {
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
     ctx.scale(2, 2);
-    ctx.fillStyle = "#ffffff";
-    ctx.fillRect(0, 0, w, h);
+    ctx.fillStyle = "#ffffff"; ctx.fillRect(0, 0, w, h);
     ctx.drawImage(img, 0, 0, w, h);
     canvas.toBlob((blob) => {
       if (!blob) return;
@@ -69,147 +65,209 @@ function baixarPng(container: HTMLElement | null, filename: string) {
   img.src = src;
 }
 
+function mediaVariaveis(vv: any, campo: "percentil" | "padrao"): number | null {
+  if (!vv || typeof vv !== "object") return null;
+  const nums: number[] = [];
+  for (const raw of Object.values(vv)) {
+    const r = normalizarResultado(raw as any);
+    const v = campo === "percentil" ? r.percentil : r.padrao;
+    if (v != null && !Number.isNaN(Number(v))) nums.push(Number(v));
+  }
+  return nums.length ? nums.reduce((s, n) => s + n, 0) / nums.length : null;
+}
+
 export function GeradorGraficoAvaliacao({
   open, onOpenChange, titulo, aplicados, rubricaDeTeste,
 }: {
   open: boolean;
   onOpenChange: (v: boolean) => void;
   titulo?: string | null;
-  aplicados: any[];
-  rubricaDeTeste: (testeId?: string | null) => Rubrica;
+  aplicados?: any[];
+  rubricaDeTeste?: (testeId?: string | null) => Rubrica;
 }) {
   const chartRef = useRef<HTMLDivElement>(null);
-  const [metrica, setMetrica] = useState<Metrica>("percentil");
-  const [tipo, setTipo] = useState<TipoGrafico>("barras_teste");
+  const [tituloGrafico, setTituloGrafico] = useState("");
+  const [tipo, setTipo] = useState<Tipo>("barras");
+  const [linhas, setLinhas] = useState<Linha[]>([novaLinha(), novaLinha(NIVEIS[3].cor), novaLinha(NIVEIS[3].cor)]);
 
-  // Só resultados numéricos (com percentil/escore ou variáveis numéricas).
-  const validos = useMemo(
-    () => (aplicados ?? []).filter((a) => a.classificacao !== "Qualitativo" && valorDe(a, metrica) != null),
-    [aplicados, metrica],
-  );
+  function setLinha(id: string, campo: keyof Linha, v: string) {
+    setLinhas((ls) => ls.map((l) => (l.id === id ? { ...l, [campo]: v } : l)));
+  }
+  function setNivel(id: string, cor: string) {
+    const n = NIVEIS.find((x) => x.cor === cor);
+    setLinhas((ls) => ls.map((l) => (l.id === id ? { ...l, cor, nivelLabel: n?.label ?? l.nivelLabel } : l)));
+  }
+  function addLinha() { setLinhas((ls) => [...ls, novaLinha()]); }
+  function removeLinha(id: string) { setLinhas((ls) => ls.filter((l) => l.id !== id)); }
 
-  // Sugestão de tipo: com muitos domínios, radar comunica melhor o perfil.
-  const nDominios = useMemo(
-    () => new Set(validos.map((a) => a.teste?.dominio?.nome).filter(Boolean)).size,
-    [validos],
-  );
-  const sugestao: TipoGrafico = nDominios >= 3 ? "radar" : "barras_teste";
-
-  // Dados por teste (cor pela classificação da rubrica do próprio teste).
-  const dadosTeste = useMemo(() => validos.map((a) => {
-    const valor = Number(valorDe(a, metrica));
-    const cl = classificar(rubricaDeTeste(a.teste_id), {
-      percentil: metrica === "percentil" ? valor : (a.percentil ?? null),
-      escorePadrao: metrica === "escore_padrao" ? valor : (a.escore_padrao ?? null),
+  // Puxa os resultados já lançados na avaliação (opcional).
+  function puxarDaAvaliacao() {
+    const res = (aplicados ?? []).filter((a) => a.classificacao !== "Qualitativo");
+    if (res.length === 0) { toast.info("Nenhum resultado quantitativo lançado nesta avaliação."); return; }
+    const novas = res.map((a) => {
+      const percentil = a.percentil != null ? Number(a.percentil) : mediaVariaveis(a.variaveis_valores, "percentil");
+      const escore = a.escore_padrao != null ? Number(a.escore_padrao) : mediaVariaveis(a.variaveis_valores, "padrao");
+      const cl = rubricaDeTeste
+        ? classificar(rubricaDeTeste(a.teste_id), { percentil, escorePadrao: escore })
+        : null;
+      const cor = cl?.cor ?? NIVEIS[3].cor;
+      return {
+        id: `l${_seq++}`,
+        rotulo: a.teste?.nome ?? "—",
+        valor: percentil != null ? String(percentil) : escore != null ? String(escore) : "",
+        nivelLabel: cl?.rotulo ?? a.classificacao ?? "",
+        cor,
+      } as Linha;
     });
-    return { nome: a.teste?.nome ?? "—", valor, cor: cl?.cor ?? COR_NEUTRA, classif: cl?.rotulo ?? "" };
-  }), [validos, metrica, rubricaDeTeste]);
+    setLinhas(novas);
+    if (!tituloGrafico) setTituloGrafico(titulo ?? "Perfil da avaliação");
+  }
 
-  // Dados por domínio: média da métrica; cor pela classificação da média
-  // (rubrica padrão do sistema, já que um domínio agrega testes variados).
-  const dadosDominio = useMemo(() => {
-    const grupos = new Map<string, number[]>();
-    for (const a of validos) {
-      const dom = a.teste?.dominio?.nome ?? "Sem domínio";
-      const arr = grupos.get(dom) ?? [];
-      arr.push(Number(valorDe(a, metrica)));
-      grupos.set(dom, arr);
-    }
-    return Array.from(grupos.entries()).map(([nome, vals]) => {
-      const media = vals.reduce((s, n) => s + n, 0) / vals.length;
-      const cl = classificar(RUBRICA_PADRAO, {
-        percentil: metrica === "percentil" ? media : null,
-        escorePadrao: metrica === "escore_padrao" ? media : null,
-      });
-      return { nome, valor: Math.round(media * 10) / 10, cor: cl?.cor ?? COR_NEUTRA, classif: cl?.rotulo ?? "" };
-    });
-  }, [validos, metrica]);
+  const dados = useMemo(() => linhas
+    .filter((l) => l.rotulo.trim())
+    .map((l) => {
+      const num = l.valor.trim() !== "" && !Number.isNaN(Number(l.valor)) ? Number(l.valor) : ordinalDaCor(l.cor);
+      return { nome: l.rotulo.trim(), valor: num, cor: l.cor, nivel: l.nivelLabel };
+    }), [linhas]);
 
-  const dominioAxisMax = metrica === "percentil" ? 100 : undefined;
-  const arquivo = `grafico-${(titulo ?? "avaliacao").toLowerCase().replace(/[^a-z0-9]+/g, "-").slice(0, 40)}.png`;
+  // Legenda: níveis distintos usados.
+  const legenda = useMemo(() => {
+    const seen = new Map<string, string>();
+    for (const d of dados) if (d.nivel && !seen.has(d.nivel)) seen.set(d.nivel, d.cor);
+    return Array.from(seen.entries());
+  }, [dados]);
 
-  const vazio = validos.length === 0;
+  const vazio = dados.length === 0;
+  const arquivo = `grafico-${(tituloGrafico || titulo || "avaliacao").toLowerCase().replace(/[^a-z0-9]+/g, "-").slice(0, 40)}.png`;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-3xl max-h-[92vh] overflow-y-auto">
-        <DialogHeader><DialogTitle>Gráfico da avaliação</DialogTitle></DialogHeader>
+      <DialogContent className="max-w-4xl max-h-[92vh] overflow-y-auto">
+        <DialogHeader><DialogTitle>Gerador de gráficos</DialogTitle></DialogHeader>
 
-        <div className="flex flex-wrap items-end gap-3">
-          <div>
-            <Label className="text-xs">Tipo</Label>
-            <Select value={tipo} onValueChange={(v) => setTipo(v as TipoGrafico)}>
-              <SelectTrigger className="h-9 w-52"><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="barras_teste">Barras por teste</SelectItem>
-                <SelectItem value="barras_dominio">Barras por domínio</SelectItem>
-                <SelectItem value="radar">Radar por domínio</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          <div>
-            <Label className="text-xs">Métrica</Label>
-            <Select value={metrica} onValueChange={(v) => setMetrica(v as Metrica)}>
-              <SelectTrigger className="h-9 w-44"><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="percentil">Percentil</SelectItem>
-                <SelectItem value="escore_padrao">Escore-padrão</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          <Button variant="outline" size="sm" className="ml-auto" disabled={vazio} onClick={() => baixarPng(chartRef.current, arquivo)}>
-            <Download className="mr-1.5 h-4 w-4" />Baixar PNG
-          </Button>
-        </div>
-
-        {tipo !== sugestao && !vazio && (
-          <button
-            type="button"
-            onClick={() => setTipo(sugestao)}
-            className="flex items-center gap-1.5 self-start rounded-md bg-brand/10 px-2 py-1 text-[11px] text-brand hover:bg-brand/15"
-          >
-            <Lightbulb className="h-3 w-3" />
-            Sugestão: {sugestao === "radar" ? "radar por domínio" : "barras por teste"} comunica melhor este conjunto.
-          </button>
-        )}
-
-        <div ref={chartRef} className="mt-1 rounded-lg border border-border/40 bg-white p-3">
-          {vazio ? (
-            <p className="py-16 text-center text-sm text-muted-foreground">
-              Nenhum resultado numérico com {metrica === "percentil" ? "percentil" : "escore-padrão"} para plotar.
-            </p>
-          ) : tipo === "radar" ? (
-            <ResponsiveContainer width="100%" height={360}>
-              <RadarChart data={dadosDominio} outerRadius="72%">
-                <PolarGrid />
-                <PolarAngleAxis dataKey="nome" tick={{ fontSize: 11 }} />
-                <Radar dataKey="valor" stroke="#7c3aed" fill="#7c3aed" fillOpacity={0.3} />
-                <Tooltip formatter={(v: any) => [v, metrica === "percentil" ? "Percentil (média)" : "Escore (média)"]} />
-              </RadarChart>
-            </ResponsiveContainer>
-          ) : (
-            <ResponsiveContainer width="100%" height={Math.max(280, (tipo === "barras_teste" ? dadosTeste : dadosDominio).length * 42 + 60)}>
-              <BarChart
-                layout="vertical"
-                data={tipo === "barras_teste" ? dadosTeste : dadosDominio}
-                margin={{ left: 12, right: 40, top: 8, bottom: 8 }}
-              >
-                <XAxis type="number" domain={[0, dominioAxisMax ?? "dataMax"]} tick={{ fontSize: 11 }} />
-                <YAxis type="category" dataKey="nome" width={150} tick={{ fontSize: 11 }} />
-                <Tooltip formatter={(v: any, _n: any, p: any) => [`${v}${p?.payload?.classif ? ` · ${p.payload.classif}` : ""}`, metrica === "percentil" ? "Percentil" : "Escore-padrão"]} />
-                <Bar dataKey="valor" radius={[0, 4, 4, 0]} isAnimationActive={false}>
-                  <LabelList dataKey="valor" position="right" style={{ fontSize: 11, fill: "#334155" }} />
-                  {(tipo === "barras_teste" ? dadosTeste : dadosDominio).map((d, i) => (
-                    <Cell key={i} fill={d.cor} />
-                  ))}
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
-          )}
-        </div>
-        <p className="text-[11px] text-muted-foreground">
-          As cores seguem a classificação de cada resultado (mesma paleta do sistema). O PNG pode ser anexado ao laudo.
+        <p className="text-xs text-muted-foreground">
+          Monte um gráfico do jeito que quiser — por teste, área, instrumento ou tarefa clínica. Não precisa ter
+          resultado lançado: escreva os itens, dê um valor (ou deixe em branco para usar só o nível) e escolha o nível
+          de cada um. Serve também para leitura qualitativa. As cores seguem a classificação do sistema.
         </p>
+
+        <div className="grid gap-4 md:grid-cols-[1.1fr_1fr]">
+          {/* ------- Editor de dados ------- */}
+          <div className="space-y-3">
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <Label className="text-xs">Título do gráfico</Label>
+                <Input value={tituloGrafico} onChange={(e) => setTituloGrafico(e.target.value)} placeholder="Ex.: Perfil de leitura" className="h-9" />
+              </div>
+              <div>
+                <Label className="text-xs">Tipo</Label>
+                <Select value={tipo} onValueChange={(v) => setTipo(v as Tipo)}>
+                  <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="barras">Barras</SelectItem>
+                    <SelectItem value="radar">Radar</SelectItem>
+                    <SelectItem value="pizza">Pizza</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <div className="space-y-1.5">
+              <div className="grid grid-cols-[1fr_64px_auto_28px] items-center gap-2 px-1 text-[10px] uppercase tracking-wide text-muted-foreground">
+                <span>Item</span><span>Valor</span><span>Nível / cor</span><span></span>
+              </div>
+              {linhas.map((l) => (
+                <div key={l.id} className="grid grid-cols-[1fr_64px_auto_28px] items-center gap-2">
+                  <Input value={l.rotulo} onChange={(e) => setLinha(l.id, "rotulo", e.target.value)} placeholder="Ex.: Consciência fonológica" className="h-8 text-xs" />
+                  <Input value={l.valor} onChange={(e) => setLinha(l.id, "valor", e.target.value)} placeholder="—" className="h-8 text-xs" />
+                  <div className="flex items-center gap-1">
+                    {NIVEIS.map((n) => (
+                      <button
+                        key={n.cor}
+                        type="button"
+                        title={n.label}
+                        onClick={() => setNivel(l.id, n.cor)}
+                        className={`h-5 w-5 rounded-full border-2 transition ${l.cor === n.cor ? "border-foreground/70 scale-110" : "border-transparent"}`}
+                        style={{ backgroundColor: n.cor }}
+                      />
+                    ))}
+                  </div>
+                  <Button type="button" size="icon" variant="ghost" className="h-7 w-7" onClick={() => removeLinha(l.id)}>
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </Button>
+                </div>
+              ))}
+              <div className="flex flex-wrap gap-2 pt-1">
+                <Button type="button" size="sm" variant="outline" className="h-7 text-xs" onClick={addLinha}>
+                  <Plus className="mr-1 h-3 w-3" />Item
+                </Button>
+                {(aplicados?.length ?? 0) > 0 && (
+                  <Button type="button" size="sm" variant="outline" className="h-7 text-xs" onClick={puxarDaAvaliacao}>
+                    <Sparkles className="mr-1 h-3 w-3" />Puxar resultados da avaliação
+                  </Button>
+                )}
+              </div>
+              <p className="text-[10px] text-muted-foreground">
+                Dica: para leitura qualitativa, deixe o valor em branco e escolha só o nível — a barra usa a posição do nível.
+              </p>
+            </div>
+          </div>
+
+          {/* ------- Prévia ------- */}
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <Label className="text-xs text-muted-foreground">Prévia</Label>
+              <Button variant="outline" size="sm" className="h-7 text-xs" disabled={vazio} onClick={() => baixarPng(chartRef.current, arquivo)}>
+                <Download className="mr-1 h-3.5 w-3.5" />PNG
+              </Button>
+            </div>
+            <div ref={chartRef} className="rounded-lg border border-border/40 bg-white p-3">
+              {tituloGrafico && <p className="mb-1 text-center text-sm font-semibold text-slate-700">{tituloGrafico}</p>}
+              {vazio ? (
+                <p className="py-16 text-center text-sm text-muted-foreground">Adicione itens para ver o gráfico.</p>
+              ) : tipo === "radar" ? (
+                <ResponsiveContainer width="100%" height={320}>
+                  <RadarChart data={dados} outerRadius="72%">
+                    <PolarGrid />
+                    <PolarAngleAxis dataKey="nome" tick={{ fontSize: 10 }} />
+                    <Radar dataKey="valor" stroke="#7c3aed" fill="#7c3aed" fillOpacity={0.3} />
+                    <Tooltip formatter={(v: any, _n: any, p: any) => [`${v}${p?.payload?.nivel ? ` · ${p.payload.nivel}` : ""}`, "Valor"]} />
+                  </RadarChart>
+                </ResponsiveContainer>
+              ) : tipo === "pizza" ? (
+                <ResponsiveContainer width="100%" height={320}>
+                  <PieChart>
+                    <Pie data={dados} dataKey="valor" nameKey="nome" outerRadius="75%" label={(p: any) => p.nome}>
+                      {dados.map((d, i) => <Cell key={i} fill={d.cor} />)}
+                    </Pie>
+                    <Tooltip formatter={(v: any, _n: any, p: any) => [`${v}${p?.payload?.nivel ? ` · ${p.payload.nivel}` : ""}`, p?.payload?.nome ?? ""]} />
+                  </PieChart>
+                </ResponsiveContainer>
+              ) : (
+                <ResponsiveContainer width="100%" height={Math.max(240, dados.length * 40 + 50)}>
+                  <BarChart layout="vertical" data={dados} margin={{ left: 8, right: 44, top: 6, bottom: 6 }}>
+                    <XAxis type="number" domain={[0, "dataMax"]} tick={{ fontSize: 10 }} />
+                    <YAxis type="category" dataKey="nome" width={140} tick={{ fontSize: 10 }} />
+                    <Tooltip formatter={(v: any, _n: any, p: any) => [`${v}${p?.payload?.nivel ? ` · ${p.payload.nivel}` : ""}`, "Valor"]} />
+                    <Bar dataKey="valor" radius={[0, 4, 4, 0]} isAnimationActive={false}>
+                      <LabelList dataKey="nivel" position="right" style={{ fontSize: 10, fill: "#334155" }} />
+                      {dados.map((d, i) => <Cell key={i} fill={d.cor} />)}
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
+              )}
+              {legenda.length > 0 && (
+                <div className="mt-2 flex flex-wrap justify-center gap-2">
+                  {legenda.map(([nome, cor]) => (
+                    <span key={nome} className="inline-flex items-center gap-1 text-[10px] text-slate-600">
+                      <span className="inline-block h-2.5 w-2.5 rounded-full" style={{ backgroundColor: cor }} />{nome}
+                    </span>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
       </DialogContent>
     </Dialog>
   );
