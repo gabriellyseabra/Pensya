@@ -12,7 +12,7 @@ import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "
 import { Plus, Trash2, Pencil, Loader2, Ruler, GripVertical } from "lucide-react";
 import { toast } from "sonner";
 import { PageHero } from "@/components/shared/PageHero";
-import { PRESETS, type Faixa, type Rubrica, type RubricaBase } from "@/lib/avaliacao-classificacao";
+import { PALETA_SISTEMA, PRESETS, type Faixa, type Rubrica, type RubricaBase } from "@/lib/avaliacao-classificacao";
 
 export const Route = createFileRoute("/_authenticated/configuracoes/rubricas")({
   component: RubricasPage,
@@ -98,10 +98,17 @@ function RubricasPage() {
   );
 }
 
+const DESCRICAO_PRESET: Record<string, string> = {
+  guillmette: "Escala de 4 faixas por percentil (Guillmette et al., 2020), comum em neuropsicologia — usa 9, 16 e 25 como cortes.",
+  clinica_7: "Escala clínica geral de 7 faixas por percentil (do extremamente inferior ao extremamente superior). Boa opção quando o teste reporta percentil e não tem régua própria.",
+  escore_padrao: "Para testes que entregam escore-padrão (média 100, desvio 15) — classifica por faixas de 10 pontos em torno da média.",
+};
+
 function RubricaCard({ rubrica, onEdit, onRemove, readOnly }: {
   rubrica: Rubrica; onEdit?: () => void; onRemove?: () => void; readOnly?: boolean;
 }) {
   const faixas = [...(rubrica.faixas ?? [])].sort((a, b) => b.min - a.min);
+  const descricao = rubrica.slug ? DESCRICAO_PRESET[rubrica.slug] : null;
   return (
     <Card className="glass">
       <CardContent className="p-4">
@@ -111,6 +118,7 @@ function RubricaCard({ rubrica, onEdit, onRemove, readOnly }: {
             <p className="text-xs text-muted-foreground">
               Base: {rubrica.base === "escore_padrao" ? "escore-padrão" : "percentil"}
             </p>
+            {descricao && <p className="mt-1 text-xs text-muted-foreground">{descricao}</p>}
           </div>
           {!readOnly && (
             <div className="flex gap-1 shrink-0">
@@ -132,7 +140,7 @@ function RubricaCard({ rubrica, onEdit, onRemove, readOnly }: {
   );
 }
 
-const CORES_SUGERIDAS = ["#dc2626", "#f97316", "#f59e0b", "#eab308", "#22c55e", "#3b82f6", "#6366f1", "#8b5cf6"];
+const CORES_SISTEMA = PALETA_SISTEMA.map((c) => c.cor);
 
 function RubricaDialog({ state, onClose, onSaved }: {
   state: { open: boolean; edit: Rubrica | null }; onClose: () => void; onSaved: () => void;
@@ -161,7 +169,7 @@ function RubricaDialog({ state, onClose, onSaved }: {
       : f));
   }
   function addFaixa() {
-    setFaixas((fs) => [...fs, { min: 0, rotulo: "", cor: CORES_SUGERIDAS[fs.length % CORES_SUGERIDAS.length] }]);
+    setFaixas((fs) => [...fs, { min: 0, rotulo: "", cor: CORES_SISTEMA[fs.length % CORES_SISTEMA.length] }]);
   }
   function removeFaixa(i: number) {
     setFaixas((fs) => fs.filter((_, idx) => idx !== i));
@@ -233,8 +241,19 @@ function RubricaDialog({ state, onClose, onSaved }: {
                   </div>
                   <Input value={f.rotulo} onChange={(e) => setFaixa(i, "rotulo", e.target.value)}
                     placeholder="Rótulo (ex.: Médio)" className="h-8 flex-1 text-xs" />
-                  <input type="color" value={f.cor} onChange={(e) => setFaixa(i, "cor", e.target.value)}
-                    className="h-8 w-9 shrink-0 cursor-pointer rounded border border-border/40 bg-transparent" title="Cor" />
+                  {/* Cores fixas do sistema (do mais baixo ao mais alto) — sem seletor livre. */}
+                  <div className="flex shrink-0 items-center gap-0.5">
+                    {PALETA_SISTEMA.map((c) => (
+                      <button
+                        key={c.cor}
+                        type="button"
+                        title={c.nome}
+                        onClick={() => setFaixa(i, "cor", c.cor)}
+                        className={`h-6 w-6 rounded-full border-2 transition ${f.cor === c.cor ? "border-foreground/70 scale-110" : "border-transparent"}`}
+                        style={{ backgroundColor: c.cor }}
+                      />
+                    ))}
+                  </div>
                   <Button type="button" size="icon" variant="ghost" className="h-8 w-8 shrink-0" onClick={() => removeFaixa(i)}>
                     <Trash2 className="h-3.5 w-3.5" />
                   </Button>
