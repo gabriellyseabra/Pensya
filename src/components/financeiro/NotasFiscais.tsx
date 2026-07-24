@@ -460,31 +460,48 @@ function GerarMesDialog({
       const lastDay = `${m[1]}-${m[2]}-${String(lastDayNum).padStart(2, "0")}`;
       const hoje = format(new Date(), "yyyy-MM-dd");
 
-      const { data: pags, error } = await supabase
-        .from("pagamentos")
-        .select("id, paciente_id, valor, competencia, paciente:pacientes(id, nome, cpf, emite_nota)")
-        .eq("status", "pago")
-        .is("documento_fiscal_id", null)
-        .gte("competencia", firstDay)
-        .lte("competencia", lastDay);
-      if (error) throw new Error(error.message);
+      // Considera a cobrança do mês (mensalidades e lançamentos de receita com
+      // paciente) que ainda não tenham documento — não só o que já foi pago.
+      const [pagsRes, lancsRes] = await Promise.all([
+        supabase
+          .from("pagamentos")
+          .select("id, paciente_id, valor, paciente:pacientes(id, nome, cpf, emite_nota)")
+          .in("status", ["pago", "pendente", "atrasado"])
+          .is("documento_fiscal_id", null)
+          .gte("competencia", firstDay)
+          .lte("competencia", lastDay),
+        supabase
+          .from("lancamentos_financeiros")
+          .select("id, paciente_id, valor, paciente:pacientes(id, nome, cpf, emite_nota)")
+          .eq("tipo", "receita")
+          .not("paciente_id", "is", null)
+          .is("documento_fiscal_id", null)
+          .gte("competencia", firstDay)
+          .lte("competencia", lastDay),
+      ]);
+      if (pagsRes.error) throw new Error(pagsRes.error.message);
+      if (lancsRes.error) throw new Error(lancsRes.error.message);
 
-      const rows = (pags ?? []) as any[];
-      if (rows.length === 0) {
-        toast.info("Nenhuma receita paga sem documento neste mês.");
+      const pagRows = (pagsRes.data ?? []) as any[];
+      const lancRows = (lancsRes.data ?? []) as any[];
+      if (pagRows.length === 0 && lancRows.length === 0) {
+        toast.info("Nenhuma receita sem documento neste mês. Gere as mensalidades primeiro em Financeiro › Receber › Mensalidades.");
         onDone();
         return;
       }
 
-      // Agrupa por paciente
-      const grupos = new Map<string, { paciente: any; ids: string[]; total: number }>();
-      for (const r of rows) {
-        const pid = r.paciente_id as string;
-        const g = grupos.get(pid) ?? { paciente: r.paciente, ids: [], total: 0 };
-        g.ids.push(r.id);
+      // Agrupa por paciente, guardando a origem de cada item (pagamento/lançamento).
+      const grupos = new Map<string, { paciente: any; pagIds: string[]; lancIds: string[]; total: number }>();
+      const add = (r: any, kind: "pag" | "lanc") => {
+        if (!r.paciente_id || !r.paciente) return;
+        const g = grupos.get(r.paciente_id) ?? { paciente: r.paciente, pagIds: [], lancIds: [], total: 0 };
+        if (kind === "pag") g.pagIds.push(r.id);
+        else g.lancIds.push(r.id);
         g.total += Number(r.valor);
-        grupos.set(pid, g);
-      }
+        grupos.set(r.paciente_id, g);
+      };
+      for (const r of pagRows) add(r, "pag");
+      for (const r of lancRows) add(r, "lanc");
 
       let notas = 0;
       let recibos = 0;
@@ -511,11 +528,14 @@ function GerarMesDialog({
           .single();
         if (insErr) throw new Error(insErr.message);
 
-        const { error: updErr } = await supabase
-          .from("pagamentos")
-          .update({ documento_fiscal_id: novo.id })
-          .in("id", g.ids);
-        if (updErr) throw new Error(updErr.message);
+        if (g.pagIds.length) {
+          const { error: e1 } = await supabase.from("pagamentos").update({ documento_fiscal_id: novo.id }).in("id", g.pagIds);
+          if (e1) throw new Error(e1.message);
+        }
+        if (g.lancIds.length) {
+          const { error: e2 } = await supabase.from("lancamentos_financeiros").update({ documento_fiscal_id: novo.id }).in("id", g.lancIds);
+          if (e2) throw new Error(e2.message);
+        }
 
         if (tipo === "nota_fiscal") notas++;
         else recibos++;
@@ -523,7 +543,7 @@ function GerarMesDialog({
 
       const total = notas + recibos;
       if (total === 0) {
-        toast.info("Nenhuma receita paga sem documento neste mês.");
+        toast.info("Nenhuma receita sem documento neste mês.");
       } else {
         toast.success(`${total} documentos gerados (${notas} notas, ${recibos} recibos)`);
       }
