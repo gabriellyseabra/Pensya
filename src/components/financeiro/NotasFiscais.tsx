@@ -214,13 +214,19 @@ export function NotasFiscais() {
   }
 
   async function enviarWhatsApp(doc: DocFiscal) {
-    if (!doc.pdf_path) return;
     const resp = doc.paciente?.responsaveis?.find((r) => r.principal) ?? doc.paciente?.responsaveis?.[0];
     const fone = (resp?.telefone ?? doc.paciente?.telefone ?? "").replace(/\D/g, "");
-    const { data, error } = await supabase.storage.from(BUCKET).createSignedUrl(doc.pdf_path, 60 * 60 * 24 * 7);
-    if (error || !data?.signedUrl) { toast.error("Erro ao gerar link do arquivo"); return; }
     const ref = doc.descricao?.trim() || fmtCompetencia(doc.competencia);
-    const msg = `Olá! Segue o(a) ${TIPO_LABEL[doc.tipo] ?? "documento"} referente a ${ref} no valor de ${BRL(Number(doc.valor))}: ${data.signedUrl}`;
+    let msg: string;
+    if (doc.pdf_path) {
+      const { data, error } = await supabase.storage.from(BUCKET).createSignedUrl(doc.pdf_path, 60 * 60 * 24 * 7);
+      if (error || !data?.signedUrl) { toast.error("Erro ao gerar link do arquivo"); return; }
+      msg = `Olá! Segue o(a) ${TIPO_LABEL[doc.tipo] ?? "documento"} referente a ${ref} no valor de ${BRL(Number(doc.valor))}: ${data.signedUrl}`;
+    } else {
+      // NF emitida sem PDF anexado — envia os dados da nota (número/valor).
+      const numeroTxt = doc.numero ? ` nº ${doc.numero}` : "";
+      msg = `Olá! Sua nota fiscal${numeroTxt} referente a ${ref} no valor de ${BRL(Number(doc.valor))} foi emitida.`;
+    }
     if (fone) {
       window.open(`https://wa.me/55${fone}?text=${encodeURIComponent(msg)}`, "_blank");
     } else {
@@ -402,8 +408,10 @@ export function NotasFiscais() {
                     </TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-1">
-                        {d.tipo === "nota_fiscal" && d.status === "pendente" && (
-                          <Button size="sm" variant="outline" onClick={() => setEmissaoDoc(d)}>Emissão</Button>
+                        {d.tipo === "nota_fiscal" && d.status !== "cancelada" && (
+                          <Button size="sm" variant="outline" onClick={() => setEmissaoDoc(d)}>
+                            {d.status === "pendente" ? "Emissão" : d.pdf_path ? "Editar" : "Anexar PDF"}
+                          </Button>
                         )}
                         {(d.tipo === "recibo" || d.tipo === "recibo_saude") && !d.pdf_path && d.status !== "cancelada" && (
                           <Button size="sm" variant="outline" disabled={gerandoPdf === d.id} onClick={() => gerarPdfRecibo(d)}>
@@ -411,10 +419,10 @@ export function NotasFiscais() {
                           </Button>
                         )}
                         {d.pdf_path && (
-                          <>
-                            <Button size="icon" variant="ghost" title="Baixar" onClick={() => baixar(d)}><Download className="h-4 w-4" /></Button>
-                            <Button size="icon" variant="ghost" title="Enviar por WhatsApp" onClick={() => enviarWhatsApp(d)}><MessageCircle className="h-4 w-4" /></Button>
-                          </>
+                          <Button size="icon" variant="ghost" title="Baixar" onClick={() => baixar(d)}><Download className="h-4 w-4" /></Button>
+                        )}
+                        {(d.pdf_path || (d.tipo === "nota_fiscal" && d.status === "emitida")) && (
+                          <Button size="icon" variant="ghost" title="Enviar por WhatsApp" onClick={() => enviarWhatsApp(d)}><MessageCircle className="h-4 w-4" /></Button>
                         )}
                         {d.status !== "cancelada" && (
                           <Button size="icon" variant="ghost" title="Cancelar" onClick={() => { if (confirm("Cancelar este documento?")) cancelar.mutate(d.id); }}><Ban className="h-4 w-4" /></Button>
