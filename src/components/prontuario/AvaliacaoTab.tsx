@@ -25,7 +25,7 @@ import {
 } from "@/components/ui/collapsible";
 import {
   Plus, FlaskConical, FileText, Upload, Trash2, ChevronLeft,
-  ClipboardList, Sparkles, Download, FileDown, ListChecks, Pencil, ChevronDown, ChevronRight,
+  ClipboardList, Sparkles, Download, FileDown, ListChecks, Pencil, ChevronDown, ChevronRight, BarChart3,
 } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import jsPDF from "jspdf";
@@ -34,6 +34,7 @@ import { ImpactosCIFEditor, type ImpactoCif, CIF_DIM_LABEL } from "./ImpactosCIF
 import { VariaveisTesteEditor, type VariavelDef, normalizarResultado, classificarPorPercentil, classificarResultado, corClassificacaoBg } from "./VariaveisTesteEditor";
 import { useRubricas } from "@/hooks/use-rubricas";
 import { classificar, classificarRotulo, corDoRotulo } from "@/lib/avaliacao-classificacao";
+import { GeradorGraficoAvaliacao } from "./GeradorGraficoAvaliacao";
 import { AplicarBateriaModeloDialog } from "@/components/paciente/AplicarBateriaModeloDialog";
 import { AplicarResultadoDialog } from "@/components/prontuario/AplicarResultadoDialog";
 import { FORMULAS_AGREGACAO, type FormulaAgregacao } from "@/lib/baterias.functions";
@@ -392,6 +393,7 @@ function AvaliacaoDetalhe({ id, onBack }: { id: string; onBack: () => void }) {
   // Lançar teste aplicado — diálogo extraído (reutilizado também na sessão de avaliação)
   const [resultadoDlg, setResultadoDlg] = useState<{ open: boolean; editing: any | null }>({ open: false, editing: null });
   const [openVars, setOpenVars] = useState<Set<string>>(new Set());
+  const [openGrafico, setOpenGrafico] = useState(false);
   const toggleVars = (rowId: string) => setOpenVars(prev => {
     const n = new Set(prev);
     if (n.has(rowId)) n.delete(rowId); else n.add(rowId);
@@ -631,8 +633,19 @@ function AvaliacaoDetalhe({ id, onBack }: { id: string; onBack: () => void }) {
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <Button variant="ghost" size="sm" onClick={onBack}><ChevronLeft className="w-4 h-4 mr-1" />Voltar para avaliações</Button>
-        <Button variant="outline" size="sm" onClick={exportarPDF}><FileDown className="w-4 h-4 mr-2" />Exportar PDF</Button>
+        <div className="flex gap-2">
+          <Button variant="outline" size="sm" onClick={() => setOpenGrafico(true)}><BarChart3 className="w-4 h-4 mr-2" />Gráficos</Button>
+          <Button variant="outline" size="sm" onClick={exportarPDF}><FileDown className="w-4 h-4 mr-2" />Exportar PDF</Button>
+        </div>
       </div>
+
+      <GeradorGraficoAvaliacao
+        open={openGrafico}
+        onOpenChange={setOpenGrafico}
+        titulo={aval?.titulo}
+        aplicados={aplicados ?? []}
+        rubricaDeTeste={rubricaDeTeste}
+      />
 
       <Card>
         <CardHeader>
