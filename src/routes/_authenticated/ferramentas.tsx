@@ -8,11 +8,12 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { BarChart3, Wrench, ArrowRight, CalendarClock, Sigma, Calculator, Copy, TrendingUp } from "lucide-react";
+import { BarChart3, Wrench, ArrowRight, CalendarClock, Sigma, Calculator, Copy, TrendingUp, Table2 } from "lucide-react";
 import { toast } from "sonner";
 import { PageHero } from "@/components/shared/PageHero";
 import { GeradorGraficoAvaliacao } from "@/components/prontuario/GeradorGraficoAvaliacao";
 import { ComparadorAvaliacoes } from "@/components/ferramentas/ComparadorAvaliacoes";
+import { TabelaResultados } from "@/components/ferramentas/TabelaResultados";
 import { RubricaPreview } from "@/components/prontuario/RubricaPreview";
 import { useRubricas } from "@/hooks/use-rubricas";
 import { classificar } from "@/lib/avaliacao-classificacao";
@@ -59,6 +60,10 @@ function FerramentasPage() {
       key: "comparador", titulo: "Comparador de avaliações", icon: TrendingUp,
       descricao: "Mostra a evolução do paciente entre duas avaliações — percentil de cada teste antes e depois, com gráfico e tabela.",
     },
+    {
+      key: "tabela", titulo: "Tabela de resultados", icon: Table2,
+      descricao: "Monta uma tabela editável (quantitativa ou qualitativa) com as cores da classificação e copia formatada para colar direto no laudo.",
+    },
   ];
 
   return (
@@ -95,6 +100,7 @@ function FerramentasPage() {
       <CalculadoraEscoreZ open={aberto === "escore_z"} onClose={() => setAberto(null)} />
       <CalculadoraPrecificacao open={aberto === "precificacao"} onClose={() => setAberto(null)} />
       <ComparadorAvaliacoes open={aberto === "comparador"} onClose={() => setAberto(null)} />
+      <TabelaResultados open={aberto === "tabela"} onClose={() => setAberto(null)} />
     </div>
   );
 }
@@ -218,7 +224,7 @@ function CalculadoraEscoreZ({ open, onClose }: { open: boolean; onClose: () => v
 
   return (
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-lg max-h-[92vh] overflow-y-auto">
         <DialogHeader><DialogTitle>Conversor de escores + classificação</DialogTitle></DialogHeader>
         <div className="space-y-3">
           <p className="text-xs text-muted-foreground">
@@ -235,8 +241,8 @@ function CalculadoraEscoreZ({ open, onClose }: { open: boolean; onClose: () => v
             <Select value={direcao} onValueChange={(v) => setDirecao(v as "maior_melhor" | "menor_melhor")}>
               <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
               <SelectContent>
-                <SelectItem value="maior_melhor">Escore alto = melhor desempenho · z = (x − média)/DP</SelectItem>
-                <SelectItem value="menor_melhor">Escore alto = pior desempenho (erros, tempo) · z = (média − x)/DP</SelectItem>
+                <SelectItem value="maior_melhor">Maior é melhor — z = (x − média)/DP</SelectItem>
+                <SelectItem value="menor_melhor">Maior é pior (erros/tempo) — z = (média − x)/DP</SelectItem>
               </SelectContent>
             </Select>
           </div>
