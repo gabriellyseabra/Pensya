@@ -645,6 +645,7 @@ function AvaliacaoDetalhe({ id, onBack }: { id: string; onBack: () => void }) {
         titulo={aval?.titulo}
         aplicados={aplicados ?? []}
         rubricaDeTeste={rubricaDeTeste}
+        catalogo={catalogo ?? []}
       />
 
       <Card>

@@ -150,3 +150,18 @@ export function corDoRotulo(rubrica: Rubrica | null | undefined, rotulo: string 
   const f = (r.faixas ?? []).find((x) => x.rotulo === rotulo);
   return f?.cor ?? null;
 }
+
+/**
+ * Versão pastel de uma cor hex — mistura com branco (mistura=0 devolve a cor
+ * cheia; 1 devolve branco). Usada nos gráficos para um tom mais suave.
+ */
+export function corPastel(hex: string, mistura = 0.55): string {
+  const h = (hex || "").replace("#", "");
+  if (h.length < 6) return hex;
+  const r = parseInt(h.slice(0, 2), 16);
+  const g = parseInt(h.slice(2, 4), 16);
+  const b = parseInt(h.slice(4, 6), 16);
+  const mix = (c: number) => Math.round(c + (255 - c) * mistura);
+  const to2 = (n: number) => n.toString(16).padStart(2, "0");
+  return `#${to2(mix(r))}${to2(mix(g))}${to2(mix(b))}`;
+}

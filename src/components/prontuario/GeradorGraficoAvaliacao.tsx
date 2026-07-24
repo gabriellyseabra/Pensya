@@ -11,7 +11,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Download, Plus, Trash2, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import { normalizarResultado } from "./VariaveisTesteEditor";
-import { classificar, PALETA_SISTEMA, type Rubrica } from "@/lib/avaliacao-classificacao";
+import { classificar, corPastel, PALETA_SISTEMA, type Rubrica } from "@/lib/avaliacao-classificacao";
 
 type Tipo = "barras" | "radar" | "pizza";
 
@@ -77,17 +77,19 @@ function mediaVariaveis(vv: any, campo: "percentil" | "padrao"): number | null {
 }
 
 export function GeradorGraficoAvaliacao({
-  open, onOpenChange, titulo, aplicados, rubricaDeTeste,
+  open, onOpenChange, titulo, aplicados, rubricaDeTeste, catalogo,
 }: {
   open: boolean;
   onOpenChange: (v: boolean) => void;
   titulo?: string | null;
   aplicados?: any[];
   rubricaDeTeste?: (testeId?: string | null) => Rubrica;
+  catalogo?: any[];
 }) {
   const chartRef = useRef<HTMLDivElement>(null);
   const [tituloGrafico, setTituloGrafico] = useState("");
   const [tipo, setTipo] = useState<Tipo>("barras");
+  const [origem, setOrigem] = useState("__completa__");
   const [linhas, setLinhas] = useState<Linha[]>([novaLinha(), novaLinha(NIVEIS[3].cor), novaLinha(NIVEIS[3].cor)]);
 
   function setLinha(id: string, campo: keyof Linha, v: string) {
@@ -100,27 +102,59 @@ export function GeradorGraficoAvaliacao({
   function addLinha() { setLinhas((ls) => [...ls, novaLinha()]); }
   function removeLinha(id: string) { setLinhas((ls) => ls.filter((l) => l.id !== id)); }
 
-  // Puxa os resultados já lançados na avaliação (opcional).
-  function puxarDaAvaliacao() {
-    const res = (aplicados ?? []).filter((a) => a.classificacao !== "Qualitativo");
-    if (res.length === 0) { toast.info("Nenhum resultado quantitativo lançado nesta avaliação."); return; }
-    const novas = res.map((a) => {
-      const percentil = a.percentil != null ? Number(a.percentil) : mediaVariaveis(a.variaveis_valores, "percentil");
-      const escore = a.escore_padrao != null ? Number(a.escore_padrao) : mediaVariaveis(a.variaveis_valores, "padrao");
-      const cl = rubricaDeTeste
-        ? classificar(rubricaDeTeste(a.teste_id), { percentil, escorePadrao: escore })
-        : null;
-      const cor = cl?.cor ?? NIVEIS[3].cor;
-      return {
-        id: `l${_seq++}`,
-        rotulo: a.teste?.nome ?? "—",
-        valor: percentil != null ? String(percentil) : escore != null ? String(escore) : "",
-        nivelLabel: cl?.rotulo ?? a.classificacao ?? "",
-        cor,
-      } as Linha;
-    });
+  const resultados = useMemo(
+    () => (aplicados ?? []).filter((a) => a.classificacao !== "Qualitativo"),
+    [aplicados],
+  );
+
+  function corDe(a: any, percentil: number | null, escore: number | null) {
+    const cl = rubricaDeTeste ? classificar(rubricaDeTeste(a.teste_id), { percentil, escorePadrao: escore }) : null;
+    return { cor: cl?.cor ?? NIVEIS[3].cor, nivel: cl?.rotulo ?? a.classificacao ?? "" };
+  }
+
+  // Uma linha por variável do teste (quando tem valores numéricos).
+  function variaveisDe(a: any): Linha[] {
+    const vv = a.variaveis_valores;
+    if (!vv || typeof vv !== "object") return [];
+    const defs = (catalogo ?? []).find((c: any) => c.id === a.teste_id)?.variaveis;
+    const labelDe = (k: string) => (Array.isArray(defs) ? defs.find((d: any) => d.key === k)?.label : null) ?? k;
+    const out: Linha[] = [];
+    for (const [k, raw] of Object.entries(vv)) {
+      const r = normalizarResultado(raw as any);
+      const percentil = r.percentil != null ? Number(r.percentil) : null;
+      const escore = r.padrao != null ? Number(r.padrao) : null;
+      if (percentil == null && escore == null) continue;
+      const { cor, nivel } = corDe(a, percentil, escore);
+      out.push({ id: `l${_seq++}`, rotulo: labelDe(k), valor: String(percentil ?? escore), nivelLabel: nivel, cor });
+    }
+    return out;
+  }
+
+  // Linha do escore global/agregado do teste.
+  function globalDe(a: any): Linha | null {
+    const percentil = a.percentil != null ? Number(a.percentil) : mediaVariaveis(a.variaveis_valores, "percentil");
+    const escore = a.escore_padrao != null ? Number(a.escore_padrao) : mediaVariaveis(a.variaveis_valores, "padrao");
+    if (percentil == null && escore == null) return null;
+    const { cor, nivel } = corDe(a, percentil, escore);
+    return { id: `l${_seq++}`, rotulo: a.teste?.nome ?? "—", valor: String(percentil ?? escore), nivelLabel: nivel, cor };
+  }
+
+  // Puxa da avaliação completa (um item por teste) ou de um teste específico
+  // (expande em variáveis, quando o teste tem).
+  function puxar() {
+    let novas: Linha[] = [];
+    if (origem === "__completa__") {
+      novas = resultados.map(globalDe).filter(Boolean) as Linha[];
+      if (!tituloGrafico) setTituloGrafico(titulo ?? "Perfil da avaliação");
+    } else {
+      const a = resultados.find((x) => x.id === origem);
+      if (!a) return;
+      const vars = variaveisDe(a);
+      novas = vars.length ? vars : ([globalDe(a)].filter(Boolean) as Linha[]);
+      if (!tituloGrafico) setTituloGrafico(a.teste?.nome ?? "Resultado do teste");
+    }
+    if (novas.length === 0) { toast.info("Nada quantitativo para puxar."); return; }
     setLinhas(novas);
-    if (!tituloGrafico) setTituloGrafico(titulo ?? "Perfil da avaliação");
   }
 
   const dados = useMemo(() => linhas
@@ -197,14 +231,25 @@ export function GeradorGraficoAvaliacao({
                   </Button>
                 </div>
               ))}
-              <div className="flex flex-wrap gap-2 pt-1">
+              <div className="flex flex-wrap items-center gap-2 pt-1">
                 <Button type="button" size="sm" variant="outline" className="h-7 text-xs" onClick={addLinha}>
                   <Plus className="mr-1 h-3 w-3" />Item
                 </Button>
-                {(aplicados?.length ?? 0) > 0 && (
-                  <Button type="button" size="sm" variant="outline" className="h-7 text-xs" onClick={puxarDaAvaliacao}>
-                    <Sparkles className="mr-1 h-3 w-3" />Puxar resultados da avaliação
-                  </Button>
+                {resultados.length > 0 && (
+                  <>
+                    <Select value={origem} onValueChange={setOrigem}>
+                      <SelectTrigger className="h-7 w-auto min-w-[150px] text-xs"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="__completa__">Avaliação completa</SelectItem>
+                        {resultados.map((a) => (
+                          <SelectItem key={a.id} value={a.id}>{a.teste?.nome ?? "Teste"}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <Button type="button" size="sm" variant="outline" className="h-7 text-xs" onClick={puxar}>
+                      <Sparkles className="mr-1 h-3 w-3" />Puxar
+                    </Button>
+                  </>
                 )}
               </div>
               <p className="text-[10px] text-muted-foreground">
@@ -238,7 +283,7 @@ export function GeradorGraficoAvaliacao({
                 <ResponsiveContainer width="100%" height={320}>
                   <PieChart>
                     <Pie data={dados} dataKey="valor" nameKey="nome" outerRadius="75%" label={(p: any) => p.nome}>
-                      {dados.map((d, i) => <Cell key={i} fill={d.cor} />)}
+                      {dados.map((d, i) => <Cell key={i} fill={corPastel(d.cor)} stroke={d.cor} strokeOpacity={0.55} />)}
                     </Pie>
                     <Tooltip formatter={(v: any, _n: any, p: any) => [`${v}${p?.payload?.nivel ? ` · ${p.payload.nivel}` : ""}`, p?.payload?.nome ?? ""]} />
                   </PieChart>
@@ -251,7 +296,7 @@ export function GeradorGraficoAvaliacao({
                     <Tooltip formatter={(v: any, _n: any, p: any) => [`${v}${p?.payload?.nivel ? ` · ${p.payload.nivel}` : ""}`, "Valor"]} />
                     <Bar dataKey="valor" radius={[0, 4, 4, 0]} isAnimationActive={false}>
                       <LabelList dataKey="nivel" position="right" style={{ fontSize: 10, fill: "#334155" }} />
-                      {dados.map((d, i) => <Cell key={i} fill={d.cor} />)}
+                      {dados.map((d, i) => <Cell key={i} fill={corPastel(d.cor)} stroke={d.cor} strokeOpacity={0.55} />)}
                     </Bar>
                   </BarChart>
                 </ResponsiveContainer>
