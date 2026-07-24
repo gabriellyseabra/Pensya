@@ -462,17 +462,19 @@ function GerarMesDialog({
 
       // Considera a cobrança do mês (mensalidades e lançamentos de receita com
       // paciente) que ainda não tenham documento — não só o que já foi pago.
+      // Sem embed de pacientes (lancamentos_financeiros não tem FK declarada);
+      // buscamos os pacientes numa query separada.
       const [pagsRes, lancsRes] = await Promise.all([
         supabase
           .from("pagamentos")
-          .select("id, paciente_id, valor, paciente:pacientes(id, nome, cpf, emite_nota)")
+          .select("id, paciente_id, valor")
           .in("status", ["pago", "pendente", "atrasado"])
           .is("documento_fiscal_id", null)
           .gte("competencia", firstDay)
           .lte("competencia", lastDay),
         supabase
           .from("lancamentos_financeiros")
-          .select("id, paciente_id, valor, paciente:pacientes(id, nome, cpf, emite_nota)")
+          .select("id, paciente_id, valor")
           .eq("tipo", "receita")
           .not("paciente_id", "is", null)
           .is("documento_fiscal_id", null)
@@ -490,11 +492,20 @@ function GerarMesDialog({
         return;
       }
 
+      const pacIds = Array.from(new Set([...pagRows, ...lancRows].map((r) => r.paciente_id).filter(Boolean)));
+      const { data: pacs, error: pacErr } = await supabase
+        .from("pacientes")
+        .select("id, nome, cpf, emite_nota")
+        .in("id", pacIds);
+      if (pacErr) throw new Error(pacErr.message);
+      const pacMap = new Map((pacs ?? []).map((p: any) => [p.id, p]));
+
       // Agrupa por paciente, guardando a origem de cada item (pagamento/lançamento).
       const grupos = new Map<string, { paciente: any; pagIds: string[]; lancIds: string[]; total: number }>();
       const add = (r: any, kind: "pag" | "lanc") => {
-        if (!r.paciente_id || !r.paciente) return;
-        const g = grupos.get(r.paciente_id) ?? { paciente: r.paciente, pagIds: [], lancIds: [], total: 0 };
+        const paciente = r.paciente_id ? pacMap.get(r.paciente_id) : null;
+        if (!paciente) return;
+        const g = grupos.get(r.paciente_id) ?? { paciente, pagIds: [], lancIds: [], total: 0 };
         if (kind === "pag") g.pagIds.push(r.id);
         else g.lancIds.push(r.id);
         g.total += Number(r.valor);
