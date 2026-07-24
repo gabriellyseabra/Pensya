@@ -1,7 +1,8 @@
 import { useMemo, useRef, useState } from "react";
 import {
-  Bar, BarChart, Cell, LabelList, Pie, PieChart, PolarAngleAxis, PolarGrid,
-  Radar, RadarChart, ResponsiveContainer, Tooltip, XAxis, YAxis,
+  Bar, BarChart, CartesianGrid, Cell, LabelList, Line, LineChart, Pie, PieChart,
+  PolarAngleAxis, PolarGrid, Radar, RadarChart, ReferenceLine, ResponsiveContainer,
+  Tooltip, XAxis, YAxis,
 } from "recharts";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -13,7 +14,7 @@ import { toast } from "sonner";
 import { normalizarResultado } from "./VariaveisTesteEditor";
 import { classificar, corPastel, PALETA_SISTEMA, type Rubrica } from "@/lib/avaliacao-classificacao";
 
-type Tipo = "barras" | "radar" | "pizza";
+type Tipo = "barras" | "linha" | "radar" | "pizza";
 
 /** Níveis padrão (mesma paleta do sistema, do mais baixo ao mais alto). */
 const NIVEIS = [
@@ -89,6 +90,8 @@ export function GeradorGraficoAvaliacao({
   const chartRef = useRef<HTMLDivElement>(null);
   const [tituloGrafico, setTituloGrafico] = useState("");
   const [tipo, setTipo] = useState<Tipo>("barras");
+  const [barSize, setBarSize] = useState(22);
+  const [linhaBase, setLinhaBase] = useState("");
   const [origem, setOrigem] = useState("__completa__");
   const [linhas, setLinhas] = useState<Linha[]>([novaLinha(), novaLinha(NIVEIS[3].cor), novaLinha(NIVEIS[3].cor)]);
 
@@ -172,6 +175,7 @@ export function GeradorGraficoAvaliacao({
   }, [dados]);
 
   const vazio = dados.length === 0;
+  const base = linhaBase.trim() !== "" && !Number.isNaN(Number(linhaBase)) ? Number(linhaBase) : null;
   const arquivo = `grafico-${(tituloGrafico || titulo || "avaliacao").toLowerCase().replace(/[^a-z0-9]+/g, "-").slice(0, 40)}.png`;
 
   return (
@@ -199,12 +203,35 @@ export function GeradorGraficoAvaliacao({
                   <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="barras">Barras</SelectItem>
+                    <SelectItem value="linha">Linha</SelectItem>
                     <SelectItem value="radar">Radar</SelectItem>
                     <SelectItem value="pizza">Pizza</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
             </div>
+
+            {(tipo === "barras" || tipo === "linha") && (
+              <div className="flex flex-wrap items-end gap-4">
+                {tipo === "barras" && (
+                  <div>
+                    <Label className="text-xs">Espessura das barras</Label>
+                    <input
+                      type="range" min={8} max={48} step={2} value={barSize}
+                      onChange={(e) => setBarSize(Number(e.target.value))}
+                      className="mt-2 block w-36 cursor-pointer accent-brand"
+                    />
+                  </div>
+                )}
+                <div>
+                  <Label className="text-xs">Linha de base (opcional)</Label>
+                  <Input
+                    type="number" value={linhaBase} onChange={(e) => setLinhaBase(e.target.value)}
+                    placeholder="Ex.: 25" className="h-9 w-28"
+                  />
+                </div>
+              </div>
+            )}
 
             <div className="space-y-1.5">
               <div className="grid grid-cols-[1fr_64px_auto_28px] items-center gap-2 px-1 text-[10px] uppercase tracking-wide text-muted-foreground">
@@ -288,13 +315,36 @@ export function GeradorGraficoAvaliacao({
                     <Tooltip formatter={(v: any, _n: any, p: any) => [`${v}${p?.payload?.nivel ? ` · ${p.payload.nivel}` : ""}`, p?.payload?.nome ?? ""]} />
                   </PieChart>
                 </ResponsiveContainer>
+              ) : tipo === "linha" ? (
+                <ResponsiveContainer width="100%" height={340}>
+                  <LineChart data={dados} margin={{ left: 4, right: 24, top: 12, bottom: 8 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                    <XAxis dataKey="nome" tick={{ fontSize: 10 }} interval={0} angle={-15} textAnchor="end" height={54} />
+                    <YAxis tick={{ fontSize: 10 }} />
+                    <Tooltip formatter={(v: any, _n: any, p: any) => [`${v}${p?.payload?.nivel ? ` · ${p.payload.nivel}` : ""}`, "Valor"]} />
+                    {base != null && (
+                      <ReferenceLine y={base} stroke="#64748b" strokeDasharray="5 4"
+                        label={{ value: `Linha de base ${base}`, position: "insideTopRight", fontSize: 10, fill: "#64748b" }} />
+                    )}
+                    <Line type="monotone" dataKey="valor" stroke="#7c3aed" strokeWidth={2}
+                      dot={(props: any) => {
+                        const d = dados[props.index];
+                        return <circle key={props.index} cx={props.cx} cy={props.cy} r={5} fill={corPastel(d.cor)} stroke={d.cor} strokeWidth={1.5} />;
+                      }}
+                      isAnimationActive={false} />
+                  </LineChart>
+                </ResponsiveContainer>
               ) : (
                 <ResponsiveContainer width="100%" height={Math.max(240, dados.length * 40 + 50)}>
                   <BarChart layout="vertical" data={dados} margin={{ left: 8, right: 44, top: 6, bottom: 6 }}>
                     <XAxis type="number" domain={[0, "dataMax"]} tick={{ fontSize: 10 }} />
                     <YAxis type="category" dataKey="nome" width={140} tick={{ fontSize: 10 }} />
                     <Tooltip formatter={(v: any, _n: any, p: any) => [`${v}${p?.payload?.nivel ? ` · ${p.payload.nivel}` : ""}`, "Valor"]} />
-                    <Bar dataKey="valor" radius={[0, 4, 4, 0]} isAnimationActive={false}>
+                    {base != null && (
+                      <ReferenceLine x={base} stroke="#64748b" strokeDasharray="5 4"
+                        label={{ value: `base ${base}`, position: "top", fontSize: 10, fill: "#64748b" }} />
+                    )}
+                    <Bar dataKey="valor" barSize={barSize} radius={[0, 4, 4, 0]} isAnimationActive={false}>
                       <LabelList dataKey="nivel" position="right" style={{ fontSize: 10, fill: "#334155" }} />
                       {dados.map((d, i) => <Cell key={i} fill={corPastel(d.cor)} stroke={d.cor} strokeOpacity={0.55} />)}
                     </Bar>
