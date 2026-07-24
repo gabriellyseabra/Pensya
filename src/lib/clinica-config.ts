@@ -24,6 +24,13 @@ export type Organizacao = {
   cor_tema: string;
   emite_nf: boolean;
   mostrar_paciente_modelo: boolean;
+  // Dados fiscais (emissão de NF / recibos)
+  inscricao_municipal: string | null;
+  codigo_servico_municipal: string | null;
+  aliquota_iss: number | null;
+  regime_tributario: string | null;
+  discriminacao_padrao: string | null;
+  prestador_registro: string | null;
 };
 
 export type CorTema = "roxo" | "azul" | "preto";

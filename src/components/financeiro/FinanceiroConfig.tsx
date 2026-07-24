@@ -4,12 +4,14 @@ import { supabase } from "@/integrations/supabase/client";
 import { ContasFinanceirasConfig } from "./config/ContasFinanceirasConfig";
 import { FormasRecebimentoConfig } from "./config/FormasRecebimentoConfig";
 import { ConveniosConfig } from "./config/ConveniosConfig";
+import { DadosFiscaisConfig } from "./config/DadosFiscaisConfig";
 import { CrudTable, PlanoContasTable } from "@/routes/_authenticated/configuracoes.index";
 
 const ABAS = [
   { key: "contas", label: "Contas e bancos" },
   { key: "formas", label: "Formas de recebimento" },
   { key: "convenios", label: "Convênios" },
+  { key: "fiscais", label: "Dados fiscais" },
   { key: "plano", label: "Plano de contas" },
   { key: "servicos", label: "Tipos de serviço" },
   { key: "centros", label: "Centros de custo" },
@@ -50,6 +52,7 @@ export function FinanceiroConfig() {
         <TabsContent value="contas" className="mt-4"><ContasFinanceirasConfig /></TabsContent>
         <TabsContent value="formas" className="mt-4"><FormasRecebimentoConfig /></TabsContent>
         <TabsContent value="convenios" className="mt-4"><ConveniosConfig /></TabsContent>
+        <TabsContent value="fiscais" className="mt-4"><DadosFiscaisConfig /></TabsContent>
         <TabsContent value="plano" className="mt-4"><PlanoContasTable /></TabsContent>
         <TabsContent value="servicos" className="mt-4">
           <CrudTable tableName="tipos_servico" label="Tipos de serviço" fields={["nome", "valor_padrao"]} />
