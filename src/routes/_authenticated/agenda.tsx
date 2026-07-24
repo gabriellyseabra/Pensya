@@ -338,10 +338,12 @@ function AgendaPage() {
           `
           id, inicio, fim, observacoes, link_video, paciente_id, profissional_id, local_id, modalidade_id,
           status_frequencia_id, confirmado_em, confirmacao_enviada_em, recorrencia, recorrencia_grupo,
+          convenio_id,
           paciente:pacientes(id, nome, foto_url, data_nascimento),
           profissional:profissionais_consultorio(id, nome, cor),
           modalidade:modalidades(id, nome, cor),
           local:locais(id, nome),
+          convenio:convenios(id, nome),
           status:status_frequencia(id, nome, cor)
         `,
         )
@@ -1624,6 +1626,14 @@ function AtendimentoDrawer({
         <Info icon={MapPin} label="Local" value={atendimento.local?.nome} />
       </div>
 
+      {atendimento.convenio?.nome && (
+        <div>
+          <Badge variant="outline" className="text-brand border-brand/40">
+            Convênio: {atendimento.convenio.nome}
+          </Badge>
+        </div>
+      )}
+
       {atendimento.observacoes && (
         <div>
           <Label className="text-xs uppercase tracking-wider text-muted-foreground">
@@ -1886,6 +1896,7 @@ function AtendimentoDialog({
           hora_fim: format(parseISO(atendimento.fim), "HH:mm"),
           observacoes: atendimento.observacoes ?? "",
           link_video: atendimento.link_video ?? "",
+          convenio_id: atendimento.convenio_id ?? "",
           recorrencia: "nao" as
             | "nao"
             | "semanal_4"
@@ -1903,6 +1914,7 @@ function AtendimentoDialog({
           hora_fim: slotInicial?.hora_fim ?? "10:00",
           observacoes: "",
           link_video: "",
+          convenio_id: "",
           recorrencia: "nao" as
             | "nao"
             | "semanal_4"
@@ -1916,7 +1928,12 @@ function AtendimentoDialog({
   const { data: pacientes } = useQuery({
     queryKey: ["pac-mini-foto"],
     queryFn: async () =>
-      (await supabase.from("pacientes").select("id, nome, foto_url").order("nome")).data ?? [],
+      (await supabase.from("pacientes").select("id, nome, foto_url, convenio_id").order("nome")).data ?? [],
+  });
+  const { data: convenios } = useQuery({
+    queryKey: ["conv-mini"],
+    queryFn: async () =>
+      (await supabase.from("convenios").select("id, nome").eq("ativo", true).order("nome")).data ?? [],
   });
   const { data: profissionais } = useQuery({
     queryKey: ["prof-mini-foto"],
@@ -1971,6 +1988,7 @@ function AtendimentoDialog({
         modalidade_id: form.modalidade_id || null,
         observacoes: form.observacoes || null,
         link_video: form.link_video?.trim() || null,
+        convenio_id: form.convenio_id || null,
       };
       if (isEdit) {
         const { error } = await supabase
@@ -2048,7 +2066,15 @@ function AtendimentoDialog({
           <Label>Paciente *</Label>
           <Select
             value={form.paciente_id}
-            onValueChange={(v) => setForm({ ...form, paciente_id: v })}
+            onValueChange={(v) => {
+              const pac: any = pacientes?.find((p: any) => p.id === v);
+              setForm((f) => ({
+                ...f,
+                paciente_id: v,
+                convenio_id:
+                  !isEdit && !f.convenio_id && pac?.convenio_id ? pac.convenio_id : f.convenio_id,
+              }));
+            }}
           >
             <SelectTrigger>
               <SelectValue placeholder="Selecione" />
@@ -2168,6 +2194,26 @@ function AtendimentoDialog({
               </SelectContent>
             </Select>
           </div>
+        </div>
+
+        <div>
+          <Label>Convênio <span className="font-normal text-muted-foreground">(opcional)</span></Label>
+          <Select
+            value={form.convenio_id || "__none__"}
+            onValueChange={(v) => setForm({ ...form, convenio_id: v === "__none__" ? "" : v })}
+          >
+            <SelectTrigger>
+              <SelectValue placeholder="Selecione" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="__none__">—</SelectItem>
+              {convenios?.map((c: any) => (
+                <SelectItem key={c.id} value={c.id}>
+                  {c.nome}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
 
         {!isEdit && (

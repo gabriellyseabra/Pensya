@@ -160,6 +160,12 @@ function PacienteDetailPage() {
         nome: string;
       }[],
   });
+  const { data: convenios } = useQuery({
+    queryKey: ["convenios-ativos"],
+    queryFn: async () =>
+      ((await supabase.from("convenios").select("id, nome").eq("ativo", true).order("nome"))
+        .data ?? []) as { id: string; nome: string }[],
+  });
 
   const [editOpen, setEditOpen] = useState(false);
   const [form, setForm] = useState<Paciente>({});
@@ -223,6 +229,7 @@ function PacienteDetailPage() {
         "hipotese_diagnostica",
         "observacoes",
         "modelo_pagamento",
+        "convenio_id",
         "valor_acordado",
         "dia_vencimento",
         "numero_parcelas",
@@ -836,6 +843,24 @@ function PacienteDetailPage() {
                     <SelectItem value="sessao">Por sessão</SelectItem>
                     <SelectItem value="pacote">Pacote</SelectItem>
                     <SelectItem value="convenio">Convênio</SelectItem>
+                  </SelectContent>
+                </Select>
+              </FormRow>
+              <FormRow label="Convênio">
+                <Select
+                  value={form.convenio_id ?? "__none"}
+                  onValueChange={(v) => setForm({ ...form, convenio_id: v === "__none" ? null : v })}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecionar" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__none">Nenhum</SelectItem>
+                    {convenios?.map((c) => (
+                      <SelectItem key={c.id} value={c.id}>
+                        {c.nome}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </FormRow>
