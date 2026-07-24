@@ -8,12 +8,13 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { BarChart3, Wrench, ArrowRight, CalendarClock, Sigma, Calculator, Copy, TrendingUp, Table2 } from "lucide-react";
+import { BarChart3, Wrench, ArrowRight, CalendarClock, Sigma, Calculator, Copy, TrendingUp, Table2, FileText } from "lucide-react";
 import { toast } from "sonner";
 import { PageHero } from "@/components/shared/PageHero";
 import { GeradorGraficoAvaliacao } from "@/components/prontuario/GeradorGraficoAvaliacao";
 import { ComparadorAvaliacoes } from "@/components/ferramentas/ComparadorAvaliacoes";
 import { TabelaResultados } from "@/components/ferramentas/TabelaResultados";
+import { DocumentosAvulsos } from "@/components/ferramentas/DocumentosAvulsos";
 import { RubricaPreview } from "@/components/prontuario/RubricaPreview";
 import { useRubricas } from "@/hooks/use-rubricas";
 import { classificar } from "@/lib/avaliacao-classificacao";
@@ -64,6 +65,10 @@ function FerramentasPage() {
       key: "tabela", titulo: "Tabela de resultados", icon: Table2,
       descricao: "Monta uma tabela editável (quantitativa ou qualitativa) com as cores da classificação e copia formatada para colar direto no laudo.",
     },
+    {
+      key: "documentos", titulo: "Documentos avulsos", icon: FileText,
+      descricao: "Declaração, atestado escolar, encaminhamento, autorização, parecer… modelos pré-preenchidos e editáveis, em PDF com o cabeçalho da clínica.",
+    },
   ];
 
   return (
@@ -101,6 +106,7 @@ function FerramentasPage() {
       <CalculadoraPrecificacao open={aberto === "precificacao"} onClose={() => setAberto(null)} />
       <ComparadorAvaliacoes open={aberto === "comparador"} onClose={() => setAberto(null)} />
       <TabelaResultados open={aberto === "tabela"} onClose={() => setAberto(null)} />
+      <DocumentosAvulsos open={aberto === "documentos"} onClose={() => setAberto(null)} />
     </div>
   );
 }
