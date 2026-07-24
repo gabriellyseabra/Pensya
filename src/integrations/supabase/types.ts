@@ -1528,6 +1528,80 @@ export type Database = {
           },
         ]
       }
+      documentos_fiscais: {
+        Row: {
+          competencia: string | null
+          created_at: string
+          created_by: string | null
+          data_documento: string
+          descricao: string | null
+          id: string
+          numero: string | null
+          observacoes: string | null
+          org_id: string
+          paciente_id: string | null
+          pdf_path: string | null
+          status: string
+          tipo: string
+          tomador_documento: string | null
+          tomador_nome: string | null
+          updated_at: string
+          valor: number
+          visivel_portal: boolean
+          xml_path: string | null
+        }
+        Insert: {
+          competencia?: string | null
+          created_at?: string
+          created_by?: string | null
+          data_documento?: string
+          descricao?: string | null
+          id?: string
+          numero?: string | null
+          observacoes?: string | null
+          org_id?: string
+          paciente_id?: string | null
+          pdf_path?: string | null
+          status?: string
+          tipo?: string
+          tomador_documento?: string | null
+          tomador_nome?: string | null
+          updated_at?: string
+          valor?: number
+          visivel_portal?: boolean
+          xml_path?: string | null
+        }
+        Update: {
+          competencia?: string | null
+          created_at?: string
+          created_by?: string | null
+          data_documento?: string
+          descricao?: string | null
+          id?: string
+          numero?: string | null
+          observacoes?: string | null
+          org_id?: string
+          paciente_id?: string | null
+          pdf_path?: string | null
+          status?: string
+          tipo?: string
+          tomador_documento?: string | null
+          tomador_nome?: string | null
+          updated_at?: string
+          valor?: number
+          visivel_portal?: boolean
+          xml_path?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "documentos_fiscais_paciente_id_fkey"
+            columns: ["paciente_id"]
+            isOneToOne: false
+            referencedRelation: "pacientes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       dominios_cognitivos: {
         Row: {
           created_at: string
@@ -2464,6 +2538,7 @@ export type Database = {
           created_at: string
           created_by: string | null
           descricao: string
+          documento_fiscal_id: string | null
           forma_pagamento: string | null
           forma_recebimento_id: string | null
           fornecedor_id: string | null
@@ -2493,6 +2568,7 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           descricao: string
+          documento_fiscal_id?: string | null
           forma_pagamento?: string | null
           forma_recebimento_id?: string | null
           fornecedor_id?: string | null
@@ -2522,6 +2598,7 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           descricao?: string
+          documento_fiscal_id?: string | null
           forma_pagamento?: string | null
           forma_recebimento_id?: string | null
           fornecedor_id?: string | null
@@ -2562,6 +2639,13 @@ export type Database = {
             columns: ["conta_id"]
             isOneToOne: false
             referencedRelation: "contas_financeiras"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lancamentos_financeiros_documento_fiscal_id_fkey"
+            columns: ["documento_fiscal_id"]
+            isOneToOne: false
+            referencedRelation: "documentos_fiscais"
             referencedColumns: ["id"]
           },
           {
@@ -3446,21 +3530,27 @@ export type Database = {
       }
       organizacoes: {
         Row: {
+          aliquota_iss: number | null
           cidade: string | null
           cnpj: string | null
+          codigo_servico_municipal: string | null
           cor_primaria: string | null
           cor_tema: string
           created_at: string
           declaracao_modelo: string | null
+          discriminacao_padrao: string | null
           email: string | null
           emite_nf: boolean
           endereco: string | null
           id: string
+          inscricao_municipal: string | null
           logo_path: string | null
           mostrar_paciente_modelo: boolean
           nome: string
           plano: string
+          prestador_registro: string | null
           razao_social: string | null
+          regime_tributario: string | null
           responsavel_nome: string | null
           slug: string | null
           status: string
@@ -3470,21 +3560,27 @@ export type Database = {
           whatsapp: string | null
         }
         Insert: {
+          aliquota_iss?: number | null
           cidade?: string | null
           cnpj?: string | null
+          codigo_servico_municipal?: string | null
           cor_primaria?: string | null
           cor_tema?: string
           created_at?: string
           declaracao_modelo?: string | null
+          discriminacao_padrao?: string | null
           email?: string | null
           emite_nf?: boolean
           endereco?: string | null
           id?: string
+          inscricao_municipal?: string | null
           logo_path?: string | null
           mostrar_paciente_modelo?: boolean
           nome: string
           plano?: string
+          prestador_registro?: string | null
           razao_social?: string | null
+          regime_tributario?: string | null
           responsavel_nome?: string | null
           slug?: string | null
           status?: string
@@ -3494,21 +3590,27 @@ export type Database = {
           whatsapp?: string | null
         }
         Update: {
+          aliquota_iss?: number | null
           cidade?: string | null
           cnpj?: string | null
+          codigo_servico_municipal?: string | null
           cor_primaria?: string | null
           cor_tema?: string
           created_at?: string
           declaracao_modelo?: string | null
+          discriminacao_padrao?: string | null
           email?: string | null
           emite_nf?: boolean
           endereco?: string | null
           id?: string
+          inscricao_municipal?: string | null
           logo_path?: string | null
           mostrar_paciente_modelo?: boolean
           nome?: string
           plano?: string
+          prestador_registro?: string | null
           razao_social?: string | null
+          regime_tributario?: string | null
           responsavel_nome?: string | null
           slug?: string | null
           status?: string
@@ -4050,6 +4152,7 @@ export type Database = {
           conta_id: string | null
           convenio_id: string | null
           created_at: string
+          documento_fiscal_id: string | null
           forma_pagamento: string | null
           forma_recebimento_id: string | null
           id: string
@@ -4075,6 +4178,7 @@ export type Database = {
           conta_id?: string | null
           convenio_id?: string | null
           created_at?: string
+          documento_fiscal_id?: string | null
           forma_pagamento?: string | null
           forma_recebimento_id?: string | null
           id?: string
@@ -4100,6 +4204,7 @@ export type Database = {
           conta_id?: string | null
           convenio_id?: string | null
           created_at?: string
+          documento_fiscal_id?: string | null
           forma_pagamento?: string | null
           forma_recebimento_id?: string | null
           id?: string
@@ -4133,6 +4238,13 @@ export type Database = {
             columns: ["convenio_id"]
             isOneToOne: false
             referencedRelation: "convenios"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pagamentos_documento_fiscal_id_fkey"
+            columns: ["documento_fiscal_id"]
+            isOneToOne: false
+            referencedRelation: "documentos_fiscais"
             referencedColumns: ["id"]
           },
           {
