@@ -2,12 +2,23 @@ import { Suspense, lazy, useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
-import { Brain, Rotate3d, Layers, Info, AlertTriangle } from "lucide-react";
-import { usePerfilCognitivo, type Metrica } from "@/hooks/use-perfil-cognitivo";
+import {
+  Brain,
+  Rotate3d,
+  Layers,
+  Info,
+  AlertTriangle,
+  Share2,
+  TrendingUp,
+  TrendingDown,
+} from "lucide-react";
+import { usePerfilCognitivo } from "@/hooks/use-perfil-cognitivo";
+import { desempenhoPorRegiao, mesDe, metricasAte, momentosDe, rotuloMes } from "@/lib/neuro-serie";
 import {
   AVISO_MAPA,
   COR_INTERVENCAO,
   COR_SEM_DADOS,
+  REDES,
   REGIOES,
   classificacaoDesempenho,
   corDesempenho,
@@ -17,7 +28,7 @@ import {
   rotuloLado,
   type RegiaoDef,
 } from "@/lib/neuro-mapa";
-import type { BrainRegion } from "./Brain3D";
+import type { BrainRede, BrainRegion } from "./Brain3D";
 
 const Brain3D = lazy(() => import("./Brain3D"));
 
@@ -32,13 +43,15 @@ const Brain3D = lazy(() => import("./Brain3D"));
  * O cruzamento também expõe o oposto — via frágil SEM intervenção.
  * ============================================================ */
 
-/** Região com os dois canais resolvidos + o detalhe clínico que a sustenta. */
+/** Região com os canais resolvidos + o detalhe clínico que a sustenta. */
 type RegiaoEstado = {
   def: RegiaoDef;
   desempenho: number | null;
   cor: string;
   classificacao: string | null;
   intervencao: number;
+  /** Variação em pontos de percentil desde o primeiro momento avaliado. */
+  delta: number | null;
   achados: string[];
   estimulos: string[];
 };
@@ -46,18 +59,11 @@ type RegiaoEstado = {
 /** Item de `prontuario_sessoes.habilidades_trabalhadas` (coluna jsonb). */
 type HabilidadeSessao = { habilidade?: string | null };
 
+/** Habilidade trabalhada, com a data da sessão — necessária para a linha do tempo. */
+type EstimuloDatado = { nome: string; data: string | null };
+
 function uniq(arr: string[], max = 8): string[] {
   return Array.from(new Set(arr.filter(Boolean))).slice(0, max);
-}
-
-/**
- * Métricas que devem pesar no percentil da região: quando um teste tem
- * variáveis, o escore agregado é descartado para não contar o mesmo teste
- * duas vezes (uma pelas partes, outra pelo total).
- */
-function metricasRelevantes(metricas: Metrica[]): Metrica[] {
-  const temVariavel = new Set(metricas.filter((m) => m.variavelKey != null).map((m) => m.testeId));
-  return metricas.filter((m) => m.variavelKey != null || !temVariavel.has(m.testeId));
 }
 
 export function BrainStateCard({ pacienteId }: { pacienteId: string }) {
@@ -66,6 +72,8 @@ export function BrainStateCard({ pacienteId }: { pacienteId: string }) {
   const [hoverKey, setHoverKey] = useState<string | null>(null);
   const [modoCorte, setModoCorte] = useState(false);
   const [girar, setGirar] = useState(false);
+  const [mostrarRedes, setMostrarRedes] = useState(true);
+  const [hoverRede, setHoverRede] = useState<string | null>(null);
   useEffect(() => setMounted(true), []);
 
   // Habilidades trabalhadas nas sessões + domínios das metas ativas
@@ -75,10 +83,10 @@ export function BrainStateCard({ pacienteId }: { pacienteId: string }) {
       const [{ data: sessoes }, { data: plano }] = await Promise.all([
         supabase
           .from("prontuario_sessoes")
-          .select("habilidades_trabalhadas")
+          .select("habilidades_trabalhadas, data_sessao")
           .eq("paciente_id", pacienteId)
           .order("data_sessao", { ascending: false })
-          .limit(40),
+          .limit(200),
         supabase
           .from("planos_terapeuticos")
           .select("id")
@@ -88,13 +96,15 @@ export function BrainStateCard({ pacienteId }: { pacienteId: string }) {
           .limit(1)
           .maybeSingle(),
       ]);
-      const habs: string[] = [];
+      const habs: EstimuloDatado[] = [];
       for (const s of sessoes ?? []) {
-        const bruto = (s as { habilidades_trabalhadas?: unknown }).habilidades_trabalhadas;
-        const lista: HabilidadeSessao[] = Array.isArray(bruto) ? bruto : [];
+        const linha = s as { habilidades_trabalhadas?: unknown; data_sessao?: string | null };
+        const lista: HabilidadeSessao[] = Array.isArray(linha.habilidades_trabalhadas)
+          ? linha.habilidades_trabalhadas
+          : [];
         for (const h of lista) {
           const nome = (h?.habilidade ?? "").trim();
-          if (nome) habs.push(nome);
+          if (nome) habs.push({ nome, data: linha.data_sessao ?? null });
         }
       }
       let metasDominios: string[] = [];
@@ -111,62 +121,65 @@ export function BrainStateCard({ pacienteId }: { pacienteId: string }) {
     },
   });
 
+  /** Meses com avaliação aplicada — as paradas da linha do tempo. */
+  const momentos = useMemo(() => momentosDe(metricas), [metricas]);
+
+  const [momentoIdx, setMomentoIdx] = useState<number | null>(null);
+  // Ao trocar de paciente (ou carregar), a régua volta para "hoje".
+  useEffect(() => {
+    setMomentoIdx(momentos.length ? momentos.length - 1 : null);
+  }, [momentos.length, pacienteId]);
+
+  const momentoAtual = momentoIdx != null ? momentos[momentoIdx] : null;
+  const ehHoje = momentoIdx == null || momentoIdx === momentos.length - 1;
+
   const regioes = useMemo<RegiaoEstado[]>(() => {
-    type Acc = {
-      somaPct: number;
-      somaPeso: number;
-      achados: string[];
-      estimulos: string[];
-      cargaIntervencao: number;
-    };
-    const acc: Record<string, Acc> = {};
-    for (const r of REGIOES) {
-      acc[r.key] = { somaPct: 0, somaPeso: 0, achados: [], estimulos: [], cargaIntervencao: 0 };
-    }
+    // --- Canal 1: desempenho no momento selecionado
+    const limite = momentoAtual ?? "9999-12";
+    const agora = desempenhoPorRegiao(metricasAte(metricas, limite));
+    // --- Canal 3: comparação com o primeiro momento avaliado
+    const inicial =
+      momentos.length > 1 && momentoAtual && momentoAtual > momentos[0]
+        ? desempenhoPorRegiao(metricasAte(metricas, momentos[0]))
+        : null;
 
-    // --- Canal 1: desempenho (média ponderada pelos pesos do mapa funcional)
-    for (const m of metricasRelevantes(metricas)) {
-      if (m.percentil == null) continue;
-      const alvos = distribuirEmRegioes(m.variavelLabel, m.dominio, m.testeNome);
-      const label =
-        m.variavelLabel && !/total/i.test(m.variavelLabel) ? m.variavelLabel : m.dominio;
-      for (const { key, peso } of alvos) {
-        const a = acc[key];
-        if (!a) continue;
-        a.somaPct += m.percentil * peso;
-        a.somaPeso += peso;
-        if (m.percentil < 25) a.achados.push(label);
-      }
-    }
-
-    // --- Canal 2: intervenção (sessões + metas do plano ativo)
-    const registrarEstimulo = (texto: string) => {
+    // --- Canal 2: intervenção acumulada até o momento selecionado
+    const carga: Record<string, { peso: number; nomes: string[] }> = {};
+    for (const r of REGIOES) carga[r.key] = { peso: 0, nomes: [] };
+    const registrar = (texto: string) => {
       for (const { key, peso } of distribuirEmRegioes(texto)) {
-        const a = acc[key];
-        if (!a) continue;
-        a.cargaIntervencao += peso;
-        a.estimulos.push(texto);
+        const c = carga[key];
+        if (!c) continue;
+        c.peso += peso;
+        c.nomes.push(texto);
       }
     };
-    for (const nome of estimulos?.habs ?? []) registrarEstimulo(nome);
-    for (const dom of estimulos?.metasDominios ?? []) registrarEstimulo(dom);
+    for (const e of estimulos?.habs ?? []) {
+      const mes = mesDe(e.data);
+      if (mes && momentoAtual && mes > momentoAtual) continue;
+      registrar(e.nome);
+    }
+    // Metas do plano ativo descrevem o presente: só contam na visão de hoje.
+    if (ehHoje) for (const dom of estimulos?.metasDominios ?? []) registrar(dom);
 
-    const cargaMax = Math.max(0, ...Object.values(acc).map((a) => a.cargaIntervencao));
+    const cargaMax = Math.max(0, ...Object.values(carga).map((c) => c.peso));
 
     return REGIOES.map((def) => {
-      const a = acc[def.key];
-      const desempenho = a.somaPeso > 0 ? Math.round(a.somaPct / a.somaPeso) : null;
+      const atual = agora[def.key];
+      const base = inicial?.[def.key];
+      const delta = atual?.pct != null && base?.pct != null ? atual.pct - base.pct : null;
       return {
         def,
-        desempenho,
-        cor: corDesempenho(desempenho),
-        classificacao: classificacaoDesempenho(desempenho),
-        intervencao: cargaMax > 0 ? a.cargaIntervencao / cargaMax : 0,
-        achados: uniq(a.achados),
-        estimulos: uniq(a.estimulos),
+        desempenho: atual?.pct ?? null,
+        cor: corDesempenho(atual?.pct ?? null),
+        classificacao: classificacaoDesempenho(atual?.pct ?? null),
+        intervencao: cargaMax > 0 ? carga[def.key].peso / cargaMax : 0,
+        delta,
+        achados: uniq(atual?.achados ?? []),
+        estimulos: uniq(carga[def.key].nomes),
       };
     });
-  }, [metricas, estimulos]);
+  }, [metricas, estimulos, momentoAtual, momentos, ehHoje]);
 
   const comDados = useMemo(
     () => regioes.filter((r) => r.desempenho != null || r.intervencao > 0),
@@ -190,8 +203,47 @@ export function BrainStateCard({ pacienteId }: { pacienteId: string }) {
         desempenho: r.desempenho,
         cor: r.cor,
         intervencao: r.intervencao,
+        delta: r.delta,
       })),
     [comDados],
+  );
+
+  /**
+   * Redes com pelo menos duas regiões avaliadas. A intensidade do arco vem do
+   * quanto a rede está abaixo do esperado — é a rede sob carga que interessa
+   * mostrar, não o emaranhado completo.
+   */
+  const redes = useMemo(() => {
+    const porKey = new Map(regioes.map((r) => [r.def.key, r]));
+    return REDES.map((rede) => {
+      const avaliadas = rede.regioes
+        .map((k) => porKey.get(k))
+        .filter((r): r is RegiaoEstado => !!r && r.desempenho != null);
+      if (avaliadas.length < 2) return null;
+      const media = avaliadas.reduce((s, r) => s + (r.desempenho ?? 0), 0) / avaliadas.length;
+      // percentil 50+ → rede tranquila (arco discreto); 0 → totalmente sob carga
+      const intensidade = Math.max(0, Math.min(1, (50 - media) / 50));
+      return {
+        def: rede,
+        media: Math.round(media),
+        intensidade,
+        cor: corDesempenho(Math.round(media)),
+        emIntervencao: rede.regioes.some((k) => (porKey.get(k)?.intervencao ?? 0) > 0),
+      };
+    }).filter((r): r is NonNullable<typeof r> => !!r);
+  }, [regioes]);
+
+  const redes3D = useMemo<BrainRede[]>(
+    () =>
+      mostrarRedes
+        ? redes.map((r) => ({
+            key: r.def.key,
+            regioes: r.def.regioes,
+            cor: r.cor,
+            intensidade: r.intensidade,
+          }))
+        : [],
+    [redes, mostrarRedes],
   );
 
   // Ordena por prioridade clínica: frágil e sem cobertura primeiro
@@ -239,7 +291,9 @@ export function BrainStateCard({ pacienteId }: { pacienteId: string }) {
               >
                 <Brain3D
                   regioes={regioes3D}
+                  redes={redes3D}
                   hover={hoverKey}
+                  hoverRede={hoverRede}
                   modoCorte={modoCorte}
                   girar={girar}
                   onHover={setHoverKey}
@@ -271,6 +325,18 @@ export function BrainStateCard({ pacienteId }: { pacienteId: string }) {
               </button>
               <button
                 type="button"
+                onClick={() => setMostrarRedes((v) => !v)}
+                title="Arcos das redes funcionais — quanto mais espesso, mais a rede está sob carga"
+                className={`inline-flex items-center gap-1 rounded-lg px-2 py-1 text-[10px] font-medium backdrop-blur transition-colors ${
+                  mostrarRedes
+                    ? "bg-brand text-brand-foreground"
+                    : "bg-card/80 text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                <Share2 className="h-3 w-3" /> redes
+              </button>
+              <button
+                type="button"
                 onClick={() => setGirar((v) => !v)}
                 title="Rotação automática"
                 className={`inline-flex items-center gap-1 rounded-lg px-2 py-1 text-[10px] font-medium backdrop-blur transition-colors ${
@@ -283,6 +349,41 @@ export function BrainStateCard({ pacienteId }: { pacienteId: string }) {
               </button>
             </div>
           </div>
+
+          {/* Linha do tempo — só aparece quando há mais de um momento avaliado */}
+          {momentos.length > 1 && momentoIdx != null && (
+            <div className="mt-3 rounded-xl border border-border/60 bg-card/60 p-2.5">
+              <div className="mb-1.5 flex items-baseline justify-between">
+                <span className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+                  linha do tempo
+                </span>
+                <span className="text-[11px] font-medium">
+                  {rotuloMes(momentos[momentoIdx])}
+                  {ehHoje && <span className="text-muted-foreground"> · hoje</span>}
+                </span>
+              </div>
+              <input
+                type="range"
+                min={0}
+                max={momentos.length - 1}
+                step={1}
+                value={momentoIdx}
+                onChange={(e) => setMomentoIdx(Number(e.target.value))}
+                aria-label="Momento da avaliação"
+                className="h-1.5 w-full cursor-pointer appearance-none rounded-full bg-muted accent-[var(--brand)]"
+              />
+              <div className="mt-1 flex justify-between text-[10px] text-muted-foreground">
+                <span>{rotuloMes(momentos[0])}</span>
+                <span>{rotuloMes(momentos[momentos.length - 1])}</span>
+              </div>
+              {!ehHoje && (
+                <p className="mt-1.5 text-[10px] leading-relaxed text-amber-700 dark:text-amber-300">
+                  Vendo o estado de {rotuloMes(momentos[momentoIdx])}. As metas do plano ativo não
+                  entram nesta visão.
+                </p>
+              )}
+            </div>
+          )}
 
           {/* Legenda — um canal por linha, para não confundir os dois */}
           <div className="mt-3 space-y-1.5">
@@ -310,6 +411,18 @@ export function BrainStateCard({ pacienteId }: { pacienteId: string }) {
               <span className="flex-1 text-[11px] text-muted-foreground">em intervenção agora</span>
               <span className="h-2.5 w-4 rounded-sm" style={{ backgroundColor: COR_INTERVENCAO }} />
             </div>
+            {momentos.length > 1 && (
+              <div className="flex items-center gap-2">
+                <span className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+                  seta
+                </span>
+                <span className="flex-1 text-[11px] text-muted-foreground">
+                  variação desde {rotuloMes(momentos[0])}
+                </span>
+                <TrendingUp className="h-3 w-3 text-emerald-500" />
+                <TrendingDown className="h-3 w-3 text-rose-500" />
+              </div>
+            )}
             <div className="flex items-center gap-2">
               <span className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
                 cinza
@@ -399,8 +512,20 @@ export function BrainStateCard({ pacienteId }: { pacienteId: string }) {
                       </span>
                       <div className="min-w-0 flex-1">
                         <p className="truncate text-xs font-semibold">{r.def.nome}</p>
-                        <p className="text-[11px] text-muted-foreground">
+                        <p className="flex items-center gap-1 text-[11px] text-muted-foreground">
                           {r.desempenho != null ? `percentil ${r.desempenho}` : "sem teste"}
+                          {r.delta != null && Math.abs(r.delta) >= 5 && (
+                            <span
+                              className={
+                                r.delta > 0
+                                  ? "text-emerald-600 dark:text-emerald-400"
+                                  : "text-rose-600 dark:text-rose-400"
+                              }
+                            >
+                              {r.delta > 0 ? "+" : ""}
+                              {r.delta}
+                            </span>
+                          )}
                           {r.intervencao > 0 && " · em trabalho"}
                           {fraco && r.intervencao === 0 && " · sem cobertura"}
                         </p>
@@ -409,6 +534,48 @@ export function BrainStateCard({ pacienteId }: { pacienteId: string }) {
                   );
                 })}
               </div>
+
+              {/* Redes funcionais — a leitura de "via", não de ponto isolado */}
+              {redes.length > 0 && mostrarRedes && (
+                <div>
+                  <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+                    Redes sob carga
+                  </p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {[...redes]
+                      .sort((a, b) => b.intensidade - a.intensidade)
+                      .map((r) => (
+                        <button
+                          key={r.def.key}
+                          type="button"
+                          onMouseEnter={() => setHoverRede(r.def.key)}
+                          onMouseLeave={() => setHoverRede(null)}
+                          onFocus={() => setHoverRede(r.def.key)}
+                          onBlur={() => setHoverRede(null)}
+                          title={r.def.descricao}
+                          className={`inline-flex items-center gap-1.5 rounded-lg border px-2 py-1 text-[11px] transition-colors ${
+                            hoverRede === r.def.key
+                              ? "border-brand/40 bg-brand/5"
+                              : "border-border/60 bg-card/60 hover:border-border"
+                          }`}
+                        >
+                          <span
+                            className="h-2 w-2 rounded-full"
+                            style={{ backgroundColor: r.cor }}
+                          />
+                          {r.def.nome}
+                          <span className="text-muted-foreground">· {r.media}</span>
+                          {r.emIntervencao && (
+                            <span
+                              className="h-1.5 w-1.5 rounded-full"
+                              style={{ backgroundColor: COR_INTERVENCAO }}
+                            />
+                          )}
+                        </button>
+                      ))}
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </div>
@@ -445,6 +612,24 @@ function RegionDetail({ regiao, isHover }: { regiao: RegiaoEstado; isHover: bool
       <p className="mt-3 text-xs leading-relaxed text-muted-foreground">{def.resp}</p>
 
       <p className="mt-2 text-xs leading-relaxed">{fraseDesempenho(def, regiao.desempenho)}</p>
+
+      {regiao.delta != null && Math.abs(regiao.delta) >= 5 && (
+        <p
+          className={`mt-1.5 flex items-center gap-1 text-xs leading-relaxed ${
+            regiao.delta > 0
+              ? "text-emerald-700 dark:text-emerald-300"
+              : "text-rose-700 dark:text-rose-300"
+          }`}
+        >
+          {regiao.delta > 0 ? (
+            <TrendingUp className="h-3.5 w-3.5 shrink-0" />
+          ) : (
+            <TrendingDown className="h-3.5 w-3.5 shrink-0" />
+          )}
+          {regiao.delta > 0 ? "Ganho" : "Queda"} de {Math.abs(regiao.delta)} pontos de percentil
+          desde a primeira avaliação.
+        </p>
+      )}
 
       {regiao.intervencao > 0 ? (
         <p className="mt-1.5 text-xs leading-relaxed" style={{ color: COR_INTERVENCAO }}>

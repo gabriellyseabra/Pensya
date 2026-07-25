@@ -25,7 +25,23 @@ export type BrainRegion = {
   cor: string;
   /** Canal 2 — intensidade da intervenção em curso (0 = nenhuma, 1 = forte). */
   intervencao: number;
+  /** Canal 3 — variação em pontos de percentil desde a avaliação inicial. */
+  delta: number | null;
 };
+
+/** Rede funcional desenhada como arco entre as regiões que a compõem. */
+export type BrainRede = {
+  key: string;
+  regioes: string[];
+  cor: string;
+  /** 0..1 — o quanto a rede está implicada; vira espessura do arco. */
+  intensidade: number;
+};
+
+/** Variação relevante o bastante para virar seta — abaixo disso é ruído. */
+const DELTA_MINIMO = 5;
+const COR_GANHO = "#22c55e";
+const COR_PERDA = "#f43f5e";
 
 useGLTF.preload("/brain.glb");
 
@@ -208,19 +224,114 @@ function Marker({
           depthTest={!atravessa}
         />
       </mesh>
+      {/* Canal 3 — evolução: seta para cima (ganho) ou para baixo (perda). */}
+      {dados.delta != null && Math.abs(dados.delta) >= DELTA_MINIMO && (
+        <mesh
+          position={[0, 0.11, 0]}
+          rotation={[dados.delta > 0 ? 0 : Math.PI, 0, 0]}
+          renderOrder={atravessa ? 4 : 0}
+        >
+          <coneGeometry args={[0.028, 0.06, 12]} />
+          <meshBasicMaterial
+            color={dados.delta > 0 ? COR_GANHO : COR_PERDA}
+            depthTest={!atravessa}
+          />
+        </mesh>
+      )}
     </group>
+  );
+}
+
+/**
+ * Arcos das redes funcionais. Para cada par de regiões vizinhas na rede,
+ * liga os DOIS pontos MAIS PRÓXIMOS entre si — assim uma rede lateralizada
+ * (leitura, linguagem) não atravessa a linha média sem necessidade.
+ */
+function RedeArcos({
+  rede,
+  pontos,
+  destacada,
+}: {
+  rede: BrainRede;
+  pontos: Ponto[];
+  destacada: boolean;
+}) {
+  const geometria = useMemo(() => {
+    const porRegiao = new Map<string, THREE.Vector3[]>();
+    for (const p of pontos) {
+      if (!porRegiao.has(p.regiaoKey)) porRegiao.set(p.regiaoKey, []);
+      porRegiao.get(p.regiaoKey)!.push(p.pos);
+    }
+    const presentes = rede.regioes.filter((k) => porRegiao.get(k)?.length);
+    if (presentes.length < 2) return null;
+
+    const raio = (0.005 + 0.013 * rede.intensidade) * (destacada ? 1.9 : 1);
+    const geometrias: THREE.TubeGeometry[] = [];
+
+    for (let i = 0; i < presentes.length - 1; i++) {
+      const as = porRegiao.get(presentes[i])!;
+      const bs = porRegiao.get(presentes[i + 1])!;
+      // Par de pontos mais próximo entre as duas regiões
+      let melhor: [THREE.Vector3, THREE.Vector3] | null = null;
+      let menor = Infinity;
+      for (const a of as) {
+        for (const b of bs) {
+          const d = a.distanceToSquared(b);
+          if (d < menor) {
+            menor = d;
+            melhor = [a, b];
+          }
+        }
+      }
+      if (!melhor) continue;
+      const [a, b] = melhor;
+      // Meio empurrado para fora, para o arco não afundar no córtex
+      const meio = a.clone().lerp(b, 0.5);
+      meio.multiplyScalar(1 + 0.16 * (1 - rede.intensidade * 0.4));
+      const curva = new THREE.QuadraticBezierCurve3(a, meio, b);
+      geometrias.push(new THREE.TubeGeometry(curva, 22, raio, 6, false));
+    }
+    if (geometrias.length === 0) return null;
+    return geometrias;
+  }, [rede, pontos, destacada]);
+
+  // TubeGeometry não é liberada pelo GC do three: descarta na troca.
+  useEffect(() => {
+    return () => {
+      for (const g of geometria ?? []) g.dispose();
+    };
+  }, [geometria]);
+
+  if (!geometria) return null;
+  return (
+    <>
+      {geometria.map((g, i) => (
+        <mesh key={i} geometry={g} renderOrder={1}>
+          <meshBasicMaterial
+            color={rede.cor}
+            transparent
+            opacity={destacada ? 0.85 : 0.3 + 0.35 * rede.intensidade}
+            depthWrite={false}
+          />
+        </mesh>
+      ))}
+    </>
   );
 }
 
 function Scene({
   regioes,
+  redes,
   hover,
+  hoverRede,
   modoCorte,
   girar,
   onHover,
 }: {
   regioes: BrainRegion[];
+  redes: BrainRede[];
   hover: string | null;
+  hoverRede: string | null;
   modoCorte: boolean;
   girar: boolean;
   onHover: (k: string | null) => void;
@@ -239,12 +350,28 @@ function Scene({
     [regioes],
   );
 
+  const pontosVisiveis = useMemo(
+    () => (modoCorte ? pontos : pontos.filter((p) => !p.profunda)),
+    [pontos, modoCorte],
+  );
+
   return (
     <>
       <ambientLight intensity={0.85} />
       <directionalLight position={[3, 4, 5]} intensity={1.15} />
       <directionalLight position={[-4, 1, -3]} intensity={0.55} color="#cbb8ff" />
       <BrainModel regioesDef={regioesDef} modoCorte={modoCorte} onPontos={setPontos} />
+      {/* Arcos primeiro: as redes são o pano de fundo, não o assunto.
+          Fora do modo corte, estruturas profundas não entram no traçado —
+          seus marcadores estão ocultos e o arco mergulharia no córtex. */}
+      {redes.map((r) => (
+        <RedeArcos
+          key={r.key}
+          rede={r}
+          pontos={pontosVisiveis}
+          destacada={hoverRede === r.key || (!!hover && r.regioes.includes(hover))}
+        />
+      ))}
       {pontos.map((p, i) => {
         const dados = porKey[p.regiaoKey];
         if (!dados) return null;
@@ -278,13 +405,18 @@ function Scene({
 
 export default function Brain3D({
   regioes,
+  redes = [],
   hover = null,
+  hoverRede = null,
   modoCorte = false,
   girar = false,
   onHover,
 }: {
   regioes: BrainRegion[];
+  /** Redes funcionais a desenhar como arcos. Vazio = só os marcadores. */
+  redes?: BrainRede[];
   hover?: string | null;
+  hoverRede?: string | null;
   /** Córtex translúcido, revelando hipocampo, amígdala e cingulado. */
   modoCorte?: boolean;
   /** Rotação automática — desligada por padrão: atrapalha conduzir a devolutiva. */
@@ -300,7 +432,9 @@ export default function Brain3D({
     >
       <Scene
         regioes={regioes}
+        redes={redes}
         hover={hover}
+        hoverRede={hoverRede}
         modoCorte={modoCorte}
         girar={girar}
         onHover={(k) => onHover?.(k)}
